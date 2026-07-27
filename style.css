@@ -664,17 +664,53 @@ textarea.inp{resize:vertical;line-height:1.6;}
 /* ═══ MOBİL RESPONSIVE DESIGN (768px altı) ═══ */
 @media(max-width:768px){
   /* NAVBAR - Mobilde hamburger menu ile kontrol et */
-  .navbar{position:fixed;left:-240px;top:0;height:100vh;z-index:100;transition:left 0.3s ease;}
+  .navbar{position:fixed;left:-240px;top:0;height:100vh;z-index:100;transition:left 0.3s ease;width:240px;overflow-y:auto;}
   .navbar.open{left:0;}
-  main{margin-left:0;margin-top:0;}
+  main{margin-left:0;margin-top:0;padding-top:0;}
 
   /* Overlay */
   .overlay-mobile{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99;}
   .overlay-mobile.show{display:block;}
 
-  /* Hamburger Button */
-  .mobile-hamburger{display:block;position:fixed;top:12px;left:12px;z-index:101;background:none;border:none;font-size:24px;cursor:pointer;padding:6px;}
+  /* Hamburger Button - SAĞ ÜSTE */
+  .mobile-hamburger{display:block;position:fixed;top:12px;right:12px;z-index:101;background:none;border:none;font-size:24px;cursor:pointer;padding:6px;color:#333;}
   .mobile-hamburger:active{opacity:0.7;}
+
+  /* PAGE HEADER */
+  .pg-hd{margin-bottom:12px;}
+  .pg-title{font-size:18px;margin-bottom:8px;}
+  .pg-acts{gap:6px;}
+  .pg-acts button{font-size:12px;padding:8px 12px;}
+
+  /* INPUTS & FORMS */
+  .inp{font-size:16px;padding:12px;border-radius:6px;}
+  .form-grp{margin-bottom:12px;}
+  .form-lbl{font-size:11px;margin-bottom:5px;}
+
+  /* BUTTONS */
+  .btn{font-size:13px;padding:10px 14px;border-radius:6px;}
+  .btn-sm{padding:8px 12px;font-size:12px;}
+
+  /* MODAL - MOBILE OPTIMIZED */
+  .modal-content{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:100%;border-radius:16px 16px 0 0;margin:0;padding:16px;max-height:90vh;overflow-y:auto;animation:slideUpMobile 0.3s ease;}
+  @keyframes slideUpMobile{from{transform:translateY(100%);}to{transform:translateY(0);}}
+
+  /* TEXT SIZING */
+  body{font-size:14px;}
+  h1{font-size:20px;}
+  h2{font-size:16px;}
+  h3{font-size:14px;}
+
+  /* TABLES - CARD LAYOUT */
+  .pg-sub{font-size:12px;}
+
+  /* NAVBAR ITEMS */
+  .nav-tab{font-size:12px;padding:10px 12px;gap:8px;}
+  .nav-tab svg{width:18px;height:18px;}
+
+  /* SEARCH BOX */
+  .search-box input{font-size:14px;padding:10px;border-radius:6px;}
+}
 
   /* PAGE */
   .pg{padding:16px 12px;}
@@ -730,16 +766,40 @@ textarea.inp{resize:vertical;line-height:1.6;}
 /* ═══ EXTRA SMALL PHONES (480px altı) ═══ */
 @media(max-width:480px){
   .pg{padding:12px 10px;}
-  .pg-title{font-size:18px;margin-bottom:8px;}
-  .btn{padding:10px 12px;font-size:12px;}
-  .inp{font-size:16px;padding:10px;}
-  .modal-content{max-width:calc(100vw - 12px);}
-  .vd-kpi{padding:12px;flex-direction:column;text-align:center;}
+  .pg-title{font-size:16px;margin-bottom:6px;}
+  .pg-sub{font-size:11px;}
+  .pg-acts{gap:4px;}
+  .pg-acts button{font-size:11px;padding:6px 10px;}
+
+  .btn{padding:8px 10px;font-size:12px;}
+  .btn-sm{padding:6px 10px;font-size:11px;}
+
+  .inp{font-size:16px;padding:10px;border-radius:6px;}
+  .form-lbl{font-size:10px;}
+
+  .modal-content{padding:12px;border-radius:12px 12px 0 0;max-height:85vh;}
+
+  .vd-kpi{padding:12px;flex-direction:column;text-align:center;gap:12px;}
   .vd-kpi-icon{width:40px;height:40px;font-size:16px;}
   .vd-kpi strong{font-size:20px;}
+  .vd-kpi span{font-size:12px;}
+
   .dash-hero h1{font-size:18px;}
   .dash-card{padding:12px;}
   .dash-card strong{font-size:20px;}
+
+  /* Header sizing for extra small */
+  h1{font-size:18px;}
+  h2{font-size:14px;}
+  h3{font-size:12px;}
+
+  /* Month navigation */
+  .month-nav{gap:4px;}
+  .month-nav button{padding:6px 8px;font-size:12px;}
+
+  /* Technician buttons */
+  .zt-tech-btns{gap:4px;}
+  .zt-tech-btns button{padding:8px 10px;font-size:11px;min-width:50px;}
 }
 
 /* ═══ TABLE MOBILE OPTIMIZATION ═══ */

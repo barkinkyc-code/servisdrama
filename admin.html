@@ -19,22 +19,27 @@
 <style>
   main { margin-left: 220px; }
 
-  /* Hamburger Menu */
+  /* Hamburger Menu - SAĞ ÜSTE */
   .mobile-hamburger {
     display: none;
     position: fixed;
     top: 16px;
-    left: 16px;
+    right: 16px;
     z-index: 101;
     background: none;
     border: none;
     font-size: 24px;
     cursor: pointer;
     padding: 8px;
+    color: #333;
   }
 
   .mobile-hamburger.show {
     display: block;
+  }
+
+  .mobile-hamburger:active {
+    opacity: 0.6;
   }
 
   @media(max-width:768px){
