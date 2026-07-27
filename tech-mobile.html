@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>ServisDrama Mobil — Teknisyen</title>
+  <title>ServisDrama — Teknisyen Paneli</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * {
@@ -23,10 +23,10 @@
       color: #333;
       -webkit-font-smoothing: antialiased;
       padding-top: 56px;
-      padding-bottom: 60px;
+      padding-bottom: 70px;
     }
 
-    /* Header */
+    /* HEADER */
     .tech-header {
       position: fixed;
       top: 0;
@@ -47,32 +47,39 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex: 1;
+      min-width: 0;
     }
 
     .tech-header-logo {
       font-size: 20px;
       font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .tech-header-info {
+      min-width: 0;
     }
 
     .tech-header-title {
       font-size: 13px;
       font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tech-header-user {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      opacity: 0.9;
+      font-size: 11px;
+      opacity: 0.8;
     }
 
     .tech-header-btn {
       background: rgba(255, 255, 255, 0.2);
       border: none;
       color: white;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
       cursor: pointer;
       display: flex;
@@ -80,20 +87,29 @@
       justify-content: center;
       font-size: 16px;
       transition: all 0.2s;
+      flex-shrink: 0;
     }
 
     .tech-header-btn:active {
       background: rgba(255, 255, 255, 0.3);
     }
 
-    /* Main Container */
+    /* MAIN CONTENT */
     .tech-main {
-      max-width: 500px;
+      max-width: 600px;
       margin: 0 auto;
       padding: 16px;
     }
 
-    /* Cards */
+    .page-section {
+      display: none;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    /* CARDS */
     .tech-card {
       background: white;
       border-radius: 12px;
@@ -102,26 +118,11 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
-    .tech-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
     .tech-card-title {
       font-weight: 700;
       font-size: 15px;
       color: #111827;
-    }
-
-    .tech-card-badge {
-      background: #667eea;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
+      margin-bottom: 12px;
     }
 
     .tech-card-content {
@@ -130,7 +131,7 @@
       line-height: 1.6;
     }
 
-    /* Summary Box */
+    /* SUMMARY */
     .tech-summary {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -144,10 +145,10 @@
       font-weight: 600;
       text-transform: uppercase;
       opacity: 0.9;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .tech-summary-content {
+    .tech-summary-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
@@ -169,23 +170,17 @@
       font-weight: 500;
     }
 
-    /* Company List */
+    /* COMPANY LIST */
     .tech-company-item {
       background: white;
       border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
       border-left: 4px solid #667eea;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      transition: all 0.2s;
-    }
-
-    .tech-company-item:active {
-      background: #f8f9fa;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
     }
 
     .tech-company-info {
@@ -219,80 +214,13 @@
       cursor: pointer;
       margin-left: 8px;
       white-space: nowrap;
-      transition: all 0.2s;
-    }
-
-    .tech-company-btn:active {
-      transform: scale(0.95);
-      background: #5568d3;
     }
 
     .tech-company-btn.done {
       background: #10b981;
     }
 
-    .tech-company-btn.done:active {
-      background: #059669;
-    }
-
-    /* Bottom Navigation */
-    .tech-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: white;
-      border-top: 1px solid #e5e7eb;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 999;
-    }
-
-    .tech-nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-size: 11px;
-      font-weight: 600;
-      color: #9ca3af;
-      transition: all 0.2s;
-      padding: 8px;
-    }
-
-    .tech-nav-item.active {
-      color: #667eea;
-    }
-
-    .tech-nav-item-icon {
-      font-size: 20px;
-    }
-
-    /* Empty State */
-    .tech-empty {
-      text-align: center;
-      padding: 40px 16px;
-      color: #9ca3af;
-    }
-
-    .tech-empty-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-    }
-
-    .tech-empty-text {
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    /* Search */
+    /* SEARCH */
     .tech-search {
       position: sticky;
       top: 56px;
@@ -318,7 +246,91 @@
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
-    /* Modal */
+    /* EMPTY STATE */
+    .tech-empty {
+      text-align: center;
+      padding: 40px 16px;
+      color: #9ca3af;
+    }
+
+    .tech-empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .tech-empty-text {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* BOTTOM NAVIGATION */
+    .tech-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      z-index: 999;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .tech-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 10px;
+      font-weight: 600;
+      color: #9ca3af;
+      transition: all 0.2s;
+      padding: 8px;
+    }
+
+    .tech-nav-item.active {
+      color: #667eea;
+      background: rgba(102, 126, 234, 0.08);
+    }
+
+    .tech-nav-item-icon {
+      font-size: 22px;
+    }
+
+    /* LIST GRID */
+    .tech-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tech-list-item {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    .tech-list-item-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .tech-list-item-desc {
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    /* MODAL */
     .tech-modal {
       display: none;
       position: fixed;
@@ -392,19 +404,15 @@
 
     .tech-modal-btn {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
       background: #667eea;
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       margin-top: 8px;
-    }
-
-    .tech-modal-btn:active {
-      background: #5568d3;
     }
 
     .tech-modal-btn.cancel {
@@ -412,17 +420,32 @@
       color: #333;
     }
 
-    .tech-modal-btn.cancel:active {
-      background: #d1d5db;
+    /* RESPONSIVE */
+    @media (max-width: 480px) {
+      .tech-header-title {
+        font-size: 12px;
+      }
+      .tech-card {
+        padding: 12px;
+      }
+      .tech-nav {
+        height: 65px;
+      }
+      .tech-nav-item-icon {
+        font-size: 20px;
+      }
+      .tech-nav-item {
+        font-size: 9px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- HEADER -->
   <div class="tech-header">
     <div class="tech-header-left">
       <div class="tech-header-logo">🚗</div>
-      <div>
+      <div class="tech-header-info">
         <div class="tech-header-title">ServisDrama</div>
         <div class="tech-header-user" id="techName">Teknisyen</div>
       </div>
@@ -430,98 +453,154 @@
     <button class="tech-header-btn" onclick="doLogout()">🚪</button>
   </div>
 
-  <!-- Main Content -->
+  <!-- MAIN CONTENT -->
   <div class="tech-main">
-    <!-- Summary -->
-    <div class="tech-summary">
-      <div class="tech-summary-title">Bu Hafta</div>
-      <div class="tech-summary-content">
-        <div class="tech-summary-item">
-          <div class="tech-summary-number" id="techPlanned">0</div>
-          <div class="tech-summary-label">Planlı</div>
+    <!-- ZİYARET TAKIBI SAYFASI -->
+    <div class="page-section active" id="page-ziyaret">
+      <div class="tech-summary">
+        <div class="tech-summary-title">Bu Hafta</div>
+        <div class="tech-summary-grid">
+          <div class="tech-summary-item">
+            <div class="tech-summary-number" id="techPlanned">0</div>
+            <div class="tech-summary-label">Planlı</div>
+          </div>
+          <div class="tech-summary-item">
+            <div class="tech-summary-number" id="techCompleted">0</div>
+            <div class="tech-summary-label">Tamamlandı</div>
+          </div>
+          <div class="tech-summary-item">
+            <div class="tech-summary-number" id="techProgress">0%</div>
+            <div class="tech-summary-label">İlerleme</div>
+          </div>
         </div>
-        <div class="tech-summary-item">
-          <div class="tech-summary-number" id="techCompleted">0</div>
-          <div class="tech-summary-label">Tamamlandı</div>
+      </div>
+
+      <div class="tech-search">
+        <input
+          type="text"
+          class="tech-search-input"
+          id="techSearchInput"
+          placeholder="Firma ara..."
+        >
+      </div>
+
+      <div id="techCompanyList" class="tech-list"></div>
+      <div class="tech-empty" id="techEmpty" style="display: none;">
+        <div class="tech-empty-icon">📋</div>
+        <div class="tech-empty-text">Firma bulunamadı</div>
+      </div>
+    </div>
+
+    <!-- FIRMALAR SAYFASI -->
+    <div class="page-section" id="page-firmalar">
+      <div class="tech-card">
+        <div class="tech-card-title">📍 Tüm Firmalar</div>
+        <div class="tech-card-content">
+          Firma yönetimi için admin panelini ziyaret edin.
         </div>
-        <div class="tech-summary-item">
-          <div class="tech-summary-number" id="techProgress">0%</div>
-          <div class="tech-summary-label">İlerleme</div>
+      </div>
+      <div class="tech-list" id="allCompaniesList"></div>
+    </div>
+
+    <!-- NUMUNE SAYFASI -->
+    <div class="page-section" id="page-numune">
+      <div class="tech-card">
+        <div class="tech-card-title">🧪 Numune Takibi</div>
+        <div class="tech-card-content">
+          Analiz merkezi numuneleriniz burada gösterilir.
+        </div>
+      </div>
+      <div id="numuneList" class="tech-list"></div>
+      <div class="tech-empty" id="numuneEmpty">
+        <div class="tech-empty-icon">🧪</div>
+        <div class="tech-empty-text">Numune kaydı yok</div>
+      </div>
+    </div>
+
+    <!-- İSTATİSTİKLER SAYFASI -->
+    <div class="page-section" id="page-istatistik">
+      <div class="tech-card">
+        <div class="tech-card-title">📊 İstatistikler</div>
+        <div class="tech-card-content">
+          <div style="margin-bottom: 8px;">
+            <strong>Toplam Ziyaret:</strong> <span id="totalVisits">0</span>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong>Tamamlanan:</strong> <span id="completedVisits">0</span>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong>Bu Ay Ortalama:</strong> <span id="avgVisits">0</span>
+          </div>
+          <div>
+            <strong>Başarı Oranı:</strong> <span id="successRate">0%</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="tech-search">
-      <input
-        type="text"
-        class="tech-search-input"
-        id="techSearchInput"
-        placeholder="Firma ara..."
-      >
+    <!-- TEKNİSYENLER SAYFASI -->
+    <div class="page-section" id="page-teknisyenler">
+      <div class="tech-card">
+        <div class="tech-card-title">👥 Teknisyen Bilgisi</div>
+        <div class="tech-card-content">
+          <div style="margin-bottom: 8px;">
+            <strong>Ad Soyadı:</strong> <span id="techFullName">-</span>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong>Kod:</strong> <span id="techCode">-</span>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong>E-posta:</strong> <span id="techEmail">-</span>
+          </div>
+          <div>
+            <strong>Telefon:</strong> <span id="techPhone">-</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Company List -->
-    <div id="techCompanyList"></div>
-
-    <!-- Empty State -->
-    <div class="tech-empty" id="techEmpty" style="display: none;">
-      <div class="tech-empty-icon">📋</div>
-      <div class="tech-empty-text">Firma bulunamadı</div>
+    <!-- AYARLAR SAYFASI -->
+    <div class="page-section" id="page-ayarlar">
+      <div class="tech-card">
+        <div class="tech-card-title">⚙️ Ayarlar</div>
+        <div class="tech-card-content">
+          <div style="margin-bottom: 12px;">
+            <button onclick="doLogout()" style="width: 100%; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+              🚪 Çıkış Yap
+            </button>
+          </div>
+          <div style="font-size: 11px; color: #9ca3af;">
+            ServisDrama v1.0<br>
+            Teknik Servis Yönetim Sistemi<br>
+            © 2026 Drama Makine
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Bottom Navigation -->
+  <!-- BOTTOM NAVIGATION -->
   <div class="tech-nav">
-    <button class="tech-nav-item active" onclick="switchTab('today')">
+    <button class="tech-nav-item active" onclick="switchPage('ziyaret')">
       <div class="tech-nav-item-icon">📅</div>
-      <div>Bugün</div>
+      <div>Ziyaret</div>
     </button>
-    <button class="tech-nav-item" onclick="switchTab('week')">
+    <button class="tech-nav-item" onclick="switchPage('firmalar')">
+      <div class="tech-nav-item-icon">📍</div>
+      <div>Firmalar</div>
+    </button>
+    <button class="tech-nav-item" onclick="switchPage('numune')">
+      <div class="tech-nav-item-icon">🧪</div>
+      <div>Numune</div>
+    </button>
+    <button class="tech-nav-item" onclick="switchPage('istatistik')">
       <div class="tech-nav-item-icon">📊</div>
-      <div>Bu Hafta</div>
+      <div>İstatistik</div>
     </button>
-    <button class="tech-nav-item" onclick="switchTab('all')">
-      <div class="tech-nav-item-icon">📋</div>
-      <div>Tümü</div>
-    </button>
-    <button class="tech-nav-item" onclick="switchTab('settings')">
+    <button class="tech-nav-item" onclick="switchPage('ayarlar')">
       <div class="tech-nav-item-icon">⚙️</div>
       <div>Ayarlar</div>
     </button>
-  </div>
-
-  <!-- Visit Modal -->
-  <div class="tech-modal" id="visitModal">
-    <div class="tech-modal-content">
-      <button class="tech-modal-close" onclick="closeVisitModal()">×</button>
-      <div class="tech-modal-title">Ziyaret Tamamla</div>
-      <div class="tech-modal-form">
-        <input
-          type="text"
-          class="tech-modal-input"
-          id="visitCompanyName"
-          placeholder="Firma Adı"
-          readonly
-        >
-        <input
-          type="time"
-          class="tech-modal-input"
-          id="visitTime"
-          placeholder="Saat"
-        >
-        <textarea
-          class="tech-modal-input"
-          id="visitNote"
-          placeholder="Not (opsiyonel)"
-          style="min-height: 80px; resize: none;"
-        ></textarea>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button class="tech-modal-btn cancel" onclick="closeVisitModal()">İptal</button>
-          <button class="tech-modal-btn" onclick="submitVisit()">Kaydet</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -530,65 +609,84 @@
       window.location.href = 'index.html';
     }
 
-    let currentTab = 'today';
     let companies = [];
     let visits = {};
-    let currentTechId = null;
+    let currentUser = {};
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
       loadData();
-      renderCompanies();
+      renderPage('ziyaret');
     });
 
     function loadData() {
       try {
         const session = JSON.parse(sessionStorage.getItem('sd_session') || '{}');
-        const userData = session.userData || {};
-        currentTechId = userData.id || userData.code || '1015';
-        document.getElementById('techName').textContent = userData.name || 'Teknisyen';
+        currentUser = session.userData || {};
+        document.getElementById('techName').textContent = currentUser.name || 'Teknisyen';
+        document.getElementById('techFullName').textContent = currentUser.name || '-';
+        document.getElementById('techCode').textContent = currentUser.code || '-';
+        document.getElementById('techEmail').textContent = currentUser.email || '-';
+        document.getElementById('techPhone').textContent = currentUser.phone || '-';
 
-        // Load from storage (mock data for now)
-        companies = JSON.parse(localStorage.getItem('companies')) || [];
+        // Mock data (gerçek uygulamada API'den çekilecek)
+        companies = [
+          { id: 1, name: 'NSK OTOMOTİV', status: 'pending' },
+          { id: 2, name: 'TEKNOFORM MAKİNA', status: 'pending' },
+          { id: 3, name: 'ŞAHİNCE OTOMOTİV', status: 'pending' },
+          { id: 4, name: 'DURMAZLAR MAKİNA', status: 'done' },
+          { id: 5, name: 'BAYKAL MAKİNA', status: 'pending' }
+        ];
+
         visits = JSON.parse(localStorage.getItem('visits')) || {};
       } catch (e) {
         console.error('Data loading error:', e);
       }
     }
 
-    function switchTab(tab) {
-      currentTab = tab;
+    function switchPage(page) {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tech-nav-item').forEach(el => el.classList.remove('active'));
+
+      document.getElementById('page-' + page).classList.add('active');
       event.target.closest('.tech-nav-item').classList.add('active');
-      renderCompanies();
+
+      renderPage(page);
     }
 
-    function renderCompanies() {
+    function renderPage(page) {
+      if (page === 'ziyaret') {
+        renderZiyaretPage();
+      } else if (page === 'firmalar') {
+        renderFirmalarPage();
+      } else if (page === 'istatistik') {
+        renderIstatistikPage();
+      }
+    }
+
+    function renderZiyaretPage() {
       const list = document.getElementById('techCompanyList');
       const empty = document.getElementById('techEmpty');
+      const search = document.getElementById('techSearchInput').value.toLowerCase();
 
-      if (!companies.length) {
+      const filtered = companies.filter(c => c.name.toLowerCase().includes(search));
+
+      if (!filtered.length) {
         list.innerHTML = '';
         empty.style.display = 'block';
         return;
       }
 
       empty.style.display = 'none';
-      const search = document.getElementById('techSearchInput').value.toLowerCase();
-      const filtered = companies.filter(c =>
-        c.name.toLowerCase().includes(search) &&
-        (currentTab === 'all' || currentTab === 'week' || currentTab === 'today')
-      );
-
       list.innerHTML = filtered.map(company => {
-        const isVisited = visits[company.id + '_week'];
+        const isVisited = visits['company_' + company.id];
         return `
-          <div class="tech-company-item" onclick="openVisitModal('${company.id}', '${company.name}')">
+          <div class="tech-company-item">
             <div class="tech-company-info">
               <div class="tech-company-name">${company.name}</div>
               <div class="tech-company-status">${isVisited ? '✅ Ziyaret edildi' : '⏳ Beklemede'}</div>
             </div>
-            <button class="tech-company-btn ${isVisited ? 'done' : ''}" onclick="event.stopPropagation(); openVisitModal('${company.id}', '${company.name}')">
+            <button class="tech-company-btn ${isVisited ? 'done' : ''}" onclick="markVisit(${company.id}, '${company.name}')">
               ${isVisited ? '✓ Yapıldı' : 'Ziyaret Et'}
             </button>
           </div>
@@ -598,36 +696,39 @@
       updateSummary();
     }
 
+    function renderFirmalarPage() {
+      const list = document.getElementById('allCompaniesList');
+      list.innerHTML = companies.map(c => `
+        <div class="tech-list-item">
+          <div class="tech-list-item-title">${c.name}</div>
+          <div class="tech-list-item-desc">${c.status === 'done' ? '✅ Ziyaret edildi' : '⏳ Beklemede'}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderIstatistikPage() {
+      const total = companies.length;
+      const completed = Object.keys(visits).length;
+      document.getElementById('totalVisits').textContent = total;
+      document.getElementById('completedVisits').textContent = completed;
+      document.getElementById('avgVisits').textContent = (total > 0 ? (completed / total * 4).toFixed(1) : 0);
+      document.getElementById('successRate').textContent = (total > 0 ? Math.round((completed / total) * 100) : 0) + '%';
+    }
+
     function updateSummary() {
       const total = companies.length;
-      const completed = Object.keys(visits).filter(k => visits[k]).length;
+      const completed = Object.keys(visits).length;
       document.getElementById('techPlanned').textContent = total;
       document.getElementById('techCompleted').textContent = completed;
       document.getElementById('techProgress').textContent = (total > 0 ? Math.round((completed / total) * 100) : 0) + '%';
     }
 
-    function openVisitModal(companyId, companyName) {
-      document.getElementById('visitCompanyName').value = companyName;
-      document.getElementById('visitTime').value = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }).replace(':', ':');
-      document.getElementById('visitNote').value = '';
-      document.getElementById('visitModal').dataset.companyId = companyId;
-      document.getElementById('visitModal').classList.add('show');
-    }
-
-    function closeVisitModal() {
-      document.getElementById('visitModal').classList.remove('show');
-    }
-
-    function submitVisit() {
-      const companyId = document.getElementById('visitModal').dataset.companyId;
-      const time = document.getElementById('visitTime').value;
-      const note = document.getElementById('visitNote').value;
-
-      visits[companyId + '_week'] = { time, note, timestamp: new Date().toISOString() };
-      localStorage.setItem('visits', JSON.stringify(visits));
-
-      closeVisitModal();
-      renderCompanies();
+    function markVisit(companyId, companyName) {
+      if (confirm(companyName + ' için ziyaretı tamamlandı olarak işaretle?')) {
+        visits['company_' + companyId] = new Date().toISOString();
+        localStorage.setItem('visits', JSON.stringify(visits));
+        renderZiyaretPage();
+      }
     }
 
     function doLogout() {
@@ -639,7 +740,7 @@
     }
 
     // Search
-    document.getElementById('techSearchInput').addEventListener('input', renderCompanies);
+    document.getElementById('techSearchInput')?.addEventListener('input', () => renderZiyaretPage());
   </script>
 </body>
 </html>

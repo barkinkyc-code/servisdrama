@@ -322,8 +322,13 @@
             userData: data.user
           }));
           showMessage('✅ Başarılı! Yönlendiriliyor...', 'success');
+
+          // Telefondan giriş yapıldıysa tech-mobile'a, değilse admin'e yönlendir
+          var isMobile = window.innerWidth < 768;
+          var redirectUrl = isMobile ? '/tech-mobile.html' : '/admin.html';
+
           setTimeout(() => {
-            window.location.href = '/admin.html';
+            window.location.href = redirectUrl;
           }, 800);
         } else {
           showMessage('❌ ' + (data.error || 'Giriş başarısız'), 'error');
