@@ -660,3 +660,75 @@ textarea.inp{resize:vertical;line-height:1.6;}
 
 /* ═══ ZİYARET EKRANI İÇİ DASHBOARD / OPERASYON ÖZETİ ═══ */
 .visit-dashboard{margin:0 0 22px}.vd-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:18px}.vd-kpi{display:flex;align-items:center;gap:18px;background:#fff;border:1px solid #e5eaf2;border-radius:16px;padding:20px 22px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.vd-kpi-icon{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;flex:none}.vd-kpi.blue .vd-kpi-icon{background:#dbeafe;color:#2563eb}.vd-kpi.purple .vd-kpi-icon{background:#ede9fe;color:#7c3aed}.vd-kpi.orange .vd-kpi-icon{background:#ffedd5;color:#ea580c}.vd-kpi span{display:block;color:#64748b;font-size:13px;font-weight:650;margin-bottom:4px}.vd-kpi strong{display:block;color:#111827;font-size:29px;line-height:1;font-weight:850;margin-bottom:6px}.vd-kpi small{color:#94a3b8;font-size:11px}.vd-columns{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.9fr);gap:16px}.vd-panel{background:#fff;border:1px solid #e5eaf2;border-radius:16px;box-shadow:0 5px 18px rgba(15,23,42,.045);overflow:hidden}.vd-panel-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 20px;border-bottom:1px solid #edf1f6}.vd-panel-head>div{display:flex;align-items:center;gap:11px}.vd-title-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}.vd-title-icon.blue{background:#dbeafe;color:#2563eb}.vd-title-icon.purple{background:#ede9fe;color:#7c3aed}.vd-panel-head h3{margin:0 0 3px;font-size:15px;color:#1f2937}.vd-panel-head p{margin:0;font-size:11px;color:#94a3b8}.vd-panel-head button{border:0;background:transparent;color:#2563eb;font-size:11px;font-weight:750;cursor:pointer}.vd-visit-list{padding:6px 0}.vd-visit-card{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #f0f3f7}.vd-visit-card:last-child{border-bottom:0}.vd-visit-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:850;flex:none}.vd-visit-icon.done{background:#dcfce7;color:#16a34a}.vd-visit-icon.road{background:#ede9fe;color:#7c3aed}.vd-visit-icon.extra{background:#dbeafe;color:#2563eb}.vd-visit-main{min-width:0;flex:1}.vd-visit-main strong{display:block;font-size:12px;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vd-visit-main span{display:block;font-size:10.5px;color:#94a3b8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vd-state{font-size:9.5px;font-weight:800;padding:5px 8px;border-radius:99px}.vd-state.done{background:#dcfce7;color:#15803d}.vd-state.road{background:#ede9fe;color:#6d28d9}.vd-state.extra{background:#dbeafe;color:#1d4ed8}.vd-empty{padding:38px 20px;text-align:center;color:#94a3b8;font-size:12px}.vd-priorities{padding:6px 0}.vd-priorities button{width:100%;display:flex;align-items:center;gap:11px;border:0;border-bottom:1px solid #f0f3f7;background:#fff;padding:14px 18px;text-align:left;cursor:pointer}.vd-priorities button:last-child{border-bottom:0}.vd-priorities button:hover{background:#f8fafc}.vd-priorities button>span:nth-child(2){min-width:0;flex:1}.vd-priorities strong{display:block;font-size:12px;color:#1f2937}.vd-priorities small{display:block;font-size:10.5px;color:#94a3b8;margin-top:3px}.vd-priorities b{color:#94a3b8;font-size:18px}.vd-priority-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:850;flex:none}.vd-priority-icon.warn{background:#ffedd5;color:#ea580c}.vd-priority-icon.road{background:#ede9fe;color:#7c3aed}.vd-priority-icon.mail{background:#dbeafe;color:#2563eb}@media(max-width:1100px){.vd-columns{grid-template-columns:1fr}.vd-kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:720px){.vd-kpis{grid-template-columns:1fr}.vd-kpi{padding:16px}.visit-dashboard{margin-bottom:16px}}
+
+/* ═══ MOBİL RESPONSIVE DESIGN (768px altı) ═══ */
+@media(max-width:768px){
+  /* NAVBAR - Mobilde gizle */
+  .navbar{display:none;}
+  main{margin-left:0;}
+
+  /* PAGE */
+  .pg{padding:16px 12px;}
+  .pg-hd{margin-bottom:16px;}
+  .pg-title{font-size:20px;}
+  .pg-acts{flex-direction:column;width:100%;}
+  .pg-acts button,.pg-acts .btn{width:100%;}
+
+  /* BUTTONS */
+  .btn{width:100%;justify-content:center;padding:11px 14px;font-size:13px;}
+  .btn-sm{width:auto;}
+
+  /* INPUTS */
+  .inp{min-height:40px;font-size:16px;padding:11px;border-radius:8px;}
+
+  /* FORMS */
+  .form-row2{grid-template-columns:1fr;}
+  .form-grp{margin-bottom:12px;}
+
+  /* DASHBOARD */
+  .dash-grid{grid-template-columns:1fr;gap:12px;}
+  .dash-hero{padding:16px 14px;gap:12px;flex-direction:column;}
+  .dash-hero h1{font-size:22px;}
+
+  /* ZİYARET DASHBOARD */
+  .visit-dashboard{margin-bottom:14px;}
+  .vd-kpis{grid-template-columns:1fr;gap:12px;}
+  .vd-kpi{padding:14px;gap:12px;}
+  .vd-kpi-icon{width:44px;height:44px;font-size:18px;}
+  .vd-kpi strong{font-size:24px;}
+  .vd-kpi span{font-size:12px;}
+
+  /* MODAL */
+  .modal-content{max-width:calc(100vw - 24px);max-height:calc(100vh - 40px);border-radius:12px;}
+
+  /* TABLE - Horizontal Scroll */
+  table{min-width:100%;overflow:auto;}
+  .table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* ZİYARET TABLOSU */
+  .zt-bar{flex-wrap:wrap;padding:12px;}
+  .zt-tech-btns{gap:6px;flex-wrap:wrap;}
+  .zt-extra{width:100%;margin-top:8px;}
+
+  /* FIRMA MODAL */
+  .form-row2{grid-template-columns:1fr;}
+
+  /* Search Box */
+  .search-box{margin-bottom:12px;}
+  .search-box input{font-size:16px;}
+}
+
+/* ═══ EXTRA SMALL PHONES (480px altı) ═══ */
+@media(max-width:480px){
+  .pg{padding:12px 10px;}
+  .pg-title{font-size:18px;margin-bottom:8px;}
+  .btn{padding:10px 12px;font-size:12px;}
+  .inp{font-size:16px;padding:10px;}
+  .modal-content{max-width:calc(100vw - 12px);}
+  .vd-kpi{padding:12px;flex-direction:column;text-align:center;}
+  .vd-kpi-icon{width:40px;height:40px;font-size:16px;}
+  .vd-kpi strong{font-size:20px;}
+  .dash-hero h1{font-size:18px;}
+  .dash-card{padding:12px;}
+  .dash-card strong{font-size:20px;}
+}

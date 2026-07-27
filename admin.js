@@ -1666,40 +1666,37 @@ function _visitRecordDate(record,key){
 }
 function renderVisitDashboard(){
   var host=document.getElementById('visitDashboardContent');if(!host)return;
-  var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[],extras=SD.extras||[],departures=SD.departures||[];
-  var now=new Date(),todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  var month=now.getMonth(),year=now.getFullYear(),cwk=DT.wkey(now),weeks=DT.monthWeeks(year,month),todayText=DT.ddmmyyyy(now);
+  var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[];
+  var now=new Date(),month=now.getMonth(),year=now.getFullYear();
+  var cwk=DT.wkey(now),weeks=DT.monthWeeks(year,month);
   var cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(now).getTime();})+1;
-  var records=[];
-  Object.keys(vis).forEach(function(key){var v=vis[key];if(!v)return;records.push({key:key,v:v,date:_visitRecordDate(v,key)});});
-  var monthDone=records.filter(function(x){return x.v.status==='done'&&x.date&&x.date.getFullYear()===year&&x.date.getMonth()===month;}).length;
-  var todayRoad=departures.filter(function(d){return d.dayKey===todayKey;}).length;
-  if(!todayRoad)todayRoad=records.filter(function(x){return x.v.status==='pending'&&x.date&&x.date.getFullYear()===year&&x.date.getMonth()===month&&x.date.getDate()===now.getDate();}).length;
+
+  // Bu haftanın verilerini hesapla
   var scheduled=cos.filter(function(c){return c.aktif!==false&&BL.scheduled(c,cwi);});
-  var missing=scheduled.filter(function(c){var v=vis[c.id+'_'+cwk];return !v||v.status!=='done';}).length;
-  var companyMap={};cos.forEach(function(c){companyMap[c.id]=c;});
-  var todayItems=[];
-  records.forEach(function(x){
-    if(!x.date||x.date.getFullYear()!==year||x.date.getMonth()!==month||x.date.getDate()!==now.getDate())return;
-    var cid=x.key.split('_')[0],co=companyMap[cid]||{};
-    todayItems.push({name:co.name||x.v.companyName||cid,tech:x.v.tc||x.v.techCode||'—',time:x.v.saat||'',status:x.v.status==='done'?'Tamamlandı':'Yolda',note:x.v.extraNot||''});
-  });
-  extras.forEach(function(e){var p=String(e.date||'').split('.');if(p.length>=2&&Number(p[0])===now.getDate()&&Number(p[1])===month+1)todayItems.push({name:e.firmAdi||'Program Dışı Ziyaret',tech:e.techCode||'—',time:e.saat||'',status:'Program Dışı',note:e.not||''});});
-  todayItems=todayItems.slice(0,6);
-  var visitCards=todayItems.map(function(item){
-    var st=item.status==='Tamamlandı'?'done':item.status==='Yolda'?'road':'extra';
-    return '<div class="vd-visit-card"><div class="vd-visit-icon '+st+'">'+(st==='done'?'✓':st==='road'?'➜':'+')+'</div><div class="vd-visit-main"><strong>'+dashboardEscape(item.name)+'</strong><span>'+dashboardEscape(item.tech)+(item.time?' · '+dashboardEscape(item.time):'')+(item.note?' · '+dashboardEscape(item.note):'')+'</span></div><span class="vd-state '+st+'">'+dashboardEscape(item.status)+'</span></div>';
-  }).join('');
-  var priorities=[];
-  if(missing>0)priorities.push('<button onclick="openMissedModal()"><span class="vd-priority-icon warn">!</span><span><strong>'+missing+' eksik ziyaret</strong><small>Bu haftanın ziyaret planını tamamla</small></span><b>›</b></button>');
-  if(todayRoad>0)priorities.push('<button onclick="goto(\'ziyaret\')"><span class="vd-priority-icon road">➜</span><span><strong>'+todayRoad+' ekip yolda</strong><small>Bugünkü teknik servis hareketleri</small></span><b>›</b></button>');
-  priorities.push('<button onclick="openRapor()"><span class="vd-priority-icon mail">✉</span><span><strong>Günlük rapor</strong><small>Bugünkü ziyaretleri önizle ve gönder</small></span><b>›</b></button>');
-  host.innerHTML='<div class="vd-kpis">'+
-    '<article class="vd-kpi blue"><div class="vd-kpi-icon">✓</div><div><span>Bu Ay Tamamlanan</span><strong>'+monthDone+'</strong><small>'+DT.MONTHS[month]+' '+year+'</small></div></article>'+
-    '<article class="vd-kpi purple"><div class="vd-kpi-icon">➜</div><div><span>Bugün Yolda</span><strong>'+todayRoad+'</strong><small>'+todayText+'</small></div></article>'+
-    '<article class="vd-kpi orange"><div class="vd-kpi-icon">!</div><div><span>Eksik Ziyaret</span><strong>'+missing+'</strong><small>Bu hafta</small></div></article>'+
-    '</div>'+
-    '<div class="vd-columns"><section class="vd-panel"><div class="vd-panel-head"><div><span class="vd-title-icon blue">▣</span><div><h3>Bugün Teknik Servis Ziyaretleri</h3><p>'+todayText+' · Ortak kayıt akışı</p></div></div><button onclick="goto(\'ziyaret\')">Tümünü Gör</button></div><div class="vd-visit-list">'+(visitCards||'<div class="vd-empty">Bugün için kayıtlı ziyaret bulunmuyor.</div>')+'</div></section>'+
-    '<section class="vd-panel"><div class="vd-panel-head"><div><span class="vd-title-icon purple">⚡</span><div><h3>Öncelikli İşlemler</h3><p>Hızlı erişim ve takip</p></div></div></div><div class="vd-priorities">'+priorities.join('')+'</div></section></div>';
+  var completed=scheduled.filter(function(c){var v=vis[c.id+'_'+cwk];return v&&v.status==='done';}).length;
+  var progress=scheduled.length>0?Math.round((completed/scheduled.length)*100):0;
+
+  // HTML oluştur - Responsive Design
+  var isMobile=window.innerWidth<768;
+  var html='';
+
+  if(isMobile){
+    // MOBİL VERSİYON - Sade ve Basit
+    html+='<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">';
+    html+='<div style="text-align:center;">';
+    html+='<div style="font-size:13px;color:#6b7280;font-weight:600;margin-bottom:12px;">BU HAFTA</div>';
+    html+='<div style="display:flex;justify-content:center;align-items:center;gap:16px;">';
+    html+='<div style="text-align:center;"><div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#10b981 0deg '+(progress*3.6)+'deg,#e5e7eb '+(progress*3.6)+'deg);display:flex;align-items:center;justify-content:center;"><div style="width:90px;height:90px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;"><div style="font-size:24px;font-weight:700;color:#111827;">'+completed+'</div><div style="font-size:10px;color:#6b7280;margin-top:2px;">%'+progress+'</div></div></div></div>';
+    html+='<div style="display:grid;grid-template-columns:1fr;gap:12px;text-align:left;"><div style="background:#f0f9ff;border-radius:8px;padding:12px;"><div style="font-size:20px;color:#3b82f6;font-weight:700;">'+scheduled.length+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">Planlı</div></div><div style="background:#f0fdf4;border-radius:8px;padding:12px;"><div style="font-size:20px;color:#10b981;font-weight:700;">'+completed+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">Tamamlandı</div></div></div>';
+    html+='</div></div></div>';
+  }else{
+    // DESKTOP VERSİYON - Detaylı
+    html+='<div style="margin-bottom:24px;"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px;display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center;">';
+    html+='<div style=""><div style="font-size:14px;font-weight:600;color:#6b7280;margin-bottom:12px;">BU HAFTA</div><div style="width:140px;height:140px;border-radius:50%;background:conic-gradient(#10b981 0deg '+(progress*3.6)+'deg,#e5e7eb '+(progress*3.6)+'deg);display:flex;align-items:center;justify-content:center;"><div style="width:130px;height:130px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;"><div style="font-size:28px;font-weight:700;color:#111827;">'+completed+'</div><div style="font-size:11px;color:#6b7280;">tamamlandı</div><div style="font-size:16px;font-weight:700;color:#10b981;margin-top:4px;">%'+progress+'</div></div></div></div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#3b82f6;font-weight:700;">'+scheduled.length+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">PLANLANDI ZIYARET</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#10b981;font-weight:700;">'+completed+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">TAMAMLANDI</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#f59e0b;font-weight:700;">%'+progress+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">İLERLEME</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div></div></div>';
+    html+='</div></div>';
+  }
+
+  host.innerHTML=html;
 }
 function renderDashboard(){renderVisitDashboard();}
