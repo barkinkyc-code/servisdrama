@@ -1,0 +1,1860 @@
+{
+  "sd_co": [
+    {
+      "id": "c1",
+      "name": "NSK OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+      "bolge": "KARACABEY",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c2",
+      "name": "TEKNOFORM MAKİNA İNŞ.SAN.TİC.LTD.ŞTİ.",
+      "bolge": "NOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c3",
+      "name": "EJS ESKİŞEHİR JANT VE MAKİNA SAN. TİC. A.Ş.",
+      "bolge": "ESKİŞEHİR",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c4",
+      "name": "ŞAHİNCE OTOMOTİV SANAYİ VE TİC.A.Ş.",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c5",
+      "name": "DURMAZLAR MAKİNA SANAYİİ VE TİCARET A.Ş.",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c6",
+      "name": "DEHA OTOMAT MAK.SAN.VE TİC.LTD.ŞTİ.",
+      "bolge": "ÇALI",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c7",
+      "name": "BAYKAL MAKİNA SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c8",
+      "name": "F.S.S. FREN SİSTEMLERİ SAN. VE TİC LTD. ŞTİ.",
+      "bolge": "DEMİRTAŞ",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c10",
+      "name": "BUSEL MAKİNA SAN.TIC.LTD.ŞTİ",
+      "bolge": "ESKİŞEHİR",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c11",
+      "name": "FENESE KALIP PLASTİK METAL SAN. TİC. LTD.ŞTİ.",
+      "bolge": "NOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c12",
+      "name": "DERİN HAVACILIK SANAYİ TİCARET ANONİM ŞİRKETİ",
+      "bolge": "ESKİŞEHİR",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c13",
+      "name": "DOĞU PRES OTOMOTİV VE TEKNİK SAN.VE TİC.A.Ş.",
+      "bolge": "NOSAB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c14",
+      "name": "HÜNEL KALIP SAN.VE TİC.LTD.ŞTİ.",
+      "bolge": "HOSAB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c15",
+      "name": "SET OTOMAT CNC TALAŞLI İMALAT TİC. LTD. ŞTİ.",
+      "bolge": "ALTINOVA",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c16",
+      "name": "TINAZ TARIM VE SANAYİ MAKİNALARI TİC VE SAN A.Ş.",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c17",
+      "name": "DEKAS OTOMOTİV YAN SANAYİ TİCARET LİMİTED ŞİRKETİ",
+      "bolge": "KÜÇÜKBALIKLI",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c18",
+      "name": "YEMTAR MAKİNA SAN.TİC.A.Ş.",
+      "bolge": "BANDIRMA",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c19",
+      "name": "YARIŞ KABİN SAN.VE TİC.A.Ş.",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c20",
+      "name": "PAKTERMO ÖLÇÜ ALETLERİ VE BORU SANAYİ VE TİC A.Ş.",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c21",
+      "name": "FOM MAKİNA OTOMOTİV SAN.VE TİC.LTD.ŞTİ.",
+      "bolge": "NOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c22",
+      "name": "PİKOSAN METAL FORM SANAYİ VE TİCARET A.Ş",
+      "bolge": "NOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c23",
+      "name": "MSK FORGE METAL ANONİM ŞİRKETİ",
+      "bolge": "KARACABEY",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c24",
+      "name": "ALSTOM RAYLI SİSTEM SANAYİ ANONİM ŞİRKETİ",
+      "bolge": "BAŞKÖY",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c25",
+      "name": "PAKSAN MAKİNA SAN.VE TİC.A.Ş",
+      "bolge": "BANDIRMA OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c26",
+      "name": "SYC DEMİR DÖKÜM VE MAKİNA SANAYİ TİC. A.Ş.",
+      "bolge": "ESKİŞEHİR",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c28",
+      "name": "KUZU FLEX METAL SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+      "bolge": "GEMLİK SERBEST BÖLGE",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c29",
+      "name": "KAMAK REKOR MAKİNA SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c31",
+      "name": "SKE OTOMOTİV SANAYİ VE TİCARET A.Ş.",
+      "bolge": "NOSAB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c32",
+      "name": "EMPO OTOMOTİV YEDEK PARÇA SANAYİ VE TİCARET A.Ş.",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c34",
+      "name": "ÖZBEŞLER MAKİNA OTOMOTİV VE KUYUMCULUK AKARYAKIT İNŞ. ASANSÖR SAN. TİC. LTD. ŞTİ",
+      "bolge": "YILDIRIM",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c35",
+      "name": "SU MAKİNA SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+      "bolge": "ESKİŞEHİR",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c36",
+      "name": "HİDROTEK REKOR MAKİNA OTOMOTİV İNŞAAT GIDA SAN. TİC. LTD. ŞTİ.",
+      "bolge": "ÇALI",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c37",
+      "name": "BEYÇELİK GESTAMP TEKNOLOJİ VE KALIP A.Ş.",
+      "bolge": "TEKNOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c38",
+      "name": "KURVALF VANA ANONİM ŞİRKETİ",
+      "bolge": "ÇALI",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c39",
+      "name": "YAKAR ÇELİK DÖVME EL ALETLERİ SANAYİ A.Ş.",
+      "bolge": "BANDIRMA OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c40",
+      "name": "HİDRO HİDROLİK ENDÜSTRİ SANAYİ TİCARET A.Ş",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c42",
+      "name": "BURÇAK METAL OTO. YAN SAN. TEKS. TUR. GIDA İNŞ. TİC. VE SAN. LTD. ŞTİ.",
+      "bolge": "NOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c43",
+      "name": "ÇELİKFORM GESTAMP OTOMOTİV A.Ş.",
+      "bolge": "TEKNOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c44",
+      "name": "PAYE MAKİNA VE METAL ÜRETİM TİC. A.Ş.",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c45",
+      "name": "VATAN PRES OTOMOTİV SAN. VE TİC. A.Ş.",
+      "bolge": "HOSAB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c46",
+      "name": "VOLKAN METAL SAN.TİC.LTD.ŞTİ.",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c47",
+      "name": "REN-KA MAKİNA SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c49",
+      "name": "BAYRAK LASTİK SANAYİ VE TİCARET A.Ş.",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c50",
+      "name": "SVB GRUP OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c51",
+      "name": "GERA MAKİNA KALIP METAL SAN.TİC.A.Ş.",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        4,
+        2
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c52",
+      "name": "PROTAŞ PROJE MÜH.İNŞ.ELEKTRİK SAN.VE TİC.A.Ş.",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c53",
+      "name": "ERDOĞANLAR TORNA TELESKOPİK PİSTON ÇELİK VE MAK.SAN.TİC.LTD.ŞTİ.",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c55",
+      "name": "AUROTEC PAYE GROUP 5 EKSEN KALIP İŞLEME MER. A.Ş.",
+      "bolge": "KAYAPA",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c56",
+      "name": "NACETEK MAKİNA SANAYİ VE TİC.A.Ş.",
+      "bolge": "NİLÜFERKÖY",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c57",
+      "name": "BALIKESİR ELEKTROMEKANİK SANAYİ TESİSLERİ A.Ş",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c58",
+      "name": "ALUNET MATERIAL SOLUTIONS ALÜMİNYUM SANAYİ VE TİCARET ANONİM ŞİRKETİ",
+      "bolge": "OSB",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c59",
+      "name": "İŞBİR ELEKTRİK SANAYİ ANONİM ŞİRKETİ",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c60",
+      "name": "BURÇELİK BURSA ÇELİK DÖKÜM SAN.A.Ş.",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c61",
+      "name": "KAYA TEKNİK CNC SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c62",
+      "name": "ORAU ORHAN OTOMOTİV KONTROL SİSTEMLERİ SANAYİİ ANONİM ŞİRKETİ",
+      "bolge": "KARACABEY",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c63",
+      "name": "AKYAPAK ULUSLAR ARASI DIŞ TİC.MAK.SAN.TİC.A.Ş.",
+      "bolge": "HOSAB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c64",
+      "name": "YAMAS YAŞAR MAKİNA KALIP OTO YEDEK PARÇA SAN.VE TİC.A.Ş.",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c65",
+      "name": "HİD-TEK MAKİNA SAN.TİC.LTD.ŞTİ.",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c66",
+      "name": "NESTO MAKİNA MOBİLYA İTHALAT İHRACAT LİMİTED ŞİRKETİ",
+      "bolge": "İNEGÖL",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3,
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c67",
+      "name": "EMEK ÖZEL CIVATA MAKİNA SAN. VE TIC. LTD. ŞTI.",
+      "bolge": "ESKİŞEHİR",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c68",
+      "name": "GÖKÇELİK ÇELİK EŞYA SAN.TİC.A.Ş.",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c69",
+      "name": "SED DİŞLİ MAKİNE SANAYİ VE TİCARET LTD ŞTİ",
+      "bolge": "OSB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c70",
+      "name": "TEKNİK FREZE ALPHAN-ERHAN ERYÜKSEL ADI ORTAKLIĞI",
+      "bolge": "BALIKESİR",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c73",
+      "name": "ALPMAC TAKIM TEZGAHLARI MAK. SAN. VE TİC. A.Ş",
+      "bolge": "KAYAPA",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c74",
+      "name": "DEMİSAŞ",
+      "bolge": "BİLECİK",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c75",
+      "name": "ADARAD DÖKÜM ÜRÜNLERİ SAN VE TİC A.Ş",
+      "bolge": "İNEGÖL",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3,
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c76",
+      "name": "TOYO OTO YEDEK PARÇA VE METAL SANAYİ TİCARET PAZARLAMA LİMİTED ŞİRKETİ",
+      "bolge": "KAYAPA",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c77",
+      "name": "CANEL OTOMOTİV SAN. VE TİC. A.Ş.",
+      "bolge": "HOSAB",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c78",
+      "name": "YARIŞ OTO BURSA",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c79",
+      "name": "DİŞLİ MAKİNA SAN. VE TİC.LTD.ŞTİ.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3,
+        1
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c80",
+      "name": "ODOKSAN MAKİNA SAN. VE TİC. LTD. ŞTİ.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": false,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c81",
+      "name": "BEYFREN OTOMOTİV SANAYİ VE TİCARET A.Ş.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        3
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c82",
+      "name": "5M OTOMOTİV SAN. VE TİC. LTD. ŞTİ.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        2
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": "",
+      "aktif": true,
+      "kurulumStart": "",
+      "kurulumEnd": ""
+    },
+    {
+      "id": "c83",
+      "name": "ORPAN MAKİNA METAL PLASTIK SAN. VE TİC. A.Ş.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c84",
+      "name": "YEMMAK MAKİNA SANAYİ VE TİCARET A.Ş.",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "konumNot": ""
+    },
+    {
+      "id": "c1785143578703",
+      "name": "HİSARLAR MAKİNA SANAYİ VE TİCARET A.Ş.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "aktif": true,
+      "konumNot": "",
+      "kurulumStart": "",
+      "kurulumEnd": "",
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "weeks": [
+        2,
+        3,
+        4,
+        1
+      ]
+    },
+    {
+      "id": "c1785143705577",
+      "name": "3 EKSEN TAKIM HIRDAVAT SAN.TİC.LTD.ŞTİ.",
+      "bolge": "",
+      "techId": "t2",
+      "email": "",
+      "truck": false,
+      "aktif": true,
+      "konumNot": "",
+      "kurulumStart": "",
+      "kurulumEnd": "",
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "weeks": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "c1785143735292",
+      "name": "KURVALF VANA ANONİM ŞİRKETİ",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "aktif": true,
+      "konumNot": "",
+      "kurulumStart": "",
+      "kurulumEnd": "",
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "weeks": [
+        2,
+        4
+      ]
+    },
+    {
+      "id": "c1785143758061",
+      "name": "ALPFORM KALIP METAL SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "aktif": true,
+      "konumNot": "",
+      "kurulumStart": "",
+      "kurulumEnd": "",
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "weeks": [
+        3,
+        1
+      ]
+    },
+    {
+      "id": "c1785143781680",
+      "name": "LFSS ŞAHİN MAKİNA SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+      "bolge": "",
+      "techId": "t1",
+      "email": "",
+      "truck": false,
+      "aktif": true,
+      "konumNot": "",
+      "kurulumStart": "",
+      "kurulumEnd": "",
+      "aMails": [],
+      "lat": null,
+      "lng": null,
+      "weeks": [
+        4
+      ]
+    }
+  ],
+  "sd_te": [
+    {
+      "id": "t1",
+      "code": "1015",
+      "name": "Semih Ağlan",
+      "phone": "+90 533 209 25 99",
+      "email": "semih.aglan@dramamakine.com",
+      "avatar": ""
+    },
+    {
+      "id": "t2",
+      "code": "1016",
+      "name": "Süleyman Küçük",
+      "phone": "+90 533 209 25 99",
+      "email": "suleyman.kucuk@dramamakine.com",
+      "avatar": ""
+    }
+  ],
+  "sd_vi": {
+    "c5_2026-W29": {
+      "date": "17.07.2026",
+      "tc": "1015",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-07-17",
+      "weekday": "Cuma",
+      "historySeed": true
+    },
+    "c42_2026-W25": {
+      "date": "17.06.2026",
+      "tc": "1015",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-06-17",
+      "weekday": "Çarşamba",
+      "historySeed": true
+    },
+    "c11_2026-W29": {
+      "date": "13.07.2026",
+      "tc": "1015",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-07-13",
+      "weekday": "Pazartesi",
+      "historySeed": true
+    },
+    "c8_2026-W29": {
+      "date": "17.07.2026",
+      "tc": "1015",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-07-17",
+      "weekday": "Cuma",
+      "historySeed": true
+    },
+    "c63_2026-W27": {
+      "date": "30.06.2026",
+      "tc": "1016",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-06-30",
+      "weekday": "Salı",
+      "historySeed": true
+    },
+    "c77_2026-W27": {
+      "date": "03.07.2026",
+      "tc": "1016",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-07-03",
+      "weekday": "Cuma",
+      "historySeed": true
+    },
+    "c79_2026-W27": {
+      "date": "30.06.2026",
+      "tc": "1016",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-06-30",
+      "weekday": "Salı",
+      "historySeed": true
+    },
+    "c80_2026-W27": {
+      "date": "01.07.2026",
+      "tc": "1016",
+      "status": "done",
+      "saat": "",
+      "count": 1,
+      "dateISO": "2026-07-01",
+      "weekday": "Çarşamba",
+      "historySeed": true
+    },
+    "c42_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "ölçüm"
+    },
+    "c11_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "ölçüm"
+    },
+    "c5_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "numune alımı"
+    },
+    "c8_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "ölçüm"
+    },
+    "c63_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "ölçüm"
+    },
+    "c77_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "ölçüm"
+    },
+    "c80_2026-W30": {
+      "date": "23.07.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:45",
+      "extraNot": "ölçüm"
+    },
+    "c47_2026-W25": {
+      "date": "19.06.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c31_2026-W27": {
+      "date": "29.06.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c51_2026-W27": {
+      "date": "03.07.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c4_2026-W28": {
+      "date": "10.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c2_2026-W27": {
+      "date": "01.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c22_2026-W21": {
+      "date": "20.05.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c32_2026-W26": {
+      "date": "24.06.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c81_2026-W26": {
+      "date": "24.06.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c82_2026-W26": {
+      "date": "24.06.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c84_2026-W29": {
+      "date": "17.07.2026",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00"
+    },
+    "c13_2026-W29": {
+      "date": "21.07.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c83_2026-W29": {
+      "date": "21.07.2026",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "10:00",
+      "extraNot": ""
+    },
+    "c47_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c13_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c81_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c82_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c31_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c51_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c83_2026-W30": {
+      "date": "24.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c4_2026-W30": {
+      "date": "24.07",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c84_2026-W30": {
+      "date": "24.07",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c2_2026-W30": {
+      "date": "24.07",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c22_2026-W30": {
+      "date": "24.07",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c32_2026-W30": {
+      "date": "24.07",
+      "tc": "1015",
+      "count": 1,
+      "status": "done",
+      "saat": "18:43"
+    },
+    "c6_2026-W31": {
+      "date": "27.07",
+      "tc": "1016",
+      "count": 1,
+      "status": "pending",
+      "saat": "12:36"
+    }
+  },
+  "sd_ex": [],
+  "sd_dp": [],
+  "sd_cfg": {
+    "senderName": "Drama Makine Teknik Servis",
+    "senderEmail": "",
+    "reportTo": "",
+    "subjectPrefix": "ServisDrama | Günlük Rapor",
+    "mailAlicilar": [
+      "barkin.kayaci@dramamakine.com",
+      "esra.onur@dramamakine.com",
+      "suleyman.kucuk@dramamakine.com",
+      "semih.aglan@dramamakine.com",
+      "ersin.ertugen@dramamakine.com",
+      "ibrahim.nuhoglu@dramakimya.com",
+      "yagiz.erel@dramamakine.com",
+      "emin.ertas@dramamakine.com"
+    ],
+    "emailjsService": "",
+    "emailjsTemplate": "",
+    "emailjsKey": "",
+    "moduleFeatures": {
+      "numuneAktif": true,
+      "kurulumBanner": true,
+      "truckMail": true,
+      "programDisi": true,
+      "cokluZiyaret": true
+    },
+    "techFeatures": {
+      "showStats": true,
+      "showAllFirms": true,
+      "showMap": true,
+      "canSendReport": true,
+      "showHistory": true
+    },
+    "smtpTls": "tls",
+    "smtpSenderName": "Drama Kimya",
+    "smtpSenderEmail": "kimyaservis@dramagroup.com.tr",
+    "smtpHost": "mail.dramagroup.com.tr",
+    "smtpPort": 587,
+    "smtpUser": "kimyaservis@dramagroup.com.tr",
+    "smtpPass": "z9rjHBH12V"
+  },
+  "sd_users": [
+    {
+      "id": "u0",
+      "username": "barkin.kayaci",
+      "name": "Barkın Kayacı",
+      "role": "admin",
+      "avatar": "",
+      "email": "barkin.kayaci@dramamakine.com"
+    },
+    {
+      "id": "u1",
+      "username": "semih.aglan",
+      "name": "Semih Ağlan",
+      "role": "tech",
+      "avatar": "",
+      "email": "semih.aglan@dramamakine.com",
+      "techId": "t1"
+    },
+    {
+      "id": "u2",
+      "username": "suleyman",
+      "name": "Süleyman Küçük",
+      "role": "tech",
+      "avatar": "",
+      "email": "suleyman.kucuk@dramamakine.com",
+      "techId": "t2"
+    }
+  ],
+  "sd_ac": "t1",
+  "sd_samples": []
+}

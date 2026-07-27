@@ -41,7 +41,8 @@ function techLogout(){
 }
 
 /* ── Boot ── */
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', async function(){
+  await SD.remoteReady();
   SD.seed();
   if(!initTechPanel()) return;
   var rid = sessionStorage.getItem('sd_role_id');

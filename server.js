@@ -31,6 +31,7 @@ app.use(express.static(path.join(__dirname)));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/data', require('./routes/data'));
 app.use('/api/backup', require('./routes/backup'));
+app.use('/api/state', require('./routes/state'));
 
 // ═══ MAIL SYSTEM ═══
 // Mail gönder endpoint (CID attachments + Nodemailer)

@@ -13,7 +13,7 @@ var A = {
 function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
 
 /* ═══ BOOT ═══ */
-document.addEventListener('DOMContentLoaded',function(){
+document.addEventListener('DOMContentLoaded',async function(){
   /* Oturum kontrolü */
   var sess=sessionStorage.getItem('sd_session');
   if(!sess){
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded',function(){
   try{var s=JSON.parse(sess);}
   catch(e){location.href='index.html';return;}
 
+  await SD.remoteReady();
   SD.seed();
   var cfg=SD.config;cfg.mailAlicilar=loadMailRecipients();SD.config=cfg;
 
@@ -200,7 +201,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 
   renderAll();
-  var lastPage=localStorage.getItem('lastPage')||'ziyaret';
+  var lastPage=localStorage.getItem('lastPage')||'dashboard';
   goto(lastPage);
 });
 
@@ -242,6 +243,7 @@ function goto(p){
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(b){b.classList.toggle('active',b.dataset.page===p);});
   document.querySelectorAll('.pg').forEach(function(el){el.classList.toggle('hidden',el.id!=='pg-'+p);});
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
+  if(p==='dashboard')renderDashboard();
   if(p==='istatistik')renderStat();
   if(p==='ekip')renderTechAdmin();
   if(p==='numune')renderNumune();
@@ -250,7 +252,7 @@ function goto(p){
   if(p==='tech-ekran')window.location.href='tech.html';
 }
 
-function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();}
+function renderAll(){renderDashboard();renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();}
 
 /* ═══ TEKNİSYEN BUTONLARI ═══ */
 function renderTechBtns(){
@@ -1643,4 +1645,28 @@ function deleteExtraVisit(idx){
     renderExtraVisits();
     UI.toast('Ziyaret silindi.','success');
   });
+}
+
+
+/* ═══ DASHBOARD ═══ */
+function renderDashboard(){
+  var host=document.getElementById('dashboardContent');if(!host)return;
+  var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[];
+  var now=new Date(),today=DT.ddmmyyyy(now),monthPrefix=String(now.getFullYear())+'-';
+  var records=[];
+  Object.keys(vis).forEach(function(key){var v=vis[key];if(v&&v.status==='done')records.push({key:key,v:v});});
+  var todayDone=records.filter(function(x){return String(x.v.date||'')===today;}).length;
+  var active=cos.filter(function(c){return c.aktif!==false;}).length;
+  var totalDone=records.length;
+  var recent=records.slice().sort(function(a,b){return String(b.v.completedAt||b.v.date||'').localeCompare(String(a.v.completedAt||a.v.date||''));}).slice(0,8);
+  var companyMap={};cos.forEach(function(c){companyMap[c.id]=c;});
+  var rows=recent.map(function(x){var cid=x.key.split('_')[0],co=companyMap[cid]||{};return '<tr><td><strong>'+BL.esc(co.name||x.v.companyName||cid)+'</strong></td><td>'+BL.esc(x.v.techCode||'—')+'</td><td>'+BL.esc(x.v.date||'—')+'</td><td><span class="dash-status">Tamamlandı</span></td></tr>';}).join('');
+  host.innerHTML='<div class="dash-hero"><div><span class="dash-kicker">SERVİSDRAMA OPERASYON MERKEZİ</span><h1>Günaydın, '+BL.esc((SD.currentUser&&SD.currentUser.name)||'Barkın')+'</h1><p>Teknik servis operasyonlarının güncel özeti ve ortak kayıt durumu.</p></div><button class="btn btn-primary" onclick="goto(\'ziyaret\')">Ziyaretleri Aç</button></div>'+
+    '<div class="dash-grid">'+
+      '<div class="dash-card"><span>Bugün Tamamlanan</span><strong>'+todayDone+'</strong><small>ziyaret kaydı</small></div>'+
+      '<div class="dash-card"><span>Aktif Firma</span><strong>'+active+'</strong><small>ortak firma havuzu</small></div>'+
+      '<div class="dash-card"><span>Toplam Tamamlanan</span><strong>'+totalDone+'</strong><small>kalıcı geçmiş kayıt</small></div>'+
+      '<div class="dash-card"><span>Aktif Teknisyen</span><strong>'+techs.length+'</strong><small>sistem kullanıcısı</small></div>'+
+    '</div>'+
+    '<div class="dash-panel"><div class="dash-panel-hd"><div><h2>Son Ziyaretler</h2><p>Tüm kullanıcıların ortak kayıt akışı</p></div><button class="btn btn-outline btn-sm" onclick="goto(\'istatistik\')">İstatistikler</button></div><div class="dash-table-wrap"><table class="dash-table"><thead><tr><th>Firma</th><th>Teknisyen</th><th>Tarih</th><th>Durum</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" class="dash-empty">Henüz tamamlanmış ziyaret yok.</td></tr>')+'</tbody></table></div></div>';
 }

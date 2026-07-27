@@ -5,9 +5,39 @@ var SD=(function(){
   var store;
   try{localStorage.setItem('__t','1');localStorage.removeItem('__t');store=localStorage;}
   catch(e){var mem={};store={getItem:function(k){return k in mem?mem[k]:null;},setItem:function(k,v){mem[k]=String(v);},removeItem:function(k){delete mem[k];}};}
+  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_ac','sd_samples'];
+  var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false;
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}
-  function save(k,v){try{store.setItem(k,JSON.stringify(v));}catch(e){}}
-  function remove(k){try{store.removeItem(k);}catch(e){}}
+  function snapshot(){var out={};SHARED_KEYS.forEach(function(k){var v=load(k,null);if(v!==null)out[k]=v;});return out;}
+  function token(){return localStorage.getItem('token')||'';}
+  function pushRemote(){
+    if(!remoteLoaded||!token())return Promise.resolve();
+    if(syncInFlight){syncPending=true;return Promise.resolve();}
+    syncInFlight=true;
+    return fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({state:snapshot()})})
+      .then(function(r){if(!r.ok)throw new Error('Ortak veri kaydedilemedi');return r.json();})
+      .then(function(){store.setItem('sd_last_sync',new Date().toISOString());})
+      .catch(function(e){console.error(e);})
+      .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;pushRemote();}});
+  }
+  function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(pushRemote,350);}
+  function save(k,v){try{store.setItem(k,JSON.stringify(v));if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0)scheduleSync();}catch(e){}}
+  function remove(k){try{store.removeItem(k);if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0)scheduleSync();}catch(e){}}
+  function remoteReady(){
+    if(!token()){remoteLoaded=true;return Promise.resolve(false);}
+    var before=snapshot();
+    return fetch('/api/state',{headers:{'Authorization':'Bearer '+token()}}).then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı');return r.json();}).then(function(data){
+      var remote=data.state||{};
+      var localVisitCount=Object.keys(before.sd_vi||{}).length;
+      var remoteVisitCount=Object.keys(remote.sd_vi||{}).length;
+      var migrated=store.getItem('sd_remote_migrated_v1')==='1';
+      if(!migrated&&localVisitCount>remoteVisitCount){
+        remoteLoaded=true;store.setItem('sd_remote_migrated_v1','1');return pushRemote().then(function(){return true;});
+      }
+      SHARED_KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(remote,k))store.setItem(k,JSON.stringify(remote[k]));});
+      store.setItem('sd_remote_migrated_v1','1');remoteLoaded=true;return true;
+    }).catch(function(e){console.error(e);remoteLoaded=true;return false;});
+  }
   var DATA_VER='v12';
   function checkVersion(){if(store.getItem('sd_ver')!==DATA_VER){['sd_co','sd_te','sd_ac','sd_users'].forEach(function(k){store.removeItem(k);});store.setItem('sd_ver',DATA_VER);}}
   function seed(){
@@ -294,7 +324,7 @@ var SD=(function(){
   }
 
   return{
-    load:load,save:save,remove:remove,seed:seed,DT:DT,
+    load:load,save:save,remove:remove,seed:seed,remoteReady:remoteReady,pushRemote:pushRemote,DT:DT,
     get companies(){return load('sd_co',[]);},
     get technicians(){return load('sd_te',[]);},
     get visits(){return load('sd_vi',{});},

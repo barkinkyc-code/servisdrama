@@ -13,7 +13,7 @@
 <script>
   // Token kontrol
   if (!localStorage.getItem('token')) {
-    window.location.href = '/index.html';
+    window.location.href = 'index.html';
   }
 </script>
 <style>
@@ -38,6 +38,10 @@
     <div class="nav-section">
       <div class="nav-section-title">ANA MENÜ</div>
       <div class="nav-tabs" id="navTabs">
+        <button class="nav-tab" data-page="dashboard">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v5h-8V3zM3 13h8v8H3v-8zm10-3h8v11h-8V10z"/></svg>
+          Dashboard
+        </button>
         <button class="nav-tab" data-page="ziyaret">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
           Ziyaret Takibi
@@ -131,6 +135,11 @@
 
 <!-- ═══ SAYFALAR ═══ -->
 <main id="mainContent">
+
+<!-- DASHBOARD -->
+<div class="pg hidden" id="pg-dashboard">
+  <div id="dashboardContent"></div>
+</div>
 
 <!-- ZİYARET TAKİBİ -->
 <div class="pg hidden" id="pg-ziyaret">
