@@ -26,20 +26,23 @@ var SD=(function(){
   function remoteReady(){
     if(!token()){remoteLoaded=true;return Promise.resolve(false);}
     var before=snapshot();
-    return fetch('/api/state',{headers:{'Authorization':'Bearer '+token()}}).then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı');return r.json();}).then(function(data){
-      var remote=data.state||{};
-      var localVisitCount=Object.keys(before.sd_vi||{}).length;
-      var remoteVisitCount=Object.keys(remote.sd_vi||{}).length;
-      var migrated=store.getItem('sd_remote_migrated_v1')==='1';
-      if(!migrated&&localVisitCount>remoteVisitCount){
-        remoteLoaded=true;store.setItem('sd_remote_migrated_v1','1');return pushRemote().then(function(){return true;});
-      }
-      SHARED_KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(remote,k))store.setItem(k,JSON.stringify(remote[k]));});
-      store.setItem('sd_remote_migrated_v1','1');remoteLoaded=true;return true;
-    }).catch(function(e){console.error(e);remoteLoaded=true;return false;});
+    return fetch('/api/state',{headers:{'Authorization':'Bearer '+token()}})
+      .then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı');return r.json();})
+      .then(function(data){
+        var remote=data.state||{};
+        var remoteHasData=Object.keys(remote).length>0&&((remote.sd_co&&remote.sd_co.length)||(remote.sd_te&&remote.sd_te.length)||Object.keys(remote.sd_vi||{}).length);
+        if(remoteHasData){
+          SHARED_KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(remote,k))store.setItem(k,JSON.stringify(remote[k]));});
+          remoteLoaded=true;store.setItem('sd_last_sync',new Date().toISOString());return true;
+        }
+        remoteLoaded=true;
+        var localHasData=(before.sd_co&&before.sd_co.length)||(before.sd_te&&before.sd_te.length)||Object.keys(before.sd_vi||{}).length;
+        return localHasData?pushRemote().then(function(){return true;}):true;
+      })
+      .catch(function(e){console.error(e);remoteLoaded=true;return false;});
   }
   var DATA_VER='v12';
-  function checkVersion(){if(store.getItem('sd_ver')!==DATA_VER){['sd_co','sd_te','sd_ac','sd_users'].forEach(function(k){store.removeItem(k);});store.setItem('sd_ver',DATA_VER);}}
+  function checkVersion(){if(store.getItem('sd_ver')!==DATA_VER)store.setItem('sd_ver',DATA_VER);}
   function seed(){
     checkVersion();
     if(!store.getItem('sd_te'))save('sd_te',[

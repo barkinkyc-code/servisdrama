@@ -201,7 +201,8 @@ document.addEventListener('DOMContentLoaded',async function(){
   });
 
   renderAll();
-  var lastPage=localStorage.getItem('lastPage')||'dashboard';
+  var lastPage=localStorage.getItem('lastPage')||'ziyaret';
+  if(lastPage==='dashboard')lastPage='ziyaret';
   goto(lastPage);
 });
 
@@ -238,12 +239,12 @@ function closeDropdown(){var dd=document.getElementById('navDropdown');if(dd)dd.
 
 /* ═══ GOTO ═══ */
 function goto(p){
+  if(p==='dashboard')p='ziyaret';
   A.page=p;
   localStorage.setItem('lastPage',p);
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(b){b.classList.toggle('active',b.dataset.page===p);});
   document.querySelectorAll('.pg').forEach(function(el){el.classList.toggle('hidden',el.id!=='pg-'+p);});
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
-  if(p==='dashboard')renderDashboard();
   if(p==='istatistik')renderStat();
   if(p==='ekip')renderTechAdmin();
   if(p==='numune')renderNumune();
@@ -252,7 +253,7 @@ function goto(p){
   if(p==='tech-ekran')window.location.href='tech.html';
 }
 
-function renderAll(){renderDashboard();renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();}
+function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();}
 
 /* ═══ TEKNİSYEN BUTONLARI ═══ */
 function renderTechBtns(){
@@ -437,6 +438,7 @@ function saveMap(){var lbl=document.getElementById('coordsLbl');if(lbl&&A.mapLat
 /* ═══ ZİYARET TABLOSU ═══ */
 function renderVisit(){
   var ml=document.getElementById('monthLabel');if(ml)ml.textContent=DT.MONTHS[A.vm]+' '+A.vy;
+  renderVisitDashboard();
   var at=SD.activeTech();
   SD.buildVisitTable({containerId:'visitContainer',techId:at?at.id:null,year:A.vy,month:A.vm,editable:true,onUpdate:function(needsFirmaRender){renderVisit();if(needsFirmaRender)renderFirma();},warnBannerId:'warnBanner',warnTitleId:'warnTitle',warnBadgeId:'warnBadge',progFillId:'progFill',countLabelId:'visitSub',searchVal:A.vsearch});
 }
@@ -1648,25 +1650,56 @@ function deleteExtraVisit(idx){
 }
 
 
-/* ═══ DASHBOARD ═══ */
-function renderDashboard(){
-  var host=document.getElementById('dashboardContent');if(!host)return;
-  var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[];
-  var now=new Date(),today=DT.ddmmyyyy(now),monthPrefix=String(now.getFullYear())+'-';
-  var records=[];
-  Object.keys(vis).forEach(function(key){var v=vis[key];if(v&&v.status==='done')records.push({key:key,v:v});});
-  var todayDone=records.filter(function(x){return String(x.v.date||'')===today;}).length;
-  var active=cos.filter(function(c){return c.aktif!==false;}).length;
-  var totalDone=records.length;
-  var recent=records.slice().sort(function(a,b){return String(b.v.completedAt||b.v.date||'').localeCompare(String(a.v.completedAt||a.v.date||''));}).slice(0,8);
-  var companyMap={};cos.forEach(function(c){companyMap[c.id]=c;});
-  var rows=recent.map(function(x){var cid=x.key.split('_')[0],co=companyMap[cid]||{};return '<tr><td><strong>'+BL.esc(co.name||x.v.companyName||cid)+'</strong></td><td>'+BL.esc(x.v.techCode||'—')+'</td><td>'+BL.esc(x.v.date||'—')+'</td><td><span class="dash-status">Tamamlandı</span></td></tr>';}).join('');
-  host.innerHTML='<div class="dash-hero"><div><span class="dash-kicker">SERVİSDRAMA OPERASYON MERKEZİ</span><h1>Günaydın, '+BL.esc((SD.currentUser&&SD.currentUser.name)||'Barkın')+'</h1><p>Teknik servis operasyonlarının güncel özeti ve ortak kayıt durumu.</p></div><button class="btn btn-primary" onclick="goto(\'ziyaret\')">Ziyaretleri Aç</button></div>'+
-    '<div class="dash-grid">'+
-      '<div class="dash-card"><span>Bugün Tamamlanan</span><strong>'+todayDone+'</strong><small>ziyaret kaydı</small></div>'+
-      '<div class="dash-card"><span>Aktif Firma</span><strong>'+active+'</strong><small>ortak firma havuzu</small></div>'+
-      '<div class="dash-card"><span>Toplam Tamamlanan</span><strong>'+totalDone+'</strong><small>kalıcı geçmiş kayıt</small></div>'+
-      '<div class="dash-card"><span>Aktif Teknisyen</span><strong>'+techs.length+'</strong><small>sistem kullanıcısı</small></div>'+
-    '</div>'+
-    '<div class="dash-panel"><div class="dash-panel-hd"><div><h2>Son Ziyaretler</h2><p>Tüm kullanıcıların ortak kayıt akışı</p></div><button class="btn btn-outline btn-sm" onclick="goto(\'istatistik\')">İstatistikler</button></div><div class="dash-table-wrap"><table class="dash-table"><thead><tr><th>Firma</th><th>Teknisyen</th><th>Tarih</th><th>Durum</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" class="dash-empty">Henüz tamamlanmış ziyaret yok.</td></tr>')+'</tbody></table></div></div>';
+/* ═══ ZİYARET EKRANI OPERASYON ÖZETİ ═══ */
+function dashboardEscape(value){
+  return String(value==null?'':value)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
 }
+function _visitRecordDate(record,key){
+  if(!record)return null;
+  if(record.dateISO){var iso=new Date(record.dateISO+'T12:00:00');if(!isNaN(iso.getTime()))return iso;}
+  return SD.parseVisitDate?SD.parseVisitDate(record.date,key):null;
+}
+function renderVisitDashboard(){
+  var host=document.getElementById('visitDashboardContent');if(!host)return;
+  var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[],extras=SD.extras||[],departures=SD.departures||[];
+  var now=new Date(),todayKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  var month=now.getMonth(),year=now.getFullYear(),cwk=DT.wkey(now),weeks=DT.monthWeeks(year,month),todayText=DT.ddmmyyyy(now);
+  var cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(now).getTime();})+1;
+  var records=[];
+  Object.keys(vis).forEach(function(key){var v=vis[key];if(!v)return;records.push({key:key,v:v,date:_visitRecordDate(v,key)});});
+  var monthDone=records.filter(function(x){return x.v.status==='done'&&x.date&&x.date.getFullYear()===year&&x.date.getMonth()===month;}).length;
+  var todayRoad=departures.filter(function(d){return d.dayKey===todayKey;}).length;
+  if(!todayRoad)todayRoad=records.filter(function(x){return x.v.status==='pending'&&x.date&&x.date.getFullYear()===year&&x.date.getMonth()===month&&x.date.getDate()===now.getDate();}).length;
+  var scheduled=cos.filter(function(c){return c.aktif!==false&&BL.scheduled(c,cwi);});
+  var missing=scheduled.filter(function(c){var v=vis[c.id+'_'+cwk];return !v||v.status!=='done';}).length;
+  var companyMap={};cos.forEach(function(c){companyMap[c.id]=c;});
+  var todayItems=[];
+  records.forEach(function(x){
+    if(!x.date||x.date.getFullYear()!==year||x.date.getMonth()!==month||x.date.getDate()!==now.getDate())return;
+    var cid=x.key.split('_')[0],co=companyMap[cid]||{};
+    todayItems.push({name:co.name||x.v.companyName||cid,tech:x.v.tc||x.v.techCode||'—',time:x.v.saat||'',status:x.v.status==='done'?'Tamamlandı':'Yolda',note:x.v.extraNot||''});
+  });
+  extras.forEach(function(e){var p=String(e.date||'').split('.');if(p.length>=2&&Number(p[0])===now.getDate()&&Number(p[1])===month+1)todayItems.push({name:e.firmAdi||'Program Dışı Ziyaret',tech:e.techCode||'—',time:e.saat||'',status:'Program Dışı',note:e.not||''});});
+  todayItems=todayItems.slice(0,6);
+  var visitCards=todayItems.map(function(item){
+    var st=item.status==='Tamamlandı'?'done':item.status==='Yolda'?'road':'extra';
+    return '<div class="vd-visit-card"><div class="vd-visit-icon '+st+'">'+(st==='done'?'✓':st==='road'?'➜':'+')+'</div><div class="vd-visit-main"><strong>'+dashboardEscape(item.name)+'</strong><span>'+dashboardEscape(item.tech)+(item.time?' · '+dashboardEscape(item.time):'')+(item.note?' · '+dashboardEscape(item.note):'')+'</span></div><span class="vd-state '+st+'">'+dashboardEscape(item.status)+'</span></div>';
+  }).join('');
+  var priorities=[];
+  if(missing>0)priorities.push('<button onclick="openMissedModal()"><span class="vd-priority-icon warn">!</span><span><strong>'+missing+' eksik ziyaret</strong><small>Bu haftanın ziyaret planını tamamla</small></span><b>›</b></button>');
+  if(todayRoad>0)priorities.push('<button onclick="goto(\'ziyaret\')"><span class="vd-priority-icon road">➜</span><span><strong>'+todayRoad+' ekip yolda</strong><small>Bugünkü teknik servis hareketleri</small></span><b>›</b></button>');
+  priorities.push('<button onclick="openRapor()"><span class="vd-priority-icon mail">✉</span><span><strong>Günlük rapor</strong><small>Bugünkü ziyaretleri önizle ve gönder</small></span><b>›</b></button>');
+  host.innerHTML='<div class="vd-kpis">'+
+    '<article class="vd-kpi blue"><div class="vd-kpi-icon">✓</div><div><span>Bu Ay Tamamlanan</span><strong>'+monthDone+'</strong><small>'+DT.MONTHS[month]+' '+year+'</small></div></article>'+
+    '<article class="vd-kpi purple"><div class="vd-kpi-icon">➜</div><div><span>Bugün Yolda</span><strong>'+todayRoad+'</strong><small>'+todayText+'</small></div></article>'+
+    '<article class="vd-kpi orange"><div class="vd-kpi-icon">!</div><div><span>Eksik Ziyaret</span><strong>'+missing+'</strong><small>Bu hafta</small></div></article>'+
+    '</div>'+
+    '<div class="vd-columns"><section class="vd-panel"><div class="vd-panel-head"><div><span class="vd-title-icon blue">▣</span><div><h3>Bugün Teknik Servis Ziyaretleri</h3><p>'+todayText+' · Ortak kayıt akışı</p></div></div><button onclick="goto(\'ziyaret\')">Tümünü Gör</button></div><div class="vd-visit-list">'+(visitCards||'<div class="vd-empty">Bugün için kayıtlı ziyaret bulunmuyor.</div>')+'</div></section>'+
+    '<section class="vd-panel"><div class="vd-panel-head"><div><span class="vd-title-icon purple">⚡</span><div><h3>Öncelikli İşlemler</h3><p>Hızlı erişim ve takip</p></div></div></div><div class="vd-priorities">'+priorities.join('')+'</div></section></div>';
+}
+function renderDashboard(){renderVisitDashboard();}

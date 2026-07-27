@@ -1,0 +1,16 @@
+SERVİSDRAMA DASHBOARD + ORTAK VERİ DÜZELTMESİ
+
+1) Bu klasördeki admin.html, admin.js, data.js ve style.css dosyalarını
+   mevcut "DM final" klasörünün içine kopyalayın.
+2) Windows sorunca "Hedefteki dosyaları değiştir" seçin.
+3) GitHub Desktop'ta yalnızca bu 4 dosyanın değiştiğini kontrol edin.
+4) Summary: Dashboard ziyaret ekranına alındı ve ortak veri düzeltildi
+5) Commit to main -> Push origin
+6) Vercel Ready olunca Ctrl+F5 ile yenileyin.
+
+Yapılanlar:
+- Dashboard sol menüden kaldırıldı.
+- Dashboard özeti Ziyaret Takibi sayfasının üstüne alındı.
+- BL.esc hatası kaldırıldı.
+- PostgreSQL doluysa merkezi veri her zaman öncelikli olur.
+- Sürüm kontrolünün ortak firma/teknisyen verisini silmesi engellendi.
