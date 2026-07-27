@@ -1,72 +1,344 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>ServisDrama</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ServisDrama — Giriş</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 14px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: #333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .login-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 32px 24px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .login-logo {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .login-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .login-header p {
+      font-size: 13px;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    .login-body {
+      padding: 32px 24px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group:last-of-type {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      background: #f8f9fa;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      outline: none;
+      border-color: #667eea;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .login-button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .login-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .login-button:active {
+      transform: translateY(0);
+    }
+
+    .login-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .message.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .message.loading {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+
+    .login-footer {
+      padding: 20px 24px;
+      background: #f8f9fa;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 480px) {
+      .login-container {
+        border-radius: 12px;
+      }
+
+      .login-header {
+        padding: 24px 20px;
+      }
+
+      .login-header h1 {
+        font-size: 20px;
+      }
+
+      .login-body {
+        padding: 24px 20px;
+      }
+
+      input[type="text"],
+      input[type="password"] {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 14px;
+      }
+
+      .login-button {
+        padding: 16px;
+        font-size: 15px;
+      }
+    }
+  </style>
 </head>
-<body style="margin:0; padding:20px; font-family:Arial; background:#f0f0f0;">
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <div class="login-logo">🚗</div>
+      <h1>ServisDrama</h1>
+      <p>Teknik Servis Yönetim Sistemi</p>
+    </div>
 
-  <div style="max-width:400px; margin:50px auto; background:white; padding:30px; border-radius:8px;">
-    <h2 style="text-align:center; margin-bottom:30px;">ServisDrama Giriş</h2>
+    <div class="login-body">
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="user">Kullanıcı Adı</label>
+          <input
+            type="text"
+            id="user"
+            placeholder="örn: barkin.kayaci"
+            value="barkin.kayaci"
+            autocomplete="username"
+          >
+        </div>
 
-    <form id="loginForm" style="display:contents;">
-      <label style="display:block; margin-bottom:5px; font-weight:bold;">Kullanıcı Adı:</label>
-      <input type="text" id="user" value="barkin.kayaci" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc;">
+        <div class="form-group">
+          <label for="pass">Şifre</label>
+          <input
+            type="password"
+            id="pass"
+            placeholder="Şifrenizi girin"
+            autocomplete="current-password"
+          >
+        </div>
 
-      <label style="display:block; margin-bottom:5px; font-weight:bold;">Şifre:</label>
-      <input type="password" id="pass" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc;">
+        <button type="submit" class="login-button" id="loginBtn">
+          Giriş Yap
+        </button>
 
-      <button type="submit" style="width:100%; padding:12px; background:#667eea; color:white; border:none; cursor:pointer; font-weight:bold;">Giriş Yap</button>
+        <div id="msg" class="message"></div>
+      </form>
+    </div>
 
-      <div id="msg" style="margin-top:15px; text-align:center; font-size:13px;"></div>
-    </form>
+    <div class="login-footer">
+      © 2026 Drama Makine - Teknik Servis Yönetimi
+    </div>
   </div>
 
   <script>
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    const form = document.getElementById('loginForm');
+    const userInput = document.getElementById('user');
+    const passInput = document.getElementById('pass');
+    const msgEl = document.getElementById('msg');
+    const loginBtn = document.getElementById('loginBtn');
+
+    // Focus effects
+    userInput.addEventListener('focus', () => userInput.select());
+
+    form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      var user = document.getElementById('user').value.trim();
-      var pass = document.getElementById('pass').value.trim();
-      var msg = document.getElementById('msg');
+      const user = userInput.value.trim();
+      const pass = passInput.value.trim();
 
       if (!user || !pass) {
-        msg.innerHTML = '❌ Lütfen doldur';
-        msg.style.color = 'red';
+        showMessage('Lütfen tüm alanları doldurunuz', 'error');
         return;
       }
 
-      msg.innerHTML = 'Kontrol ediliyor...';
-      msg.style.color = '#666';
+      showMessage('Kontrol ediliyor...', 'loading');
+      loginBtn.disabled = true;
 
       try {
-        var apiUrl = window.location.origin + '/api/auth/login';
-        var res = await fetch(apiUrl, {
+        const apiUrl = window.location.origin + '/api/auth/login';
+        const res = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: user, password: pass })
         });
 
-        var data = await res.json();
+        const data = await res.json();
 
         if (data.success) {
           localStorage.setItem('token', data.token);
-          sessionStorage.setItem('sd_session', JSON.stringify({ token: data.token, user: user, userData: data.user }));
-          msg.innerHTML = '✅ Başarılı! Yönlendiriliyor...';
-          msg.style.color = 'green';
-          setTimeout(function() {
+          sessionStorage.setItem('sd_session', JSON.stringify({
+            token: data.token,
+            user: user,
+            userData: data.user
+          }));
+          showMessage('✅ Başarılı! Yönlendiriliyor...', 'success');
+          setTimeout(() => {
             window.location.href = '/admin.html';
-          }, 1000);
+          }, 800);
         } else {
-          msg.innerHTML = '❌ ' + (data.error || 'Hata');
-          msg.style.color = 'red';
+          showMessage('❌ ' + (data.error || 'Giriş başarısız'), 'error');
+          loginBtn.disabled = false;
         }
-      } catch (e) {
-        msg.innerHTML = '❌ Server hatası: ' + e.message;
-        msg.style.color = 'red';
+      } catch (err) {
+        showMessage('❌ Server hatası: ' + err.message, 'error');
+        loginBtn.disabled = false;
       }
     });
-  </script>
 
+    function showMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'message show ' + type;
+    }
+  </script>
 </body>
 </html>

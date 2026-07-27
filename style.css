@@ -732,3 +732,57 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .dash-card{padding:12px;}
   .dash-card strong{font-size:20px;}
 }
+
+/* ═══ TABLE MOBILE OPTIMIZATION ═══ */
+@media(max-width:768px){
+  /* Visit Table - Card Layout */
+  table{display:block;border:none;}
+  table thead{display:none;}
+  table tbody{display:grid;gap:12px;}
+  table tr{display:block;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:4px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+  table td{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:6px 0;border:none;font-size:12px;}
+  table td::before{content:attr(data-label);font-weight:700;color:#6b7280;}
+  table td:first-child::before{content:"Firma";}
+
+  /* Company List - Compact */
+  .company-item{padding:12px;margin-bottom:8px;}
+  .company-actions{display:flex;gap:4px;flex-wrap:wrap;}
+  .company-actions button{padding:6px 10px;font-size:11px;flex:1;}
+
+  /* Modal - Full Screen */
+  .modal-content{position:fixed;bottom:0;left:0;right:0;width:100%;max-width:100%;border-radius:16px 16px 0 0;margin:0;animation:slideUpMobile 0.3s ease;}
+  @keyframes slideUpMobile{from{transform:translateY(100%);}to{transform:translateY(0);}}
+
+  /* Form - Single Column */
+  .form-row2{grid-template-columns:1fr;}
+
+  /* Technician Buttons */
+  .zt-tech-btns{flex-wrap:wrap;gap:6px;}
+  .zt-tech-btns button{flex:1;min-width:60px;}
+}
+
+/* ═══ FIRMA MODAL MOBILE ═══ */
+@media(max-width:768px){
+  #firmaModal{padding:0;}
+  #firmaModal .modal-content{border-radius:16px 16px 0 0;}
+  .modal-backdrop{z-index:499;}
+  .modal-content{max-height:90vh;overflow-y:auto;}
+}
+
+/* ═══ PAGİNATİON MOBİLE ═══ */
+@media(max-width:768px){
+  .pagination{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;}
+  .pagination button{padding:6px 8px;font-size:11px;}
+}
+
+/* ═══ STATİSTİK MOBİLE ═══ */
+@media(max-width:768px){
+  .chart-container{height:250px;max-height:50vh;}
+  .stat-card{padding:12px;}
+}
+
+/* ═══ EMAIL MODAL MOBİLE ═══ */
+@media(max-width:768px){
+  .email-input-group{margin-bottom:12px;}
+  .email-preview{max-height:300px;font-size:11px;}
+}

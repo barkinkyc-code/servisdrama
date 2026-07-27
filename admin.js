@@ -7,10 +7,26 @@ var A = {
   sy:new Date().getFullYear(), sm:new Date().getMonth(),
   editId:null, selWeeks:[1,2,3,4], aMails:[],
   mapLat:null, mapLng:null, _mapPicker:null,
-  vsearch:'', fsearch:'', extraFirmaId:'', extraFirmaAdi:''
+  vsearch:'', fsearch:'', extraFirmaId:'', extraFirmaAdi:'',
+  isMobile:function(){return window.innerWidth<768;},
+  isTablet:function(){return window.innerWidth>=768 && window.innerWidth<1024;}
 };
 
 function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
+
+/* ═══ MOBILE DETECTION & RESPONSIVE ═══ */
+function setupResponsive(){
+  if(A.isMobile()){
+    document.body.classList.add('mobile-view');
+    /* Mobilde navbar'ı toggle'a çevir */
+    var navbar=document.getElementById('navbar');
+    if(navbar){navbar.style.position='fixed';navbar.style.width='100%';navbar.style.maxHeight='200px';navbar.style.overflowY='auto';}
+  }else{
+    document.body.classList.remove('mobile-view');
+  }
+}
+window.addEventListener('resize',setupResponsive);
+setupResponsive();
 
 /* ═══ BOOT ═══ */
 document.addEventListener('DOMContentLoaded',async function(){
