@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1D4ED8">
+<title>ServisDrama — Teknisyen</title>
+<style>
+/* =====================================================
+   TEKNİSYEN EKRANI — Responsive Premium
+   Masaüstü: tablo görünüm
+   Mobil: kart görünüm
+   ===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --blue:    #2563EB; --blue-d: #1D4ED8; --blue-l: #EFF6FF; --blue-m: #BFDBFE;
+  --green:   #16A34A; --green-l:#DCFCE7; --green-m:#BBF7D0;
+  --red:     #DC2626; --red-l:  #FEF2F2; --red-m:  #FECACA;
+  --amber:   #D97706; --amber-l:#FFFBEB; --amber-m:#FDE68A;
+  --purple:  #7C3AED; --purple-l:#F5F3FF; --purple-m:#DDD6FE;
+  --text:    #111827; --text2: #374151; --text3: #6B7280; --muted: #9CA3AF;
+  --border:  #E5E7EB; --border2:#D1D5DB;
+  --bg:      #F9FAFB; --surface:#FFFFFF;
+  --nav-h:   56px;
+  --r: 10px; --r-lg: 14px; --r-xl: 18px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;-webkit-text-size-adjust:100%;}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:14px;font-weight:400;line-height:1.5;
+  color:var(--text);background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── TOPBAR (resimle birebir) ── */
+.topbar{
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  height:var(--nav-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 0 rgba(0,0,0,.05);
+}
+.tb-logo{display:flex;align-items:center;gap:10px;}
+.tb-logo img{height:32px;width:auto;}
+.tb-logo-sep{width:1px;height:20px;background:var(--border);}
+.tb-logo-title{font-size:14px;font-weight:700;color:var(--text2);letter-spacing:-.01em;}
+
+.tb-user{display:flex;align-items:center;gap:10px;}
+.tb-avatar{
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;color:#fff;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.tb-user-info{line-height:1.3;}
+.tb-user-name{font-size:14px;font-weight:700;color:var(--text);}
+.tb-user-code{font-size:12px;color:var(--text3);font-weight:500;}
+.tb-exit{
+  background:#F3F4F6;border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text2);font-size:13px;font-weight:600;padding:7px 14px;
+  cursor:pointer;transition:all .15s;
+}
+.tb-exit:hover{background:var(--border);color:var(--text);}
+.tb-exit:active{transform:scale(.96);}
+
+/* ── INFO BAR (progress + ay nav) ── */
+.infobar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:12px 20px;
+  position:sticky;top:var(--nav-h);z-index:90;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+}
+.infobar-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.prog-label{font-size:14px;font-weight:700;color:var(--text);}
+.prog-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+
+.month-nav{display:flex;align-items:center;gap:8px;}
+.mnav-btn{
+  width:32px;height:32px;border-radius:var(--r);
+  border:1.5px solid var(--border2);background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text3);cursor:pointer;transition:all .12s;
+}
+.mnav-btn:hover{border-color:var(--blue);color:var(--blue);}
+.mnav-btn:active{transform:scale(.92);}
+.month-lbl{font-size:13.5px;font-weight:700;min-width:88px;text-align:center;}
+
+/* Progress bar */
+.prog-track{height:6px;background:#E5E7EB;border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,#16A34A,#22C55E);border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.prog-week{font-size:11.5px;color:var(--text3);margin-top:6px;}
+
+/* ── WARN BANNER (tıklanabilir, sarı) ── */
+.warn-banner{
+  display:flex;align-items:center;gap:12px;
+  background:#FFFBEB;border:1px solid #FDE68A;
+  border-radius:var(--r-xl);padding:14px 18px;
+  margin:14px 16px 0;
+  cursor:pointer;transition:all .15s;
+  box-shadow:0 1px 4px rgba(245,158,11,.1);
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.warn-banner:hover{box-shadow:0 4px 12px rgba(245,158,11,.2);transform:translateY(-1px);}
+.warn-banner:active{transform:scale(.99);}
+.warn-icon{font-size:20px;flex-shrink:0;}
+.warn-body{flex:1;}
+.warn-title{font-size:14px;font-weight:700;color:#92400E;}
+.warn-sub{font-size:12.5px;color:#B45309;margin-top:2px;}
+.warn-badge{
+  background:var(--amber);color:#fff;font-weight:800;
+  min-width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(245,158,11,.4);
+}
+
+/* ── ANA İÇERİK ── */
+.main-content{padding:16px;}
+
+/* ── SECTION BAŞLIĞI ── */
+.section-hd{
+  font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:16px 0 8px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+.section-count{
+  background:var(--border);color:var(--text3);
+  font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;
+}
+
+/* ══════════════════════════════════════
+   MOBİL: KART GÖRÜNÜMÜ
+   ══════════════════════════════════════ */
+.visit-card{
+  background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);
+  margin-bottom:10px;overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+  transition:all .15s;
+}
+.visit-card.done-card{
+  border-color:var(--green-m);
+  background:linear-gradient(to right,rgba(22,163,74,.03),#fff 60%);
+}
+.visit-card.pending-card{border-color:var(--amber-m);}
+
+.vc-header{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px 12px;
+}
+.vc-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;color:#fff;flex-shrink:0;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);
+  background:linear-gradient(135deg,#2563EB,#1D4ED8);
+}
+.vc-info{flex:1;min-width:0;}
+.vc-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vc-meta{font-size:12px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.vc-tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;}
+.vc-tag-blue{background:var(--blue-l);color:var(--blue);}
+.vc-tag-gray{background:#F3F4F6;color:var(--text3);}
+.vc-tag-amber{background:#FEF3E2;color:var(--amber);}
+.vc-tag-purple{background:var(--purple-l);color:var(--purple);}
+
+/* Durum rozeti */
+.vc-status{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 12px;border-radius:99px;
+  font-size:12.5px;font-weight:700;
+}
+.pill-done{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.3);}
+.pill-pending{background:var(--amber);color:#fff;box-shadow:0 2px 6px rgba(245,158,11,.3);}
+.pill-multi{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+
+/* Önceki ziyaret */
+.vc-prev{
+  font-size:11.5px;color:var(--text3);font-weight:500;
+  padding:0 16px 10px;display:flex;align-items:center;gap:5px;
+}
+
+/* Aksiyon butonları */
+.vc-actions{
+  border-top:1px solid #F3F4F6;
+  padding:10px 12px;
+  display:flex;gap:8px;
+}
+.va-btn{
+  flex:1;padding:11px 10px;border-radius:12px;border:none;
+  font-size:13.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .12s;min-height:44px;
+}
+.va-btn:active{transform:scale(.96);}
+.va-plan{background:var(--amber-l);color:var(--amber);border:1.5px solid var(--amber-m);}
+.va-plan:hover{background:var(--amber);color:#fff;}
+.va-confirm{background:var(--blue-l);color:var(--blue);border:1.5px solid var(--blue-m);}
+.va-confirm:hover{background:var(--blue);color:#fff;}
+.va-undo{flex:0;padding:11px 14px;background:var(--red-l);color:var(--red);border:1.5px solid var(--red-m);}
+.va-undo:hover{background:var(--red);color:#fff;}
+.va-add2{flex:0;padding:11px 14px;background:var(--purple-l);color:var(--purple);border:1.5px solid var(--purple-m);}
+.va-add2:hover{background:var(--purple);color:#fff;}
+.va-map{flex:0;padding:11px 12px;background:var(--blue-l);color:var(--blue);border:1.5px solid var(--blue-m);text-decoration:none;display:flex;align-items:center;justify-content:center;border-radius:12px;}
+
+/* ══════════════════════════════════════
+   DESKTOP: TABLO GÖRÜNÜMÜ
+   ══════════════════════════════════════ */
+.vt-table-wrap{
+  background:#fff;border:1px solid var(--border);
+  border-radius:var(--r-xl);overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+  margin-bottom:16px;
+}
+.vt-table{width:100%;border-collapse:collapse;}
+.vt-thead{background:#2563EB;}
+.vt-thead th{
+  padding:12px 16px;color:#fff;font-size:12px;
+  font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+}
+.vt-thead th:first-child{text-align:left;min-width:280px;}
+.vt-thead th:not(:first-child){text-align:center;width:130px;}
+.vt-thead th.cur-week{color:#A5F3FC;font-weight:800;}
+.vt-tbody tr{border-top:1px solid var(--border);transition:background .1s;}
+.vt-tbody tr:hover{background:#F8FAFF;}
+.vt-name-cell{padding:10px 16px;display:flex;align-items:center;gap:8px;}
+.vt-name{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px;}
+.vt-truck{
+  flex-shrink:0;width:24px;height:24px;background:#FEF3E2;
+  border:none;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;cursor:pointer;transition:transform .1s;
+}
+.vt-truck:hover{transform:scale(1.12);}
+.vt-wcell{padding:6px;text-align:center;}
+.vt-cell{
+  width:100%;min-height:52px;border-radius:10px;border:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;cursor:pointer;font-family:inherit;transition:all .12s;padding:4px;
+}
+.vt-cell:active{transform:scale(.95);}
+.vt-cell-empty{background:transparent;border:1.5px dashed #D1D5DB;color:#D1D5DB;}
+.vt-cell-empty:hover{border-color:var(--green);background:var(--green-l);color:var(--green);}
+.vt-cell-pending{background:#F59E0B;color:#fff;box-shadow:0 2px 6px rgba(245,158,11,.3);}
+.vt-cell-done{background:#16A34A;color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.3);}
+.vt-cell-multi{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.vt-cell-future{background:#F9FAFB;border:1px solid #F3F4F6;color:#D1D5DB;cursor:default;}
+.vt-cell-miss{background:var(--red-l);border:1.5px dashed var(--red-m);color:var(--red);}
+.vt-cell-miss:hover{background:var(--red-m);}
+.vt-cell-dash{background:transparent;border:none;color:#E5E7EB;font-size:16px;cursor:default;}
+.vt-cell-lbl{font-size:12px;font-weight:700;line-height:1.2;}
+.vt-cell-date{font-size:11px;font-weight:700;}
+.vt-cell-code{font-size:10px;opacity:.8;}
+
+/* ── FAB RAPOR ── */
+.fab-area{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:12px 16px;
+  padding-bottom:max(12px, env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);z-index:100;
+  box-shadow:0 -4px 20px rgba(0,0,0,.07);
+}
+.fab-btn{
+  width:100%;padding:14px;background:linear-gradient(135deg,var(--blue),var(--blue-d));
+  color:#fff;border:none;border-radius:var(--r-xl);
+  font-size:15px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 4px 14px rgba(37,99,235,.35);transition:all .15s;
+}
+.fab-btn:hover{box-shadow:0 6px 20px rgba(37,99,235,.45);transform:translateY(-1px);}
+.fab-btn:active{transform:scale(.97);}
+.fab-btn.step2{background:linear-gradient(135deg,var(--green),#15803D);}
+.fab-btn.hidden-fab{display:none;}
+
+/* ── BOTTOM SHEET ── */
+.sheet-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  backdrop-filter:blur(3px);z-index:200;display:flex;align-items:flex-end;
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.sheet-overlay.hidden{display:none!important;}
+.sheet{
+  background:#fff;width:100%;border-radius:20px 20px 0 0;
+  padding:8px 20px 24px;max-height:80vh;overflow-y:auto;
+  box-shadow:0 -8px 40px rgba(0,0,0,.15);
+  animation:sheet-in .25s cubic-bezier(.34,1.1,.64,1);
+}
+@keyframes sheet-in{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.sheet-handle{width:36px;height:4px;background:#E5E7EB;border-radius:99px;margin:4px auto 16px;}
+.sheet-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:14px;letter-spacing:-.02em;}
+.sheet-ta{
+  width:100%;min-height:160px;resize:none;padding:12px;
+  border:1.5px solid var(--border);border-radius:12px;
+  font-size:12.5px;font-family:'SF Mono','Consolas',monospace;
+  line-height:1.7;background:#F9FAFB;outline:none;margin-bottom:12px;
+}
+.sheet-ta:focus{border-color:var(--blue);}
+.sheet-btns{display:flex;flex-direction:column;gap:10px;}
+.sheet-btn{
+  width:100%;padding:14px 18px;border-radius:14px;border:none;
+  font-size:15px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:12px;transition:all .12s;
+}
+.sheet-btn:active{transform:scale(.98);}
+.sheet-btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-d));color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.3);}
+.sheet-btn-outline{background:#F9FAFB;color:var(--text2);border:1.5px solid var(--border);}
+.sheet-btn-icon{width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.sheet-btn-outline .sheet-btn-icon{background:var(--blue-l);}
+.sheet-btn-text small{display:block;font-size:11.5px;opacity:.7;font-weight:500;}
+
+/* ── TOAST ── */
+.t-toast{
+  position:fixed;bottom:90px;left:50%;
+  transform:translateX(-50%) translateY(8px);
+  padding:11px 20px;border-radius:99px;
+  font-size:13.5px;font-weight:600;z-index:300;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+  opacity:0;transition:opacity .2s,transform .2s;
+  pointer-events:none;white-space:nowrap;
+  max-width:calc(100vw - 40px);text-align:center;
+}
+.t-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.t-toast-info{background:#111827;color:#fff;}
+.t-toast-success{background:#16A34A;color:#fff;}
+.t-toast-error{background:#DC2626;color:#fff;}
+.t-toast-warning{background:#D97706;color:#fff;}
+
+/* ── KAYDI YAPILAN FİRMALAR ALTA GİT (animasyon) ── */
+@keyframes slide-to-bottom{from{opacity:1;}to{opacity:.5;}}
+
+/* ── DESKTOP: tablo, mobil: kart ── */
+.mobile-cards{display:none;}
+.desktop-table{display:block;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .mobile-cards{display:block;}
+  .desktop-table{display:none;}
+  body{padding-bottom:80px;}
+  .topbar{padding:0 14px;}
+  .tb-user-info{display:none;}
+  .infobar{padding:10px 14px;}
+}
+@media(min-width:769px){
+  .fab-area{
+    left:50%;right:auto;width:700px;transform:translateX(-50%);
+    border-left:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:0 0 var(--r-xl) var(--r-xl);
+  }
+  .main-content{max-width:1200px;margin:0 auto;padding:24px 28px;}
+  .warn-banner{margin:16px 0 0;}
+  .sheet{max-width:520px;margin:0 auto;border-radius:20px;margin-bottom:24px;}
+  .sheet-overlay{align-items:center;}
+  .t-toast{bottom:24px;}
+  body{padding-bottom:0;}
+  .fab-area{display:none;}/* masaüstünde FAB gizle, üstte rapor butonu kullan */
+}
+</style>
+</head>
+<body>
+
+<!-- TECHNİSYEN LOGIN SCREEN -->
+<div id="techLoginScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1D4ED8,#1e40af);display:flex;align-items:center;justify-content:center;z-index:1000;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:28px;margin-bottom:8px;">🔑</div>
+      <h2 style="font-size:22px;font-weight:700;color:#111827;margin:0;">Teknikyen Girişi</h2>
+      <p style="font-size:13px;color:#6b7280;margin:8px 0 0 0;">Kod ve şifre ile giriş yapın</p>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Teknisyen Kodu</label>
+      <input id="techCode" type="text" placeholder="1015 veya 1016" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit;">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Şifre</label>
+      <input id="techPass" type="password" placeholder="••••••" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit;">
+    </div>
+    <button onclick="techLogin()" style="width:100%;padding:12px;background:#1D4ED8;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;transition:all .2s;">Giriş Yap</button>
+    <p id="techLoginErr" style="font-size:12px;color:#dc2626;margin-top:12px;text-align:center;display:none;"></p>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="tech-sidebar" id="techSidebar" style="position:fixed;left:0;top:0;width:260px;height:100vh;background:#1D4ED8;color:#fff;padding:20px;display:flex;flex-direction:column;z-index:500;overflow-y:auto;">
+  <nav style="flex:1;margin-bottom:20px;">
+    <button class="tech-nav-btn active" onclick="techPage('ziyaret')" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;cursor:pointer;margin-bottom:8px;font-size:14px;font-weight:500;font-family:inherit;transition:all .2s;">
+      <span>📋</span> Ziyaret Takibi
+    </button>
+    <button class="tech-nav-btn" onclick="techPage('numune')" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:transparent;border:none;color:#fff;border-radius:8px;cursor:pointer;margin-bottom:8px;font-size:14px;font-weight:500;font-family:inherit;transition:all .2s;">
+      <span>📦</span> Numune
+    </button>
+    <button class="tech-nav-btn" onclick="techPage('istatistik')" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:transparent;border:none;color:#fff;border-radius:8px;cursor:pointer;margin-bottom:8px;font-size:14px;font-weight:500;font-family:inherit;transition:all .2s;">
+      <span>📈</span> İstatistikler
+    </button>
+  </nav>
+  <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:12px;margin-bottom:12px;">
+    <a href="https://dk.dramagroup.com.tr/" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .2s;margin-bottom:8px;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+      <span>🌐</span> DK Portal
+    </a>
+    <button onclick="techLogout()" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:transparent;border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;font-family:inherit;transition:all .2s;margin-bottom:12px;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'">
+      <span>🚪</span> Çıkış Yap
+    </button>
+  </div>
+  <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">
+    <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;">Teknik Servis</div>
+    <div id="techName" style="font-size:16px;font-weight:700;margin-bottom:4px;">Semih Ağlan</div>
+    <div id="techID" style="font-size:11px;color:rgba(255,255,255,.6);">Kod: 1015</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" style="margin-left:260px;">
+  <div class="tb-logo">
+    <img id="tLogo" src="" alt="">
+    <div class="tb-logo-sep"></div>
+    <span class="tb-logo-title">ServisDrama</span>
+  </div>
+  <div class="tb-user">
+    <div style="font-size:13px;color:var(--text2);"><strong id="tName2">Semih Ağlan</strong> • Kod: <span id="tCode2">1015</span></div>
+  </div>
+</div>
+
+<!-- INFO BAR -->
+<div class="infobar">
+  <div class="infobar-row">
+    <div>
+      <div class="prog-label" id="progLabel">0 / 0 tamamlandı</div>
+    </div>
+    <div class="month-nav">
+      <button class="mnav-btn" id="prevM">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round"/></svg>
+      </button>
+      <span class="month-lbl" id="monthLbl"></span>
+      <button class="mnav-btn" id="nextM">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <div class="prog-week" id="weekLbl"></div>
+</div>
+
+<!-- WARN BANNER -->
+<div class="warn-banner hidden" id="warnBanner">
+  <div class="warn-icon">⚠️</div>
+  <div class="warn-body">
+    <div class="warn-title" id="warnTitle">Bu hafta firmalar ziyaret edilmedi</div>
+    <div class="warn-sub">Tıkla → ziyaret edilmeyenler listesi açılır · 2× tık → gidildi işaretle</div>
+  </div>
+  <div class="warn-badge" id="warnBadge">0</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content" style="margin-left:260px;">
+  <!-- ZIYARET TAKIBI PAGE -->
+  <div id="page-ziyaret" class="tech-page" style="display:block;">
+    <div id="desktopRaporBtn" style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button onclick="openRaporSheet()" style="display:flex;align-items:center;gap:7px;padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.25);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg>
+        Rapor Gönder
+      </button>
+    </div>
+    <div class="mobile-cards" id="mobileContent"></div>
+    <div class="desktop-table" id="desktopContent"></div>
+  </div>
+
+  <!-- NUMUNE PAGE -->
+  <div id="page-numune" class="tech-page" style="display:none;padding:20px;">
+    <h2 style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:20px;">📦 Numune Takip</h2>
+    <div id="numuneList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
+  </div>
+
+  <!-- İSTATİSTİKLER PAGE -->
+  <div id="page-istatistik" class="tech-page" style="display:none;padding:20px;">
+    <h2 style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:20px;">📈 İstatistiklerim</h2>
+    <div id="istatContent" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;"></div>
+  </div>
+</div>
+
+<!-- FAB (mobil) -->
+<div class="fab-area">
+  <button class="fab-btn hidden-fab" id="fabBtn" onclick="onFab()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg>
+    <span id="fabTxt">Günlük Rapor Gönder</span>
+  </button>
+</div>
+
+<!-- RAPOR SHEET -->
+<div class="sheet-overlay hidden" id="raporSheet" onclick="closeSheet()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📋 Günlük Rapor</div>
+    <textarea class="sheet-ta" id="raporTa" readonly></textarea>
+    <div class="sheet-btns">
+      <button class="sheet-btn sheet-btn-primary" onclick="previewRaporHTML()">
+        <div class="sheet-btn-icon">👁️</div>
+        <div class="sheet-btn-text">HTML Önizle<small>Tarayıcıda görüntüle</small></div>
+      </button>
+      <button class="sheet-btn sheet-btn-primary" onclick="sendRapor()">
+        <div class="sheet-btn-icon">📤</div>
+        <div class="sheet-btn-text">Mail Gönder<small>E-posta ile ilet</small></div>
+      </button>
+      <button class="sheet-btn sheet-btn-outline" onclick="copyRaporCode()">
+        <div class="sheet-btn-icon">💾</div>
+        <div class="sheet-btn-text" style="color:var(--text2);">Kod Çıkar<small style="color:var(--muted);">HTML kodunu kopyala</small></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ZİYARET EDİLMEYENLER SHEET -->
+<div class="sheet-overlay hidden" id="missedSheet" onclick="closeSheet()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="missedTitle">Ziyaret Edilmeyenler</div>
+    <p style="font-size:12.5px;color:var(--text3);margin-bottom:14px;">2× hızlı tıkla → gidildi olarak işaretle</p>
+    <div id="missedList" style="display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="t-toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="companies.js"></script>
+<script src="tech.js"></script>
+</body>
+</html>

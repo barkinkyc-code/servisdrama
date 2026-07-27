@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ServisDrama — Yönetici</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+<script>
+  // Token kontrol
+  if (!localStorage.getItem('token')) {
+    window.location.href = '/index.html';
+  }
+</script>
+<style>
+  main { margin-left: 220px; }
+</style>
+
+<!-- ═══ NAVBAR (LEFT SIDEBAR) ═══ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-header">
+    <div class="nav-brand-panel">
+      <div class="nav-logo">
+        <img id="navLogo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
+      </div>
+      <div class="nav-product">
+        <div class="nav-product-name">ServisDrama</div>
+        <div class="nav-product-subtitle">Teknik Servis Yönetimi</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-sections">
+    <div class="nav-section">
+      <div class="nav-section-title">ANA MENÜ</div>
+      <div class="nav-tabs" id="navTabs">
+        <button class="nav-tab" data-page="ziyaret">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
+          Ziyaret Takibi
+        </button>
+        <button class="nav-tab" data-page="firmalar">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+          Firmalar
+        </button>
+        <button class="nav-tab" data-page="numune">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
+          Numune
+        </button>
+        <button class="nav-tab" data-page="istatistik">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>
+          İstatistikler
+        </button>
+        <button class="nav-tab" data-page="ekip" onclick="goto('ekip')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          Teknisyenler
+        </button>
+      </div>
+    </div>
+
+    <div class="nav-section" style="margin-top:auto;">
+      <div class="nav-section-title">AYARLAR</div>
+      <div class="nav-tabs-sub">
+        <button class="nav-tab" data-page="ayarlar" onclick="goto('ayarlar')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.62l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.48.1.62l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.48-.1-.62l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          Ayarlar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-footer">
+    <div class="nav-user">
+      <div class="nav-user-avatar">BK</div>
+      <div class="nav-user-info">
+        <div class="nav-user-name" id="navUserLabel">Barkın Kayacı</div>
+        <div class="nav-user-role">Admin Panel</div>
+      </div>
+      <button class="nav-user-logout" onclick="doLogout()">→</button>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <a class="nav-portal" href="https://dk.dramagroup.com.tr/" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      DK Portal
+    </a>
+    <!-- Avatar menü -->
+    <div class="nav-user-menu" id="navUserMenu">
+      <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
+        <div class="nav-avatar-img" id="navAvatarImg"></div>
+        <span id="navUserLabel">Barkın Kayacı</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="nav-dropdown hidden" id="navDropdown">
+        <div class="nav-dd-header">
+          <div class="nav-dd-avatar" id="navDdAvatar"></div>
+          <div>
+            <div class="nav-dd-name" id="navDdName"></div>
+            <div class="nav-dd-role">Yönetici · Admin</div>
+          </div>
+        </div>
+        <div class="nav-dd-divider"></div>
+        <button class="nav-dd-item" onclick="goto('ayarlar')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Ayarlar
+        </button>
+        <button class="nav-dd-item" onclick="goto('ekip')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Ekip Yönetimi
+        </button>
+        <button class="nav-dd-item" onclick="goto('tech-ekran')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Teknisyen Ekranı
+        </button>
+        <div class="nav-dd-divider"></div>
+        <button class="nav-dd-item red" onclick="doLogout()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Çıkış Yap
+        </button>
+      </div>
+    </div>
+    <button class="nav-hamburger" id="hamburger">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ SAYFALAR ═══ -->
+<main id="mainContent">
+
+<!-- ZİYARET TAKİBİ -->
+<div class="pg hidden" id="pg-ziyaret">
+  <div class="pg-hd">
+    <div><h1 class="pg-title">Ziyaret Takibi</h1><div class="pg-sub" id="visitSub">0 / 0 ziyaret tamamlandı</div></div>
+    <div class="pg-acts">
+      <div class="month-nav"><button id="prevM"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round"/></svg></button><span id="monthLabel" style="cursor:pointer;padding:4px 8px;border-radius:4px;transition:background .2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''" onclick="openDatePicker('month')"></span><button id="nextM"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6" stroke-linecap="round"/></svg></button></div>
+      <button class="btn btn-outline btn-sm" onclick="openRapor()" style="background:rgba(59, 130, 246, 0.05);border-color:rgba(59, 130, 246, 0.2);color:#3b82f6;transition:all 0.2s ease;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"/><line x1="12" y1="13" x2="8" y2="13" style="stroke:currentColor;stroke-width:2;stroke-linecap:round;"/><line x1="12" y1="17" x2="8" y2="17" style="stroke:currentColor;stroke-width:2;stroke-linecap:round;"/></svg>
+        Rapor Gönder
+      </button>
+    </div>
+  </div>
+  <div id="setupBanner"></div>
+  <div class="warn-banner hidden" id="warnBanner" onclick="openMissedModal()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke-linejoin="round"/></svg>
+    <div><div class="warn-ttl" id="warnTitle"></div><div class="warn-sub">Firmaya dokunarak hızlıca işaretle</div></div>
+    <div class="warn-badge" id="warnBadge">0</div>
+  </div>
+  <div class="zt-bar">
+    <span class="zt-lbl">Teknisyen:</span>
+    <div class="zt-tech-btns" id="ztBtns"></div>
+    <span class="zt-active" id="ztActiveLbl"></span>
+    <button class="zt-extra" id="extraBtn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Program Dışı Ziyaret
+    </button>
+  </div>
+  <div class="prog"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="visitSearch" placeholder="Firma ara..."></div>
+  <div id="visitContainer"></div>
+
+  <!-- Program Dışı Ziyaretler Listesi -->
+  <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;">
+    <h3 style="margin:0 0 16px;font-size:15px;font-weight:700;color:#111827;">📋 Program Dışı Ziyaretler</h3>
+    <div id="extraVisitList" style="display:grid;gap:12px;"></div>
+    <p id="extraEmpty" class="empty-state" style="padding:16px;text-align:center;color:#999;">Kayıt bulunmamaktadır.</p>
+  </div>
+</div>
+
+<!-- FİRMALAR -->
+<div class="pg hidden" id="pg-firmalar">
+  <div class="pg-hd">
+    <div><h1 class="pg-title">Firmalar</h1><div class="pg-sub" id="firmaSub"></div></div>
+    <div class="pg-acts">
+      <button class="btn btn-outline btn-sm" id="indirBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke-linecap="round"/></svg>İndir</button>
+      <button class="btn btn-outline btn-sm" id="yukleBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0l-4 4m4-4l4 4" stroke-linecap="round"/></svg>Yükle</button>
+      <input type="file" id="yukleInput" accept=".json" hidden>
+      <button class="btn btn-primary btn-sm" id="firmaEkleBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>+ Firma Ekle</button>
+    </div>
+  </div>
+  <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="firmaSearch" placeholder="Firma ara..."></div>
+  <div class="firma-filters" id="firmaFilters">
+    <select class="inp inp-sm" id="fFilterTech"><option value="">Tüm Teknisyenler</option></select>
+    <select class="inp inp-sm" id="fFilterFreq">
+      <option value="">Tüm Sıklıklar</option>
+      <option value="4">Her hafta gidilecekler</option>
+      <option value="2">2 haftada bir gidilecekler</option>
+      <option value="1">Ayda 1 gidilecekler</option>
+      <option value="other">Diğer</option>
+    </select>
+    <select class="inp inp-sm" id="fFilterStatus">
+      <option value="">Tüm Firmalar</option>
+      <option value="active">Sadece Aktif</option>
+      <option value="inactive">Sadece Pasif</option>
+    </select>
+    <label class="fchk"><input type="checkbox" id="fFilterTruck"> 🚚 Truck bildirimi olanlar</label>
+    <button class="btn btn-ghost btn-sm" id="fFilterClear">Filtreyi Temizle</button>
+  </div>
+  <div class="co-list" id="firmaList"></div>
+  <p class="empty-state hidden" id="firmaEmpty">Firma bulunamadı.</p>
+</div>
+
+<!-- NUMUNE -->
+<div class="pg hidden" id="pg-numune">
+  <div class="pg-hd">
+    <div><h1 class="pg-title">Numune Takip</h1><div class="pg-sub" id="stSub"></div></div>
+    <div class="pg-acts"><button class="btn btn-primary btn-sm" id="stEkleBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>+ Numune Ekle</button></div>
+  </div>
+  <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="stSearch" placeholder="Firma veya numune ara..."></div>
+  <div id="stList"></div>
+  <p class="empty-state hidden" id="stEmpty">Numune kaydı bulunamadı.</p>
+</div>
+
+<!-- İSTATİSTİK -->
+<div class="pg hidden" id="pg-istatistik">
+  <div class="pg-hd">
+    <div><h1 class="pg-title">İstatistikler</h1><div class="pg-sub" id="istatSub"></div></div>
+    <div class="pg-acts">
+      <div class="month-nav"><button id="statPrev"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round"/></svg></button><span id="statMonth"></span><button id="statNext"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6" stroke-linecap="round"/></svg></button></div>
+      <button class="btn btn-primary btn-sm" onclick="openRapor()" style="background:linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8" style="fill:none;stroke:white;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"/><line x1="12" y1="13" x2="8" y2="13" style="stroke:white;stroke-width:2;stroke-linecap:round;"/><line x1="12" y1="17" x2="8" y2="17" style="stroke:white;stroke-width:2;stroke-linecap:round;"/></svg>Rapor Gönder</button>
+    </div>
+  </div>
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="two-col" id="techStatGrid"></div>
+</div>
+
+<!-- EKİP -->
+<div class="pg hidden" id="pg-ekip">
+  <div class="pg-hd"><div><h1 class="pg-title">Ekip Yönetimi</h1><div class="pg-sub">Teknisyen bilgileri ve erişim kontrolü</div></div><button class="btn btn-primary btn-sm" onclick="UI.openModal('addTechModal')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Teknisyen Ekle</button></div>
+  <div id="techAdminList"></div>
+</div>
+
+<!-- AYARLAR -->
+<div class="pg hidden" id="pg-ayarlar">
+  <div class="pg-hd"><div><h1 class="pg-title">Ayarlar</h1><div class="pg-sub">Sistem yapılandırması ve erişim kontrolü</div></div></div>
+  <div class="settings-tabs" id="settingsTabs">
+    <button class="stab active" data-stab="genel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/></svg>Genel</button>
+    <button class="stab" data-stab="mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7-10-7"/></svg>Mail</button>
+    <button class="stab" data-stab="mailAlicilar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Mail Alıcıları</button>
+    <button class="stab" data-stab="modul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Modüller</button>
+    <button class="stab" data-stab="teknik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M17 11h4m-2-2v4"/></svg>Teknisyen Yetkileri</button>
+    <button class="stab" data-stab="kullanici"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Kullanıcılar</button>
+    <button class="stab" data-stab="veri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3m0-7v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Veri</button>
+    <button class="stab" data-stab="raporlar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="17" y2="17"/></svg>Raporlar</button>
+  </div>
+  <div id="settingsContent"></div>
+</div>
+
+</main>
+
+<!-- ═══ MODALLER ═══ -->
+
+<!-- Program Dışı Ziyaret -->
+<div class="overlay hidden" id="extraVisitModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+        </div>
+        <h2>Program Dışı Ziyaret</h2>
+      </div>
+      <button class="modal-x" onclick="UI.closeModal('extraVisitModal')" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;transition:color 0.2s;padding:4px 8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Listeden seçin veya sistemde olmayan bir firma için manuel girin.</p>
+      <div class="form-grp" style="position:relative;">
+        <label class="form-lbl">Firma Ara</label>
+        <input class="inp st-uppercase" id="extraFirmaInp" placeholder="Firma ara..." autocomplete="off">
+        <div class="autocomplete" id="extraFirmaAC"></div>
+        <input type="hidden" id="extraFirmaId">
+        <div class="form-hint">Seçilen: <b id="extraFirmaSelected" style="color:var(--blue);">—</b></div>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Manuel Firma Adı (listede yoksa)</label>
+        <input class="inp st-uppercase" id="extraManuelAdi" placeholder="ör: ABC Makine San. Ltd.">
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Not (opsiyonel)</label>
+        <input class="inp st-uppercase" id="extraNot" placeholder="ör: Cihaz arızası nedeniyle gidildi">
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="UI.closeModal('extraVisitModal')">İptal</button>
+      <button class="btn btn-primary" id="extraSaveBtn" style="background:var(--purple);border-color:var(--purple);">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firma Ekle/Düzenle -->
+<div class="overlay hidden" id="firmaModal">
+  <div class="modal modal-lg">
+    <div class="modal-hd"><h2 id="firmaModalTitle">Firma Ekle</h2><button class="modal-x" onclick="UI.closeModal('firmaModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Firma Adı *</label><input class="inp" id="fAdi" placeholder="Tam firma adı..."></div>
+        <div class="form-grp"><label class="form-lbl">Bölge / Semt</label><input class="inp" id="fBolge" placeholder="OSB, NOSAB, ESKİŞEHİR..."></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Sorumlu Teknisyen</label><select class="inp" id="fTech"></select></div>
+        <div class="form-grp"><label class="form-lbl">Firma E-postası</label><input class="inp" type="email" id="fEmail" placeholder="firma@ornek.com"></div>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Ziyaret Programı</label>
+        <div class="week-grid">
+          <button type="button" class="week-tog on" data-w="1">1. Hafta</button>
+          <button type="button" class="week-tog on" data-w="2">2. Hafta</button>
+          <button type="button" class="week-tog on" data-w="3">3. Hafta</button>
+          <button type="button" class="week-tog on" data-w="4">4. Hafta</button>
+        </div>
+      </div>
+      <div class="fbox fbox-amber"><label class="cb-row"><input type="checkbox" id="fTruck"> 🚚 Truck Bildirimi aktif</label></div>
+      <div class="fbox fbox-red" style="margin-top:10px;"><label class="cb-row"><input type="checkbox" id="fPasif"> 🚫 Firma Pasif (ziyaret listesinde görünmez, firma listesinde en altta gösterilir)</label></div>
+      <div class="fbox fbox-purple" style="margin-top:10px;">
+        <div class="fbox-ttl">🔧 Kurulum Süreci</div>
+        <div class="form-row2" style="margin-top:7px;">
+          <div><label class="form-lbl">Başlangıç</label><input class="inp" type="date" id="fKurulumStart"></div>
+          <div><label class="form-lbl">Bitiş</label><input class="inp" type="date" id="fKurulumEnd"></div>
+        </div>
+      </div>
+      <div class="fbox fbox-blue" style="margin-top:10px;">
+        <div class="fbox-ttl"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V19h-2.58v-1.29c-1.84-.29-2.75-1.16-2.77-2.93h1.9c.05 1.53.56 2.04 2.44 2.18V13.5c-1.44-.35-2.67-.93-2.67-2.69 0-1.32.93-2.26 2.25-2.46V6h2.58v2.41c1.77.37 2.44 1.17 2.49 2.32h-1.9c-.05-.56-.31-1.11-1.35-1.27v5.26c1.86.42 2.39 1.15 2.39 2.86 0 1.56-1.33 2.36-2.77 2.64zm0-8.1v-2.3c-.89.23-1.02.708-1.02 1.19 0 .52.13 1.11 1.02 1.11zm1.26 2.5v2.42c1.02-.21 1.14-.75 1.14-1.19 0-.73-.36-1.23-1.14-1.23z"/></svg> Konum <button class="link-btn" id="mapPickBtn" style="background:linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);padding:6px 12px;border-radius:6px;font-weight:500;color:#3b82f6;transition:all 0.2s ease;">Haritadan Seç</button></div>
+        <input class="inp" id="fKonumNot" placeholder="Adres notu..." style="margin-top:7px;">
+        <div class="form-hint" id="coordsLbl"></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('firmaModal')">İptal</button><button class="btn btn-primary" id="firmaSaveBtn">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- Harita -->
+<div class="overlay hidden" id="mapModal" style="z-index:300;">
+  <div class="modal modal-lg">
+    <div class="modal-hd"><h2 style="display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Konum Seç</h2><button class="modal-x" id="mapX" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;transition:color 0.2s;padding:4px 8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div id="mapPickerContainer" style="height:340px;margin:12px 22px;border-radius:var(--r-xl);overflow:hidden;"></div>
+    <p class="form-hint" style="margin:0 22px 12px;color:#64748b;font-size:13px;">📍 Haritaya tıklayarak konum belirleyin.</p>
+    <div class="modal-ft"><button class="btn btn-ghost" id="mapCancel" style="background:rgba(148, 163, 184, 0.1);color:#64748b;border:1px solid rgba(148, 163, 184, 0.2);transition:all 0.2s ease;">Vazgeç</button><button class="btn btn-primary" id="mapSave" style="background:linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);transition:all 0.2s ease;">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- Numune Ekle -->
+<div class="overlay hidden" id="stModal">
+  <div class="modal modal-lg st-modal-blue">
+    <div class="st-modal-header">
+      <div class="st-logo"><img src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama"></div>
+      <div class="st-header-text">
+        <div class="st-label">SERVISDRAMA</div>
+        <h2>Yeni Numune Ekle</h2>
+      </div>
+      <button class="modal-x" id="stModalClose" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;transition:color 0.2s;padding:4px 8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grp" style="position:relative;">
+        <label class="form-lbl">Firma *</label>
+        <input class="inp st-uppercase" id="stFirmaInp" placeholder="Firma seçiniz..." autocomplete="off">
+        <div class="autocomplete" id="stFirmaAC"></div>
+        <input type="hidden" id="stFirmaId">
+        <div class="form-hint">Seçilen: <b id="stFirmaSelected" style="color:var(--blue);">—</b></div>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Analiz Merkezi *</label>
+        <select class="inp st-uppercase" id="stLab">
+          <option value="">Merkez seçiniz</option>
+          <option>QUAKERHOUGHTON</option><option>KLUBER LUBRICATION</option>
+          <option>TOTALENERGIES</option><option>CHEMETALL</option>
+          <option>PETROYAĞ</option><option>VISCOL</option>
+        </select>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Ekipman Adları * <small style="text-transform:none;font-weight:400;">(Enter ile ekle)</small></label>
+        <div class="tag-wrap"><div class="tag-inner" id="stEkipmanChips"><input class="tag-raw" id="stEkipmanInp" placeholder="ör: CNC 1 — Enter"></div></div>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Ürün / Numune Adları * <small style="text-transform:none;font-weight:400;">(Enter ile ekle)</small></label>
+        <div class="tag-wrap"><div class="tag-inner" id="stUrunChips"><input class="tag-raw" id="stUrunInp" placeholder="ör: POTENZA 3725 — Enter"></div></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Gönderim Tarihi *</label><input class="inp" type="date" id="stTarih"></div>
+        <div class="form-grp"><label class="form-lbl">Not</label><input class="inp st-uppercase" id="stNot" placeholder="Opsiyonel..."></div>
+      </div>
+      <div class="form-grp"><label class="form-lbl">İlave Bildirim E-postası</label><input class="inp st-uppercase" type="email" id="stExtraMail" placeholder="ornek@firma.com"><div class="form-hint">Firma analiz e-postaları otomatik eklenir. Buraya ek adres girin.</div></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" id="stModalCancel">İptal</button><button class="btn btn-primary" id="stSaveBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg>Kaydet &amp; Bildir</button></div>
+  </div>
+</div>
+
+<!-- Numune Sonuç -->
+<div class="overlay hidden" id="stResultModal">
+  <div class="modal"><div class="modal-hd"><h2>Sonuç Gir</h2><button class="modal-x" id="stResultClose">×</button></div>
+    <div class="modal-body"><div class="info-box" id="stResultInfo"></div><div class="form-grp"><label class="form-lbl">Sonuç</label><textarea class="inp st-uppercase" id="stResultNot" style="min-height:90px;" placeholder="Analiz sonucu..."></textarea></div></div>
+    <div class="modal-ft"><button class="btn btn-ghost" id="stResultCancel">İptal</button><button class="btn btn-primary" id="stResultSaveBtn">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- Teknisyen Ekle -->
+<div class="overlay hidden" id="addTechModal">
+  <div class="modal"><div class="modal-hd"><h2>Teknisyen Ekle</h2><button class="modal-x" onclick="UI.closeModal('addTechModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Kod *</label><input class="inp" id="newCode" placeholder="1017"></div>
+        <div class="form-grp"><label class="form-lbl">Ad Soyad *</label><input class="inp" id="newName" placeholder="Ad Soyad"></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Telefon</label><input class="inp" id="newPhone" placeholder="+90 5xx xxx xx xx"></div>
+        <div class="form-grp"><label class="form-lbl">E-posta</label><input class="inp" type="email" id="newEmail" placeholder="ad@dramamakine.com"></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Kullanıcı Adı</label><input class="inp" id="newUsername" placeholder="ad.soyad"></div>
+        <div class="form-grp"><label class="form-lbl">Şifre</label><input class="inp" type="password" id="newPassword" placeholder="Giriş şifresi"></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('addTechModal')">İptal</button><button class="btn btn-primary" id="saveTechBtn">Ekle</button></div>
+  </div>
+</div>
+
+<!-- Mail Alıcıları -->
+<div class="overlay hidden" id="mailRecipientModal">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <h2>Mail Alıcıları Yönetimi</h2>
+      <button class="modal-x" id="mailRecipientClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grp" style="margin-bottom:20px;">
+        <label class="form-lbl">Yeni E-posta Adresi Ekle</label>
+        <div style="display:flex;gap:8px;">
+          <input type="email" class="inp" id="newMailInput" placeholder="ornek@firma.com" style="flex:1;">
+          <button class="btn btn-primary" id="addMailBtn" style="padding:12px 16px;">Ekle</button>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="form-lbl" style="margin-bottom:12px;display:block;">Tanımlı E-postalar</label>
+        <div id="mailList" style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:16px;text-align:center;color:var(--text3);">Henüz e-posta eklenmedi</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="manuelHariciToggle" style="width:18px;height:18px;cursor:pointer;">
+          <span style="font-size:14px;font-weight:600;color:#111827;">Manuel Harici - Tüm alıcılara mail gönder</span>
+        </label>
+        <div style="font-size:13px;color:#6b7280;margin-top:8px;margin-left:26px;">
+          Seçiliyse: tüm tanımlı adresler<br>
+          Seçili değilse: sadece barkin.kayaci@dramamakine.com
+        </div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;font-size:13px;color:#1565d8;">
+        <strong>ℹ️ Bilgi:</strong> Ziyaret raporları gönderirken seçim durumuna göre e-posta adreslerine otomatik olarak mail gönderilecektir.
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" id="mailRecipientCancel">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Kullanıcı Ekle -->
+<div class="overlay hidden" id="addUserModal">
+  <div class="modal">
+    <div class="modal-hd"><h2>Kullanıcı Ekle</h2><button class="modal-x" onclick="UI.closeModal('addUserModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Ad Soyad *</label><input class="inp" id="addUserName" placeholder="Ad Soyad"></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Kullanıcı Adı *</label><input class="inp" id="addUserUsername" placeholder="ad.soyad"></div>
+        <div class="form-grp"><label class="form-lbl">Şifre *</label><input class="inp" type="password" id="addUserPassword" placeholder="••••••••"></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">E-posta</label><input class="inp" type="email" id="addUserEmail" placeholder="ad@dramamakine.com"></div>
+        <div class="form-grp"><label class="form-lbl">Rol</label><select class="inp" id="addUserRole"><option value="tech">Teknisyen</option><option value="admin">Admin</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('addUserModal')">İptal</button><button class="btn btn-primary" id="addUserSaveBtn" onclick="addNewUser()">Kullanıcı Ekle</button></div>
+  </div>
+</div>
+
+<!-- Teknisyen Şifre Kur -->
+<div class="overlay hidden" id="setupTechModal">
+  <div class="modal">
+    <div class="modal-hd"><h2 id="setupTechTitle">Şifre Belirle</h2><button class="modal-x" onclick="UI.closeModal('setupTechModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grp"><label class="form-lbl">Teknisyen Kodu</label><input class="inp" id="setupTechCode" readonly placeholder="Kod"></div>
+      <div class="form-grp" style="margin-top:16px;"><label class="form-lbl">Şifre *</label><input class="inp" type="password" id="setupTechPassword" placeholder="••••••••"></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('setupTechModal')">İptal</button><button class="btn btn-primary" id="setupTechSaveBtn" onclick="saveSetupTechPassword()">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- Rapor -->
+<div class="overlay hidden" id="raporModal">
+  <div class="modal modal-lg"><div class="modal-hd"><h2>Rapor Önizleme</h2><button class="modal-x" onclick="UI.closeModal('raporModal')">×</button></div>
+    <div class="modal-body" id="raporModalBody" style="padding:0;overflow:hidden;"><iframe id="raporIframe" src="" style="width:100%;height:600px;border:none;border-radius:var(--r);background:#f3f6fa;"></iframe></div>
+    <div class="modal-ft"><button class="btn btn-primary" id="mailRaporBtn" onclick="sendOutlookRapor()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg>Mail Gönder</button></div>
+  </div>
+</div>
+
+<!-- Ay/Yıl Seçimi -->
+<div class="overlay hidden" id="datePickerModal">
+  <div class="modal" style="width:400px;"><div class="modal-hd"><h2>Ay Seç</h2><button class="modal-x" onclick="UI.closeModal('datePickerModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grp" style="margin-bottom:16px;">
+        <label class="form-lbl">Yıl</label>
+        <select id="dpYear" class="inp" style="width:100%;"></select>
+      </div>
+      <div class="form-grp">
+        <label class="form-lbl">Ay</label>
+        <select id="dpMonth" class="inp" style="width:100%;"></select>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('datePickerModal')">İptal</button><button class="btn btn-primary" onclick="saveDatePicker()">Seç</button></div>
+  </div>
+</div>
+
+<!-- Ziyaret Edilmeyenler -->
+<div class="overlay hidden" id="missedModal">
+  <div class="modal modal-lg"><div class="modal-hd"><h2 id="missedTitle">Ziyaret Edilmeyenler</h2><button class="modal-x" onclick="UI.closeModal('missedModal')">×</button></div>
+    <div class="modal-body"><p style="font-size:12.5px;color:var(--text3);margin-bottom:12px;">2 kez dokun → gidildi olarak işaretle</p><div class="miss-list" id="missedList"></div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="companies.js"></script>
+<script src="email-template.js"></script>
+<script src="admin.js"></script>
+<script src="numune.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+</html>

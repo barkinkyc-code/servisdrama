@@ -1,0 +1,8 @@
+.env
+.env.local
+.env.production
+node_modules/
+servisdrama.db
+servisdrama_yedek_*.json
+*.pem
+*.key

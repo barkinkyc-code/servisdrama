@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ServisDrama</title>
+</head>
+<body style="margin:0; padding:20px; font-family:Arial; background:#f0f0f0;">
+
+  <div style="max-width:400px; margin:50px auto; background:white; padding:30px; border-radius:8px;">
+    <h2 style="text-align:center; margin-bottom:30px;">ServisDrama Giriş</h2>
+
+    <form id="loginForm" style="display:contents;">
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Kullanıcı Adı:</label>
+      <input type="text" id="user" value="barkin.kayaci" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc;">
+
+      <label style="display:block; margin-bottom:5px; font-weight:bold;">Şifre:</label>
+      <input type="password" id="pass" style="width:100%; padding:10px; margin-bottom:20px; border:1px solid #ccc;">
+
+      <button type="submit" style="width:100%; padding:12px; background:#667eea; color:white; border:none; cursor:pointer; font-weight:bold;">Giriş Yap</button>
+
+      <div id="msg" style="margin-top:15px; text-align:center; font-size:13px;"></div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      var user = document.getElementById('user').value.trim();
+      var pass = document.getElementById('pass').value.trim();
+      var msg = document.getElementById('msg');
+
+      if (!user || !pass) {
+        msg.innerHTML = '❌ Lütfen doldur';
+        msg.style.color = 'red';
+        return;
+      }
+
+      msg.innerHTML = 'Kontrol ediliyor...';
+      msg.style.color = '#666';
+
+      try {
+        var apiUrl = window.location.origin + '/api/auth/login';
+        var res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+
+        var data = await res.json();
+
+        if (data.success) {
+          localStorage.setItem('token', data.token);
+          sessionStorage.setItem('sd_session', JSON.stringify({ token: data.token, user: user, userData: data.user }));
+          msg.innerHTML = '✅ Başarılı! Yönlendiriliyor...';
+          msg.style.color = 'green';
+          setTimeout(function() {
+            window.location.href = '/admin.html';
+          }, 1000);
+        } else {
+          msg.innerHTML = '❌ ' + (data.error || 'Hata');
+          msg.style.color = 'red';
+        }
+      } catch (e) {
+        msg.innerHTML = '❌ Server hatası: ' + e.message;
+        msg.style.color = 'red';
+      }
+    });
+  </script>
+
+</body>
+</html>
