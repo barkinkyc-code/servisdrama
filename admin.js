@@ -18,13 +18,30 @@ function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListen
 function setupResponsive(){
   if(A.isMobile()){
     document.body.classList.add('mobile-view');
-    /* Mobilde navbar'ı toggle'a çevir */
-    var navbar=document.getElementById('navbar');
-    if(navbar){navbar.style.position='fixed';navbar.style.width='100%';navbar.style.maxHeight='200px';navbar.style.overflowY='auto';}
+    var hamburger=document.getElementById('mobileMenuBtn');
+    if(hamburger)hamburger.classList.add('show');
   }else{
     document.body.classList.remove('mobile-view');
+    var hamburger=document.getElementById('mobileMenuBtn');
+    if(hamburger)hamburger.classList.remove('show');
+    closeMobileMenu();
   }
 }
+
+function toggleMobileMenu(){
+  var navbar=document.getElementById('navbar');
+  var overlay=document.getElementById('mobileOverlay');
+  if(navbar)navbar.classList.toggle('open');
+  if(overlay)overlay.classList.toggle('show');
+}
+
+function closeMobileMenu(){
+  var navbar=document.getElementById('navbar');
+  var overlay=document.getElementById('mobileOverlay');
+  if(navbar)navbar.classList.remove('open');
+  if(overlay)overlay.classList.remove('show');
+}
+
 window.addEventListener('resize',setupResponsive);
 setupResponsive();
 
@@ -75,7 +92,7 @@ document.addEventListener('DOMContentLoaded',async function(){
 
   /* Nav tabs */
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(btn){
-    btn.addEventListener('click',function(){goto(btn.dataset.page);closeDropdown();});
+    btn.addEventListener('click',function(){goto(btn.dataset.page);closeDropdown();closeMobileMenu();});
   });
 
   /* Hamburger — basit mobile menu */

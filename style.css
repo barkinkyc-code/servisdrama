@@ -663,9 +663,18 @@ textarea.inp{resize:vertical;line-height:1.6;}
 
 /* ═══ MOBİL RESPONSIVE DESIGN (768px altı) ═══ */
 @media(max-width:768px){
-  /* NAVBAR - Mobilde gizle */
-  .navbar{display:none;}
-  main{margin-left:0;}
+  /* NAVBAR - Mobilde hamburger menu ile kontrol et */
+  .navbar{position:fixed;left:-240px;top:0;height:100vh;z-index:100;transition:left 0.3s ease;}
+  .navbar.open{left:0;}
+  main{margin-left:0;margin-top:0;}
+
+  /* Overlay */
+  .overlay-mobile{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99;}
+  .overlay-mobile.show{display:block;}
+
+  /* Hamburger Button */
+  .mobile-hamburger{display:block;position:fixed;top:12px;left:12px;z-index:101;background:none;border:none;font-size:24px;cursor:pointer;padding:6px;}
+  .mobile-hamburger:active{opacity:0.7;}
 
   /* PAGE */
   .pg{padding:16px 12px;}

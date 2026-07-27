@@ -18,10 +18,56 @@
 </script>
 <style>
   main { margin-left: 220px; }
+
+  /* Hamburger Menu */
+  .mobile-hamburger {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 101;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .mobile-hamburger.show {
+    display: block;
+  }
+
   @media(max-width:768px){
     main { margin-left: 0; }
+    .mobile-hamburger.show { display: block; }
+    .navbar {
+      position: fixed;
+      left: -240px;
+      transition: left 0.3s ease;
+      z-index: 100;
+    }
+    .navbar.open {
+      left: 0;
+    }
+    .overlay-mobile {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+    .overlay-mobile.show {
+      display: block;
+    }
   }
 </style>
+
+<!-- Hamburger Menu (Mobile) -->
+<button class="mobile-hamburger" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+<div class="overlay-mobile" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 
 <!-- ═══ NAVBAR (LEFT SIDEBAR) ═══ -->
 <nav class="navbar" id="navbar">
