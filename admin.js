@@ -1699,36 +1699,28 @@ function _visitRecordDate(record,key){
 }
 function renderVisitDashboard(){
   var host=document.getElementById('visitDashboardContent');if(!host)return;
+  var isMobile=window.innerWidth<768;
+
+  // Mobilde dashboard tamamen gizle
+  if(isMobile){
+    host.innerHTML='';
+    return;
+  }
+
+  // Desktop'ta dashboard göster
   var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[];
   var now=new Date(),month=now.getMonth(),year=now.getFullYear();
   var cwk=DT.wkey(now),weeks=DT.monthWeeks(year,month);
   var cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(now).getTime();})+1;
 
-  // Bu haftanın verilerini hesapla
   var scheduled=cos.filter(function(c){return c.aktif!==false&&BL.scheduled(c,cwi);});
   var completed=scheduled.filter(function(c){var v=vis[c.id+'_'+cwk];return v&&v.status==='done';}).length;
   var progress=scheduled.length>0?Math.round((completed/scheduled.length)*100):0;
 
-  // HTML oluştur - Responsive Design
-  var isMobile=window.innerWidth<768;
-  var html='';
-
-  if(isMobile){
-    // MOBİL VERSİYON - Sade ve Basit
-    html+='<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">';
-    html+='<div style="text-align:center;">';
-    html+='<div style="font-size:13px;color:#6b7280;font-weight:600;margin-bottom:12px;">BU HAFTA</div>';
-    html+='<div style="display:flex;justify-content:center;align-items:center;gap:16px;">';
-    html+='<div style="text-align:center;"><div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#10b981 0deg '+(progress*3.6)+'deg,#e5e7eb '+(progress*3.6)+'deg);display:flex;align-items:center;justify-content:center;"><div style="width:90px;height:90px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;"><div style="font-size:24px;font-weight:700;color:#111827;">'+completed+'</div><div style="font-size:10px;color:#6b7280;margin-top:2px;">%'+progress+'</div></div></div></div>';
-    html+='<div style="display:grid;grid-template-columns:1fr;gap:12px;text-align:left;"><div style="background:#f0f9ff;border-radius:8px;padding:12px;"><div style="font-size:20px;color:#3b82f6;font-weight:700;">'+scheduled.length+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">Planlı</div></div><div style="background:#f0fdf4;border-radius:8px;padding:12px;"><div style="font-size:20px;color:#10b981;font-weight:700;">'+completed+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">Tamamlandı</div></div></div>';
-    html+='</div></div></div>';
-  }else{
-    // DESKTOP VERSİYON - Detaylı
-    html+='<div style="margin-bottom:24px;"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px;display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center;">';
-    html+='<div style=""><div style="font-size:14px;font-weight:600;color:#6b7280;margin-bottom:12px;">BU HAFTA</div><div style="width:140px;height:140px;border-radius:50%;background:conic-gradient(#10b981 0deg '+(progress*3.6)+'deg,#e5e7eb '+(progress*3.6)+'deg);display:flex;align-items:center;justify-content:center;"><div style="width:130px;height:130px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;"><div style="font-size:28px;font-weight:700;color:#111827;">'+completed+'</div><div style="font-size:11px;color:#6b7280;">tamamlandı</div><div style="font-size:16px;font-weight:700;color:#10b981;margin-top:4px;">%'+progress+'</div></div></div></div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#3b82f6;font-weight:700;">'+scheduled.length+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">PLANLANDI ZIYARET</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#10b981;font-weight:700;">'+completed+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">TAMAMLANDI</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#f59e0b;font-weight:700;">%'+progress+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">İLERLEME</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div></div></div>';
-    html+='</div></div>';
-  }
+  var html='<div style="margin-bottom:24px;"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px;display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center;">';
+  html+='<div style=""><div style="font-size:14px;font-weight:600;color:#6b7280;margin-bottom:12px;">BU HAFTA</div><div style="width:140px;height:140px;border-radius:50%;background:conic-gradient(#10b981 0deg '+(progress*3.6)+'deg,#e5e7eb '+(progress*3.6)+'deg);display:flex;align-items:center;justify-content:center;"><div style="width:130px;height:130px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;"><div style="font-size:28px;font-weight:700;color:#111827;">'+completed+'</div><div style="font-size:11px;color:#6b7280;">tamamlandı</div><div style="font-size:16px;font-weight:700;color:#10b981;margin-top:4px;">%'+progress+'</div></div></div></div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#3b82f6;font-weight:700;">'+scheduled.length+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">PLANLANDI ZIYARET</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#10b981;font-weight:700;">'+completed+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">TAMAMLANDI</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#f59e0b;font-weight:700;">%'+progress+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">İLERLEME</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div></div></div>';
+  html+='</div></div>';
 
   host.innerHTML=html;
 }
