@@ -1079,7 +1079,7 @@ function addNewUser(){
   if(!pw){UI.toast('Şifre gerekli.','error');return;}
 
   // Veritabanına kaydet
-  fetch('/api/register', {
+  fetch('/api/auth/register', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({username:un, password:pw, name:n, email:em, role:role})

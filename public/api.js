@@ -1,7 +1,7 @@
 // API Client for ServisDrama
 
 const API = {
-  baseURL: 'http://localhost:3000/api',
+  baseURL: window.location.protocol === 'file:' ? 'http://localhost:3000/api' : `${window.location.origin}/api`,
   token: localStorage.getItem('token'),
 
   // Set token

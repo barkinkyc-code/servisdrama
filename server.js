@@ -152,6 +152,11 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// Health check for Vercel and uptime tests
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, service: 'servisdrama', runtime: process.env.VERCEL ? 'vercel' : 'local' });
+});
+
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -164,11 +169,18 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`
+
+// Local development: open a TCP port only when this file is executed directly.
+// Vercel imports and invokes the exported Express app as a serverless function.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`
 ╔══════════════════════════════════════╗
 ║   ServisDrama System Started         ║
 ║   Server: http://localhost:${PORT}   ║
 ╚══════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
+
+module.exports = app;

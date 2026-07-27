@@ -1,7 +1,11 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, '..', 'servisdrama.db');
+const os = require('os');
+const isVercel = Boolean(process.env.VERCEL);
+const dbPath = isVercel
+  ? path.join(os.tmpdir(), 'servisdrama.db')
+  : path.join(__dirname, '..', 'servisdrama.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {

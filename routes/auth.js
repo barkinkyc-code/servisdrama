@@ -32,8 +32,8 @@ router.post('/login', async (req, res) => {
       // JWT token oluştur
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE }
+        process.env.JWT_SECRET || 'servisdrama-change-this-secret',
+        { expiresIn: process.env.JWT_EXPIRE || '8h' }
       );
 
       res.json({
@@ -96,7 +96,7 @@ function verifyToken(req, res, next) {
     return res.status(401).json({ error: 'No token provided' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'servisdrama-change-this-secret', (err, decoded) => {
     if (err) {
       return res.status(401).json({ error: 'Invalid token' });
     }

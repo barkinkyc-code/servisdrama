@@ -1,8 +1,12 @@
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 node_modules/
 servisdrama.db
 servisdrama_yedek_*.json
+backups/
 *.pem
 *.key
+.DS_Store
+Thumbs.db
+.vercel/
