@@ -685,11 +685,12 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .pg-acts{gap:6px;order:3;}
   .pg-acts button{font-size:12px;padding:8px 12px;}
 
-  /* MONTH NAVIGATION - Icon format hamburger menünün yanında */
-  .month-nav{position:fixed;top:16px;left:12px;z-index:101;gap:2px;display:flex;align-items:center;}
-  .month-nav button{padding:6px;background:none;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;color:#666;transition:all 0.2s;display:flex;align-items:center;justify-content:center;}
-  .month-nav button:active{background:#f3f4f6;}
-  .month-nav span{font-size:11px;font-weight:600;min-width:55px;text-align:center;padding:4px 6px;color:#666;}
+  /* MONTH NAVIGATION - Sadece Ziyaret Takibi'nde, icon format hamburger menünün yanında. Diğer sayfalardaki .month-nav (örn. İstatistikler) mobilde gizli kalır. */
+  .month-nav{display:none;}
+  #visitMonthNav{position:fixed;top:16px;left:12px;z-index:101;gap:2px;display:flex;align-items:center;}
+  #visitMonthNav button{padding:6px;background:none;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;color:#666;transition:all 0.2s;display:flex;align-items:center;justify-content:center;}
+  #visitMonthNav button:active{background:#f3f4f6;}
+  #visitMonthNav span{font-size:11px;font-weight:600;min-width:55px;text-align:center;padding:4px 6px;color:#666;}
 
   /* INPUTS & FORMS */
   .inp{font-size:16px;padding:12px;border-radius:6px;}
@@ -759,6 +760,10 @@ textarea.inp{resize:vertical;line-height:1.6;}
   /* TABLE - Horizontal Scroll */
   table{min-width:100%;overflow:auto;}
   .table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* ZİYARET TABLOSU - mobilde header/satırlar container genişliğini aşıyor (haftalık sütunlar).
+     overflow:hidden bunu erişilemez kılıyordu, yatay kaydırmaya izin ver. */
+  .vt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
   /* ZİYARET TABLOSU */
   .zt-bar{flex-wrap:wrap;padding:12px;}
