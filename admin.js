@@ -50,9 +50,16 @@ document.addEventListener('DOMContentLoaded',async function(){
   /* Oturum kontrolü */
   var sess=sessionStorage.getItem('sd_session');
   if(!sess){
-    /* Session yoksa index.html'e dön */
-    location.href='index.html';
-    return;
+    /* Sekme/tarayıcı kapanınca sessionStorage silinir - "Beni Hatırla" ile kaydedilmiş kalıcı oturum var mı bak */
+    var persisted=localStorage.getItem('sd_session_persist');
+    if(persisted){
+      sessionStorage.setItem('sd_session',persisted);
+      sess=persisted;
+    }else{
+      /* Kalıcı oturum da yoksa index.html'e dön */
+      location.href='index.html';
+      return;
+    }
   }
   try{var s=JSON.parse(sess);}
   catch(e){location.href='index.html';return;}
@@ -242,6 +249,7 @@ document.addEventListener('DOMContentLoaded',async function(){
 /* ═══ LOGOUT ═══ */
 function doLogout(){
   sessionStorage.removeItem('sd_session');
+  localStorage.removeItem('sd_session_persist');
   SD.currentUser=null;
   location.reload();
 }
@@ -856,11 +864,11 @@ function renderTechAdmin(){
   ts.forEach(function(t){
     var row=document.createElement('div');row.className='tech-row';
     row.style.cssText='display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);padding:14px 16px;margin-bottom:8px;box-shadow:var(--sh-xs);';
-    var av=document.createElement('div');av.style.cssText='width:42px;height:42px;border-radius:50%;background:'+BL.avatarColor(t.name)+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;';av.textContent=BL.getInitials(t.name);
-    var info=document.createElement('div');info.style.cssText='flex:1;min-width:0;';
+    var av=document.createElement('div');av.className='tech-avatar';av.style.cssText='width:42px;height:42px;border-radius:50%;background:'+BL.avatarColor(t.name)+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;';av.textContent=BL.getInitials(t.name);
+    var info=document.createElement('div');info.className='tech-info';info.style.cssText='flex:1;min-width:0;';
     info.innerHTML='<div style="font-weight:700;font-size:14px;color:var(--text);">'+t.name+' <span style="background:var(--blue-l);color:var(--blue);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;">'+t.code+'</span></div>'
       +'<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+(t.phone||'Telefon yok')+' · '+(t.email||'E-posta yok')+'</div>';
-    var fields=document.createElement('div');fields.style.cssText='display:flex;flex-direction:column;gap:5px;min-width:220px;';
+    var fields=document.createElement('div');fields.className='tech-fields';fields.style.cssText='display:flex;flex-direction:column;gap:5px;min-width:220px;';
     ['name','phone','email'].forEach(function(f){
       var inp=document.createElement('input');
       inp.style.cssText='padding:7px 10px;font-size:12.5px;border:1.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit;transition:border-color .15s;';

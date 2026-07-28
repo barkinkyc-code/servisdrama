@@ -566,11 +566,13 @@ textarea.inp{resize:vertical;line-height:1.6;}
 .st-header-text h2{font-size:20px;font-weight:800;color:white;margin:0;line-height:1.2;}
 
 .modal-x{
-  background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:var(--r-lg);
-  color:white;font-size:18px;cursor:pointer;
+  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-lg);
+  color:var(--text2);font-size:18px;cursor:pointer;
   width:32px;height:32px;display:flex;align-items:center;justify-content:center;
   transition:all var(--tr);flex-shrink:0;
 }
+.modal-x:hover{background:var(--border2);color:var(--text);}
+.st-modal-header .modal-x{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);color:white;}
 .st-modal-header .modal-x:hover{background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.3);}
 
 /* BÜYÜK HARF Otomatiği */
@@ -769,6 +771,12 @@ textarea.inp{resize:vertical;line-height:1.6;}
   /* Search Box */
   .search-box{margin-bottom:12px;}
   .search-box input{font-size:16px;}
+
+  /* EKİP YÖNETİMİ - Mobilde alt alta diz, üst üste binmeyi engelle */
+  .tech-row{flex-direction:column!important;align-items:stretch!important;gap:10px!important;}
+  .tech-avatar{align-self:flex-start;}
+  .tech-fields{min-width:0!important;width:100%!important;}
+  .tech-fields input{width:100%;box-sizing:border-box;}
 }
 
 /* ═══ EXTRA SMALL PHONES (480px altı) ═══ */

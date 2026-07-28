@@ -362,20 +362,24 @@
         const data = await res.json();
 
         if (data.success) {
-          localStorage.setItem('token', data.token);
-          sessionStorage.setItem('sd_session', JSON.stringify({
+          const sessionPayload = JSON.stringify({
             token: data.token,
             user: user,
             userData: data.user
-          }));
+          });
+          localStorage.setItem('token', data.token);
+          sessionStorage.setItem('sd_session', sessionPayload);
 
           // "Beni Hatırla" seçeneğini kontrol et
           if (rememberCheckbox.checked) {
             localStorage.setItem('savedUser', user);
             localStorage.setItem('userRemembered', 'true');
+            // Oturumu kalıcı olarak sakla - tarayıcı kapansa bile tekrar şifre istemesin
+            localStorage.setItem('sd_session_persist', sessionPayload);
           } else {
             localStorage.removeItem('savedUser');
             localStorage.removeItem('userRemembered');
+            localStorage.removeItem('sd_session_persist');
           }
 
           showMessage('✅ Başarılı! Yönlendiriliyor...', 'success');
