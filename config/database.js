@@ -12,10 +12,26 @@ function pgSql(sql) {
 }
 
 async function seedUsersPg(pool) {
+  /* Migration: eski 'suleyman' kullanıcı adını 'suleyman.kucuk' olarak düzelt (seed listesinden ÖNCE çalışmalı) */
+  const oldUser = await pool.query(`SELECT id FROM users WHERE username = 'suleyman'`);
+  if (oldUser.rowCount) {
+    const dupe = await pool.query(`SELECT id FROM users WHERE username = 'suleyman.kucuk'`);
+    if (dupe.rowCount) {
+      /* 'suleyman.kucuk' zaten var (önceki hatalı çalıştırmadan kalmış) - eski 'suleyman' kaydını sil */
+      await pool.query(`DELETE FROM users WHERE username = 'suleyman'`);
+    } else {
+      const newHash = await bcrypt.hash('1016', 10);
+      await pool.query(
+        `UPDATE users SET username = 'suleyman.kucuk', password = $1 WHERE username = 'suleyman'`,
+        [newHash]
+      );
+    }
+  }
+
   const users = [
     { username: 'barkin.kayaci', password: process.env.ADMIN_PASSWORD || '1452580000', name: 'Barkın Kayacı', email: 'barkin.kayaci@dramamakine.com', role: 'admin' },
     { username: 'semih.aglan', password: '1015', name: 'Semih Ağlan', email: 'semih.aglan@dramamakine.com', role: 'tech' },
-    { username: 'suleyman', password: '1016', name: 'Süleyman Küçük', email: 'suleyman.kucuk@dramamakine.com', role: 'tech' }
+    { username: 'suleyman.kucuk', password: '1016', name: 'Süleyman Küçük', email: 'suleyman.kucuk@dramamakine.com', role: 'tech' }
   ];
   for (const user of users) {
     const hash = await bcrypt.hash(user.password, 10);
@@ -138,10 +154,22 @@ if (usePostgres) {
     `, async err => {
       if (err) return reject(err);
       try {
+        /* Migration: eski 'suleyman' kullanıcı adını 'suleyman.kucuk' olarak düzelt (seed listesinden ÖNCE çalışmalı) */
+        const oldRow = await new Promise((res,rej) => sqlite.get("SELECT id FROM users WHERE username='suleyman'", [], (e,row) => e?rej(e):res(row)));
+        if (oldRow) {
+          const dupeRow = await new Promise((res,rej) => sqlite.get("SELECT id FROM users WHERE username='suleyman.kucuk'", [], (e,row) => e?rej(e):res(row)));
+          if (dupeRow) {
+            await new Promise((res,rej) => sqlite.run("DELETE FROM users WHERE username='suleyman'", [], e => e?rej(e):res()));
+          } else {
+            const oldHash = await bcrypt.hash('1016', 10);
+            await new Promise((res,rej) => sqlite.run("UPDATE users SET username='suleyman.kucuk', password=? WHERE username='suleyman'", [oldHash], e => e?rej(e):res()));
+          }
+        }
+
         const users = [
           ['barkin.kayaci', process.env.ADMIN_PASSWORD || '1452580000', 'Barkın Kayacı', 'barkin.kayaci@dramamakine.com', 'admin'],
           ['semih.aglan', '1015', 'Semih Ağlan', 'semih.aglan@dramamakine.com', 'tech'],
-          ['suleyman', '1016', 'Süleyman Küçük', 'suleyman.kucuk@dramamakine.com', 'tech']
+          ['suleyman.kucuk', '1016', 'Süleyman Küçük', 'suleyman.kucuk@dramamakine.com', 'tech']
         ];
         for (const u of users) {
           const hash = await bcrypt.hash(u[1], 10);
