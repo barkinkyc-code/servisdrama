@@ -58,16 +58,23 @@
     }
 
     .login-logo {
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       margin: 0 auto 16px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 28px;
       font-weight: 800;
+      padding: 12px;
+    }
+
+    .login-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .login-header h1 {
@@ -239,7 +246,9 @@
 <body>
   <div class="login-container">
     <div class="login-header">
-      <div class="login-logo">🚗</div>
+      <div class="login-logo">
+        <img src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine Logo">
+      </div>
       <h1>ServisDrama</h1>
       <p>Teknik Servis Yönetim Sistemi</p>
     </div>
