@@ -677,10 +677,17 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .mobile-hamburger:active{opacity:0.7;}
 
   /* PAGE HEADER */
-  .pg-hd{margin-bottom:12px;}
+  .pg-hd{margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .pg-hd>div:first-child{flex:1;}
   .pg-title{font-size:18px;margin-bottom:8px;}
-  .pg-acts{gap:6px;}
+  .pg-acts{gap:6px;order:3;}
   .pg-acts button{font-size:12px;padding:8px 12px;}
+
+  /* MONTH NAVIGATION - Hamburger menünün soluna */
+  .month-nav{position:fixed;top:12px;left:12px;z-index:101;gap:4px;display:flex;align-items:center;}
+  .month-nav button{padding:4px 6px;background:none;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;color:#333;transition:all 0.2s;}
+  .month-nav button:active{background:#f3f4f6;}
+  .month-nav span{font-size:12px;font-weight:600;min-width:80px;text-align:center;padding:4px 8px;}
 
   /* INPUTS & FORMS */
   .inp{font-size:16px;padding:12px;border-radius:6px;}
