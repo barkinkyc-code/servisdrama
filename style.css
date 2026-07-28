@@ -719,6 +719,7 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .search-box input{font-size:14px;padding:10px;border-radius:6px;}
 }
 
+@media(max-width:768px){
   /* PAGE */
   .pg{padding:16px 12px;}
   .pg-hd{margin-bottom:16px;}
