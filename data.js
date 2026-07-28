@@ -512,7 +512,7 @@ function buildVisitTable(opts){
 
 function _buildCell(co,col,vd,vk,opts){
   var btn=document.createElement('button');btn.className='vc';
-  if(!BL.scheduled(co,col.wi)){btn.className='vc vc-dash';btn.disabled=true;btn.innerHTML='<span class="vc-dash-line"></span>';return btn;}
+  if(!BL.scheduled(co,col.wi)){btn.className='vc vc-dash';btn.disabled=true;btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span><span class="vc-dash-line"></span>';return btn;}
   var st=vd?vd.status:'';
   if(st==='done'){
     var cnt=vd.count||1;

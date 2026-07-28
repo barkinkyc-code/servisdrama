@@ -658,6 +658,29 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .settings-tabs{gap:3px;}
   .stab{padding:6px 10px;font-size:12px;}
 }
+
+/* ═══ MASAÜSTÜ: ZİYARET TABLOSU GERI YÜKLE ═══ */
+@media(min-width:769px){
+  .vt-wrap{
+    background:var(--surface)!important;border:1px solid var(--border)!important;
+    border-radius:var(--r-2xl)!important;box-shadow:var(--sh-sm)!important;overflow:hidden!important;
+    display:block!important;flex-direction:initial!important;gap:initial!important;
+  }
+  .vt-head{display:grid!important;}
+  .vt-row{
+    display:grid!important;border-top:1px solid var(--border)!important;
+    align-items:center!important;transition:background .12s!important;background:#fff!important;padding:initial!important;
+  }
+  .vt-row:hover{background:#F8FAFF!important;}
+  .vt-nc{grid-column:initial!important;padding:10px 18px!important;display:flex!important;align-items:center!important;gap:8px!important;}
+  .vt-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden!important;text-overflow:ellipsis!important;}
+  .vt-truck{width:28px!important;height:28px!important;background:linear-gradient(135deg,#FEF3C7,#FDE68A)!important;border:1px solid #F59E0B33!important;border-radius:var(--r-sm)!important;}
+  .vt-wc{grid-column:initial!important;padding:6px 6px!important;text-align:center!important;}
+  .vt-empty-msg{padding:48px;text-align:center;background:var(--surface)!important;border:1px solid var(--border)!important;}
+  .vc{min-height:58px!important;border-radius:var(--r-xl)!important;gap:2px!important;padding:4px 6px!important;}
+  .vc-wk{display:none!important;}
+  .prog{display:none!important;}
+}
 @media(max-width:600px){
   .kpi-row{grid-template-columns:1fr 1fr;}
   .pg-hd{flex-direction:column;align-items:stretch;}
@@ -780,9 +803,32 @@ textarea.inp{resize:vertical;line-height:1.6;}
   table{min-width:100%;overflow:auto;}
   .table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
-  /* ZİYARET TABLOSU - mobilde header/satırlar container genişliğini aşıyor (haftalık sütunlar).
-     overflow:hidden bunu erişilemez kılıyordu, yatay kaydırmaya izin ver. */
-  .vt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* ZİYARET TABLOSU → mobilde KART LİSTESİ.
+     Masaüstünde tek satır = firma + 4 hafta sütunu; telefonda bu genişlik sığmadığı için
+     her firma kendi kartı olur: firma adı üstte tam genişlik, hafta hücreleri altında 4'lü sıra.
+     grid-template-columns JS tarafında inline atandığından !important zorunlu. */
+  .vt-wrap{
+    background:transparent;border:none;border-radius:0;box-shadow:none;
+    overflow:visible;display:flex;flex-direction:column;gap:10px;
+  }
+  .vt-head{display:none;}
+  .vt-row{
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:8px;align-items:stretch;
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:14px;box-shadow:var(--sh-xs);
+  }
+  .vt-row:hover{background:var(--surface);}
+  /* Firma adı satırı: dört sütunun tamamını kaplar, hücreler bir alt satıra iner */
+  .vt-nc{grid-column:1/-1;padding:0;gap:10px;justify-content:space-between;}
+  .vt-name{font-size:14px;font-weight:800;letter-spacing:-.01em;}
+  .vt-truck{width:40px;height:40px;border-radius:10px;background:#FFEDD5;border:none;color:#EA580C;}
+  .vt-truck svg{width:19px;height:19px;}
+  .vt-wc{padding:0;}
+  .vt-empty-msg{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:36px 20px;}
+
+  /* Haftalık ilerleme çubuğu telefonda görünür */
+  .prog{display:block;}
 
   /* ZİYARET TABLOSU */
   .zt-bar{flex-wrap:wrap;padding:12px;}
@@ -790,10 +836,14 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .zt-extra{width:100%;margin-top:8px;}
 
   /* ZİYARET KARTLARI - mobilde sadeleştirilmiş görünüm: "H31" rozeti + ikon, tarih/teknisyen detayı gizli */
+  .vc{min-height:64px;border-radius:10px;gap:3px;padding:6px 4px;}
   .vc-wk{display:block;font-size:11px;font-weight:800;color:inherit;margin-bottom:2px;}
   .vc-done .vc-wk,.vc-multi .vc-wk{color:#fff;}
   .vc-d1,.vc-d2,.vc-empty-lbl,.vc-future-lbl{display:none;}
   .vc-future-lbl-mobile{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-top:1px;}
+  /* Programda olmayan hafta: boş kutu yerine soluk hafta rozeti */
+  .vc-dash{background:var(--surface2);color:var(--muted);}
+  .vc-dash .vc-dash-line{display:none;}
 
   /* FIRMA MODAL */
   .form-row2{grid-template-columns:1fr;}
@@ -807,6 +857,48 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .tech-avatar{align-self:flex-start;}
   .tech-fields{min-width:0!important;width:100%!important;}
   .tech-fields input{width:100%;box-sizing:border-box;}
+}
+
+/* ═══ MODAL RESPONSIVE FIX (768px altı) ═══ */
+@media(max-width:768px){
+  /* Modal header responsive - too wide on mobile */
+  .st-modal-header{
+    padding:18px 16px;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .st-header-text h2{
+    font-size:16px;
+    word-break:break-word;
+  }
+  .st-label{
+    font-size:11px;
+    letter-spacing:0.8px;
+  }
+  .st-logo{
+    width:44px;
+    height:44px;
+  }
+  .st-logo img{
+    width:36px;
+    height:36px;
+  }
+  .modal-x{
+    width:28px;
+    height:28px;
+    font-size:16px;
+  }
+
+  /* Modal body responsive */
+  .modal-body{
+    padding:16px 18px;
+  }
+  .modal-hd{
+    padding:16px 18px;
+  }
+  .modal-ft{
+    padding:12px 18px;
+  }
 }
 
 /* ═══ EXTRA SMALL PHONES (480px altı) ═══ */
@@ -824,6 +916,27 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .form-lbl{font-size:10px;}
 
   .modal-content{padding:12px;border-radius:12px 12px 0 0;max-height:85vh;}
+
+  /* Extra small modal header refinement */
+  .st-modal-header{
+    padding:16px 12px;
+    gap:10px;
+  }
+  .st-header-text h2{
+    font-size:14px;
+  }
+  .st-label{
+    font-size:10px;
+    letter-spacing:0.6px;
+  }
+  .st-logo{
+    width:40px;
+    height:40px;
+  }
+  .st-logo img{
+    width:32px;
+    height:32px;
+  }
 
   .vd-kpi{padding:12px;flex-direction:column;text-align:center;gap:12px;}
   .vd-kpi-icon{width:40px;height:40px;font-size:16px;}
