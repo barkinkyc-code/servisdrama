@@ -819,25 +819,33 @@ function renderStat(){
     }
     tg.appendChild(card);
   });
-  console.log('renderStat mobile check:', A.isMobile());
-  if(A.isMobile()){
-    console.log('Setting up collapsible cards, tg.children.length=', tg.children.length);
-    for(var i=0;i<tg.children.length;i++){
-      var card=tg.children[i];
-      var headerEl=card.children[0];
-      var bodyEl=card.children[1];
-      if(headerEl&&bodyEl){
-        bodyEl.style.display='none';
-        (function(h,b){
-          h.addEventListener('click',function(){
-            var isOpen=b.style.display!=='none';
-            b.style.display=isOpen?'none':'block';
-            var arrow=h.querySelector('span');
-            if(arrow)arrow.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
-          });
-        })(headerEl,bodyEl);
+  if(tg){
+    setTimeout(function(){
+      for(var i=0;i<tg.children.length;i++){
+        var card=tg.children[i];
+        var headerEl=card.children[0];
+        var bodyEl=card.children[1];
+        if(headerEl&&bodyEl){
+          if(A.isMobile()){
+            bodyEl.style.display='none';
+            headerEl.style.cursor='pointer';
+          }
+          (function(h,b){
+            h.addEventListener('click',function(){
+              if(b.style.display==='none'){
+                b.style.display='block';
+                var arrow=h.querySelector('span');
+                if(arrow)arrow.style.transform='rotate(180deg)';
+              }else{
+                b.style.display='none';
+                var arrow=h.querySelector('span');
+                if(arrow)arrow.style.transform='rotate(0deg)';
+              }
+            });
+          })(headerEl,bodyEl);
+        }
       }
-    }
+    },100);
   }
 }
 
