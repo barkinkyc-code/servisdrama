@@ -68,6 +68,11 @@ document.addEventListener('DOMContentLoaded',async function(){
   SD.seed();
   var cfg=SD.config;cfg.mailAlicilar=loadMailRecipients();SD.config=cfg;
 
+  /* Teknisyen girişinde ziyaret kapsamını kendi firmalarına sabitle; başka bir
+     teknisyenden kalan seçim taşınmasın. ALL bilinçli bir tercih, korunur. */
+  var sessTech=SD.sessionTech();
+  if(sessTech&&SD.activeTechId!==SD.ALL_TECH&&SD.activeTechId!==sessTech.id)SD.activeTechId=sessTech.id;
+
   /* Logo */
   var nl=document.getElementById('navLogo');if(nl)nl.src='assets/email/servisdrama/drama-makine-logo.png';
 
@@ -300,8 +305,11 @@ function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVis
 function renderTechBtns(){
   var ts=SD.technicians,ac=SD.activeTechId;
   var wrap=document.getElementById('ztBtns');if(!wrap)return;
+  var me=SD.sessionTech();   /* teknisyen girişi ise kendi kaydı, admin ise null */
   wrap.innerHTML='';
   ts.forEach(function(t){
+    /* Teknisyen yalnızca kendi kodunu görür; başkasının firmalarına ALL üzerinden erişir */
+    if(me&&t.id!==me.id)return;
     /* Teknisyene atanmış AKTİF firma yoksa butonu gösterme */
     var coCount=SD.companies.filter(function(c){return c.techId===t.id&&c.aktif!==false;}).length;
     if(!coCount)return;
@@ -310,8 +318,15 @@ function renderTechBtns(){
     b.addEventListener('click',function(){SD.activeTechId=t.id;renderTechBtns();renderVisit();renderSetupBanner();});
     wrap.appendChild(b);
   });
+  /* ALL — tüm teknisyenlerin firmaları. Başka birinin firmasına gidildiyse buradan işaretlenir;
+     ziyaret giriş yapan teknisyenin adına kaydedilir ve raporda onun altında çıkar. */
+  var allBtn=document.createElement('button');
+  allBtn.className='tech-btn tech-btn-all'+(ac===SD.ALL_TECH?' active':'');
+  allBtn.textContent='ALL';allBtn.title='Tüm firmalar — başka teknisyenin firmasını da işaretleyebilirsiniz';
+  allBtn.addEventListener('click',function(){SD.activeTechId=SD.ALL_TECH;renderTechBtns();renderVisit();renderSetupBanner();});
+  wrap.appendChild(allBtn);
   var lbl=document.getElementById('ztActiveLbl');
-  if(lbl){var at=SD.activeTech();lbl.textContent=at?'Aktif: '+at.code:'';}
+  if(lbl){var at=SD.activeTech();lbl.textContent=at?'Aktif: '+at.code:(ac===SD.ALL_TECH?'Aktif: Tüm firmalar':'');}
 }
 
 /* ═══ KURULUM BANNER ═══ */
@@ -490,7 +505,14 @@ function openMissedModal(){
   var cwk=DT.wkey(today),weeks=DT.monthWeeks(today.getFullYear(),today.getMonth());
   var cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(today).getTime();})+1;
   var at=SD.activeTech();
-  var missed=cos.filter(function(co){return co.aktif!==false&&(!at||co.techId===at.id)&&BL.scheduled(co,cwi)&&!vis[co.id+'_'+cwk];});
+  /* "Ziyaret edilmeyenler" izleyen teknisyenin KENDİ girişine göre hesaplanır:
+     başka teknisyenin aynı firmaya girmesi bu listeden düşürmez. */
+  var me=SD.sessionTech();
+  var viewerCode=me?me.code:(at?at.code:null);
+  var missed=cos.filter(function(co){
+    if(co.aktif===false||(at&&co.techId!==at.id)||!BL.scheduled(co,cwi))return false;
+    return !SD.visitEntryFor(vis[co.id+'_'+cwk],viewerCode);
+  });
   var title=document.getElementById('missedTitle');if(title)title.textContent='Ziyaret Edilmeyenler'+(at?' — '+at.code:'')+' ('+missed.length+')';
   var list=document.getElementById('missedList');list.innerHTML='';
   if(!missed.length){list.innerHTML='<p style="text-align:center;color:var(--muted);padding:24px;">Tüm firmalar ziyaret edildi 🎉</p>';UI.openModal('missedModal');return;}
@@ -500,7 +522,7 @@ function openMissedModal(){
     var clicks=0,ct;
     row.addEventListener('click',function(){
       clicks++;clearTimeout(ct);
-      if(clicks>=2){clicks=0;row.classList.add('ok');var vi=SD.visits,ac=SD.activeTech(),n=new Date();vi[co.id+'_'+cwk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};SD.visits=vi;row.style.opacity='0.5';openMissedModal();}
+      if(clicks>=2){clicks=0;row.classList.add('ok');var vi=SD.visits,ac=SD.actingTech(co),n=new Date();vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});SD.visits=vi;row.style.opacity='0.5';openMissedModal();}
       else{ct=setTimeout(function(){clicks=0;},600);}
     });
     list.appendChild(row);
@@ -550,7 +572,8 @@ function saveExtraVisit(){
   var saarInp=document.getElementById('extraSaat');
   var dateStr=tarihInp&&tarihInp.value?tarihInp.value:'';
   var timeStr=saarInp&&saarInp.value?saarInp.value:'';
-  var ac=SD.activeTech(),n=new Date();
+  var extraCo=A.extraFirmaId?SD.companies.find(function(c){return c.id===A.extraFirmaId;}):null;
+  var ac=SD.actingTech(extraCo),n=new Date();
 
   /* Girilen tarih için hafta hesapla, yoksa bugünün haftası */
   var visitDate=n;
@@ -565,7 +588,7 @@ function saveExtraVisit(){
   /* Program dışı ziyaret normal listesine ekle (girilen tarihte) */
   if(A.extraFirmaId){
     var vi=SD.visits;
-    vi[A.extraFirmaId+'_'+cwk]={date:dateStr||DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'done',saat:timeStr||DT.hhii(n),extraNot:not};
+    vi[A.extraFirmaId+'_'+cwk]=SD.putVisitEntry(vi[A.extraFirmaId+'_'+cwk],ac?ac.code:'—',{date:dateStr||DT.ddmm(n),count:1,status:'done',saat:timeStr||DT.hhii(n),extraNot:not});
     SD.visits=vi;renderVisit();
   }
   /* Extras listesine kaydet */

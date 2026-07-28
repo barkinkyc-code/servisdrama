@@ -77,11 +77,15 @@
     var weekIndex=weeks.findIndex(function(m){return m.getTime()===DT.monday(today).getTime();})+1;
     if(weekIndex<1)weekIndex=1;
     var people=[];
+    /* Ziyaret, firmanın sahibine göre değil FİİLEN GİDEN teknisyene göre listelenir.
+       Kayıt teknisyen bazlı tutulduğu için aynı firmaya hem 1015 hem 1016 girdiyse
+       ikisi de kendi bloğunda görünür — biri diğerini ezmez. Eski tek teknisyenli
+       kayıtlarda giriş, kayıttaki tc kodundan türetilir. */
     techs.forEach(function(tech){
       var list=[];
       companies.forEach(function(company){
-        if(company.techId!==tech.id||!BL.scheduled(company,weekIndex))return;
-        var v=visits[company.id+'_'+weekKey];
+        if(!BL.scheduled(company,weekIndex))return;
+        var v=SD.visitEntryFor(visits[company.id+'_'+weekKey],tech.code);
         if(!v||v.status!=='done')return;
         if(v.marked===false)return;
         if(v.date!==todayDDmm)return;

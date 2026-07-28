@@ -346,6 +346,10 @@ textarea.inp{resize:vertical;line-height:1.6;}
 }
 .tech-btn:hover{border-color:var(--blue);color:var(--blue);}
 .tech-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:var(--sh-blue);}
+/* ALL — teknisyen kodlarından ayrışsın, "tüm firmalar" kapsamı olduğu belli olsun */
+.tech-btn-all{border-style:dashed;letter-spacing:.06em;}
+.tech-btn-all:hover{border-color:var(--purple);color:var(--purple);}
+.tech-btn-all.active{background:var(--purple);border-color:var(--purple);border-style:solid;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.28);}
 
 /* ═══ PROGRESS ═══ */
 .prog{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:14px;display:none;}

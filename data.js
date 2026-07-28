@@ -5,7 +5,10 @@ var SD=(function(){
   var store;
   try{localStorage.setItem('__t','1');localStorage.removeItem('__t');store=localStorage;}
   catch(e){var mem={};store={getItem:function(k){return k in mem?mem[k]:null;},setItem:function(k,v){mem[k]=String(v);},removeItem:function(k){delete mem[k];}};}
-  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_ac','sd_samples'];
+  /* sd_ac (seçili teknisyen/ALL kapsamı) bilinçli olarak listede DEĞİL: bu bir kullanıcı
+     arayüz tercihi, ortak iş verisi değil. Paylaşılırsa bir teknisyenin ALL seçimi
+     diğerinin ekranını da değiştirir. */
+  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples'];
   var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false;
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}
   function snapshot(){var out={};SHARED_KEYS.forEach(function(k){var v=load(k,null);if(v!==null)out[k]=v;});return out;}
@@ -326,8 +329,131 @@ var SD=(function(){
     store.setItem('sd_extra_visits_v1','1');
   }
 
+  /* ── ZİYARET KAYDI: TEKNİSYEN BAZLI ───────────────────────────────
+     Kayıt yine tek anahtarda (firmaId_hafta) durur, ama içinde her teknisyenin
+     KENDİ girişi vardır:
+       { by:{ '1015':{date,saat,status,count,...}, '1016':{...} },
+         ...son giren teknisyenin verisi üst seviyede kopya }
+     Üst seviye alanlar geriye dönük uyumluluk içindir (istatistik, geçmiş,
+     truck maili "bu firma bu hafta gidildi mi" diye bakar) ve DAİMA en son
+     giren teknisyenin verisini yansıtır — "son ziyaret" gösterimi buradan gelir.
+     Böylece 1015 ile 1016 aynı firmaya girdiğinde biri diğerini ezmez. */
+  function visitEntries(rec){
+    if(!rec)return{};
+    if(rec.by&&typeof rec.by==='object')return rec.by;
+    if(rec.tc){var o={};o[rec.tc]=rec;return o;}   /* eski tek teknisyenli kayıt */
+    return{};
+  }
+  /* Tek bir teknisyen perspektifi olmayan görünüm (admin + ALL): herhangi bir
+     teknisyen tamamladıysa tamamlanmış say, ziyaret sayılarını topla. */
+  function visitAggregate(rec){
+    if(!rec)return null;
+    var out={};for(var k in rec){if(k!=='by')out[k]=rec[k];}
+    var es=visitEntries(rec),codes=Object.keys(es);
+    if(!codes.length)return out;
+    var total=0,anyDone=false;
+    codes.forEach(function(c){total+=(es[c].count||1);if(es[c].status==='done')anyDone=true;});
+    if(anyDone)out.status='done';
+    out.count=total;out.techCodes=codes;
+    return out;
+  }
+  /* code verilirse o teknisyenin kendi girişi, verilmezse toplam görünüm */
+  function visitEntryFor(rec,code){
+    if(!rec)return null;
+    if(!code)return visitAggregate(rec);
+    return visitEntries(rec)[code]||null;
+  }
+  function putVisitEntry(rec,code,patch){
+    var prev=visitEntries(rec),es={};for(var k in prev)es[k]=prev[k];
+    var entry={};for(var p in patch)entry[p]=patch[p];
+    entry.tc=code;entry.ts=Date.now();
+    es[code]=entry;
+    var out={};for(var f in entry)out[f]=entry[f];   /* üst seviye = son giren */
+    out.by=es;return out;
+  }
+  /* Teknisyenin kendi girişini siler; başka giriş kalmadıysa null (kayıt komple gider) */
+  function removeVisitEntry(rec,code){
+    var prev=visitEntries(rec),es={},left=[];
+    for(var k in prev){if(k!==code){es[k]=prev[k];left.push(k);}}
+    if(!left.length)return null;
+    var last=es[left[left.length-1]],out={};
+    for(var f in last)out[f]=last[f];
+    out.by=es;return out;
+  }
+  /* tech.html gibi eski yazıcılar kaydı komple değiştirebilir; başka teknisyenin
+     girişini sessizce silmemek için üst seviye yazımı by haritasına geri işlenir. */
+  function mergeVisitMap(prev,next){
+    if(!next||typeof next!=='object')return next;
+    Object.keys(next).forEach(function(k){
+      var p=prev[k],n=next[k];
+      if(!p||!p.by||!n||n.by||!n.tc)return;
+      next[k]=putVisitEntry(p,n.tc,n);
+    });
+    return next;
+  }
+
+  /* ── OTURUM / KAPSAM ──────────────────────────────────────────────
+     ALL_TECH: ziyaret ekranında "tüm firmalar" kapsamı. Teknisyen başka bir
+     teknisyenin firmasına gittiyse ziyareti buradan işaretler. */
+  var ALL_TECH='ALL';
+
+  /* index.html giriş yaptığında sd_session'a {token,user,userData} yazar.
+     userData sunucudan gelir: {id,username,name,role,email} — techId içermez. */
+  function sessionUser(){
+    var raw=null;
+    try{raw=sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist');}catch(e){}
+    if(!raw)return null;
+    try{var s=JSON.parse(raw);return s.userData||null;}catch(e){return null;}
+  }
+
+  /* Giriş yapan kullanıcının teknisyen kaydı. Admin veya eşleşme yoksa null.
+     Sunucudaki users tablosunda techId olmadığı için sırayla:
+     yerel kullanıcı kaydındaki techId → e-posta → kullanıcı adı → ad soyad. */
+  function sessionTech(){
+    var u=sessionUser();if(!u)return null;
+    if(String(u.role||'').toLowerCase()==='admin')return null;
+    var ts=load('sd_te',[]);if(!ts.length)return null;
+    var uname=String(u.username||'').toLowerCase(),email=String(u.email||'').toLowerCase(),name=String(u.name||'').toLowerCase();
+    var local=load('sd_users',[]).find(function(x){
+      return String(x.username||'').toLowerCase()===uname||String(x.email||'').toLowerCase()===email;
+    });
+    if(local&&local.techId){
+      var byId=ts.find(function(t){return t.id===local.techId;});
+      if(byId)return byId;
+    }
+    return ts.find(function(t){return String(t.email||'').toLowerCase()===email;})
+        || ts.find(function(t){return String(t.email||'').split('@')[0].toLowerCase()===uname;})
+        || ts.find(function(t){return String(t.name||'').toLowerCase()===name;})
+        || null;
+  }
+
+  function activeTech(){
+    var id=load('sd_ac',null);
+    if(id===ALL_TECH)return null;               /* ALL kapsamı: tek bir teknisyen yok */
+    var ts=load('sd_te',[]);
+    return ts.find(function(t){return t.id===id;})||ts[0]||null;
+  }
+
+  /* Ziyareti FİİLEN yapan teknisyen — kayda bu kod yazılır ve mail bu koda göre gruplar.
+     1) Teknisyen girişi varsa her zaman o kişi (ALL'dan başkasının firmasını
+        işaretlese bile ziyaret kendi adına geçer)
+     2) Admin ise ekranda seçili teknisyen
+     3) Admin + ALL kapsamı ise firmanın sorumlusu */
+  function actingTech(co){
+    var me=sessionTech();if(me)return me;
+    var at=activeTech();if(at)return at;
+    if(co&&co.techId){
+      var ts=load('sd_te',[]);
+      return ts.find(function(t){return t.id===co.techId;})||null;
+    }
+    return null;
+  }
+
   return{
     load:load,save:save,remove:remove,seed:seed,remoteReady:remoteReady,pushRemote:pushRemote,DT:DT,
+    ALL_TECH:ALL_TECH,sessionUser:sessionUser,sessionTech:sessionTech,actingTech:actingTech,
+    visitEntryFor:visitEntryFor,visitEntries:visitEntries,visitAggregate:visitAggregate,
+    putVisitEntry:putVisitEntry,removeVisitEntry:removeVisitEntry,
     get companies(){return load('sd_co',[]);},
     get technicians(){return load('sd_te',[]);},
     get visits(){return load('sd_vi',{});},
@@ -338,10 +464,10 @@ var SD=(function(){
     get users(){return load('sd_users',[]);},
     get currentUser(){return load('sd_cur_user',null);},
     set companies(v){save('sd_co',v);},set technicians(v){save('sd_te',v);},
-    set visits(v){save('sd_vi',v);},set extras(v){save('sd_ex',v);},set departures(v){save('sd_dp',v);},
+    set visits(v){save('sd_vi',mergeVisitMap(load('sd_vi',{}),v));},set extras(v){save('sd_ex',v);},set departures(v){save('sd_dp',v);},
     set config(v){save('sd_cfg',v);},set activeTechId(v){save('sd_ac',v);},
     set users(v){save('sd_users',v);},set currentUser(v){save('sd_cur_user',v);},
-    activeTech:function(){var id=load('sd_ac',null),ts=load('sd_te',[]);return ts.find(function(t){return t.id===id;})||ts[0]||null;},
+    activeTech:activeTech,
     login:function(u,p){return load('sd_users',[]).find(function(x){return x.username===u&&x.password===p;})||null;},
     parseVisitDate:parseVisitDate,
     businessDaysBetween:businessDaysBetween,
@@ -430,21 +556,31 @@ function buildVisitTable(opts){
     return(!at||c.techId===at.id)&&(!q||c.name.toLocaleLowerCase('tr').indexOf(q)>=0);
   });
 
-  /* Tamamlanmış ziyaretleri alta al */
+  /* Hücreler KİMİN gözünden gösterilecek:
+     - Teknisyen girişi varsa daima kendisi (ALL listesinde de yalnızca kendi
+       ziyaretini yeşil görür; başkasının girdiği ziyaret onu yeşile boyamaz)
+     - Admin ise ekranda seçili teknisyen
+     - Admin + ALL ise tek perspektif yok, toplam görünüm (null) */
+  var me=SD.sessionTech();
+  var viewerCode=me?me.code:(at?at.code:null);
+
+  /* Tamamlanmış (yeşil) ziyaretleri alta al; pending (sarı) ve boş satırlar yerinde kalır.
+     !! şart: kayıt yokken "va&&..." false değil undefined döner, undefined===false yanlış
+     olduğu için karşılaştırıcı tutarsızlaşır ve sarıya çevrilen satır da alta kayardı. */
   var cwk=DT.wkey(today),cwi=_weekOfMonth(todayMon);
   filtered.sort(function(a,b){
     if(!isCurrentMonth)return 0;
-    var va=vis[a.id+'_'+cwk],vb=vis[b.id+'_'+cwk];
-    var aDone=va&&va.status==='done',bDone=vb&&vb.status==='done';
+    var va=SD.visitEntryFor(vis[a.id+'_'+cwk],viewerCode),vb=SD.visitEntryFor(vis[b.id+'_'+cwk],viewerCode);
+    var aDone=!!(va&&va.status==='done'),bDone=!!(vb&&vb.status==='done');
     if(aDone===bDone)return 0;
     return aDone?1:-1;
   });
 
-  /* Progress — sadece bu haftaya göre */
+  /* Progress — sadece bu haftaya ve izleyen teknisyenin kendi ziyaretlerine göre */
   var tot=0,don=0;
   if(isCurrentMonth){
     cos.filter(function(c){return!at||c.techId===at.id;}).forEach(function(co){
-      if(BL.scheduled(co,cwi)){tot++;var v=vis[co.id+'_'+cwk];if(v&&v.status==='done')don++;}
+      if(BL.scheduled(co,cwi)){tot++;var v=SD.visitEntryFor(vis[co.id+'_'+cwk],viewerCode);if(v&&v.status==='done')don++;}
     });
   }
   var pf=opts.progFillId?document.getElementById(opts.progFillId):null;
@@ -502,7 +638,7 @@ function buildVisitTable(opts){
     row.appendChild(nc);
     cols.forEach(function(col){
       var wc=document.createElement('div');wc.className='vt-wc';
-      wc.appendChild(_buildCell(co,col,vis[co.id+'_'+col.k],co.id+'_'+col.k,opts));
+      wc.appendChild(_buildCell(co,col,SD.visitEntryFor(vis[co.id+'_'+col.k],viewerCode),co.id+'_'+col.k,opts));
       row.appendChild(wc);
     });
     wrap.appendChild(row);
@@ -540,15 +676,20 @@ function _buildCell(co,col,vd,vk,opts){
         _clickTimer=setTimeout(function(){
           btn.style.opacity='';btn.style.background='';
           var vi=SD.visits;
+          var myCode=(SD.actingTech(co)||{}).code||'—';
           if(_clickCount===1){
-            /* 1x tıklama: pending yap, yerde kalır */
-            if((vi[vk]||{}).count>1){vi[vk].count--;if(vi[vk].dates)vi[vk].dates.pop();}
-            else if(vi[vk]){vi[vk].status='pending';}
+            /* 1x tıklama: pending yap, yerde kalır — sadece KENDİ girişini değiştirir */
+            var mine=SD.visitEntryFor(vi[vk],myCode);
+            if(mine){
+              var dn=(mine.dates||[]).slice();
+              if((mine.count||1)>1){dn.pop();vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,status:'done',count:mine.count-1,dates:dn});}
+              else vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,status:'pending',count:1,dates:dn});
+            }
           }else if(_clickCount>=2){
-            /* 2+ tıklama: done yap, en alta taşı */
-            var cur=vi[vk]||{},n=new Date(),dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));
-            var ac=SD.activeTech();
-            vi[vk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'};
+            /* 2+ tıklama: done yap, en alta taşı — kendi giriş sayacı artar */
+            var cur=SD.visitEntryFor(vi[vk],myCode)||{},n=new Date();
+            var dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));
+            vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:DT.ddmm(n),count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'});
             UI.toast('2. ziyaret eklendi!','success');
             /* Firmayı en alta taşı */
             var allCompanies=SD.companies;var idx=-1;for(var i=0;i<allCompanies.length;i++){if(allCompanies[i].id===co.id){idx=i;break;}}if(idx>0){var item=allCompanies[idx];allCompanies.splice(idx,1);allCompanies.unshift(item);SD.save('sd_co',allCompanies);}
@@ -580,7 +721,9 @@ function _buildCell(co,col,vd,vk,opts){
             btn.innerHTML='<div style="font-size:11px;color:#991B1B;font-weight:700;">Siliniyor...</div>';
             setTimeout(function(){
               var vi=SD.visits;
-              delete vi[vk];
+              /* Yalnızca kendi girişini sil; aynı firmaya giren diğer teknisyenin kaydı kalsın */
+              var rest=SD.removeVisitEntry(vi[vk],(SD.actingTech(co)||{}).code||'—');
+              if(rest)vi[vk]=rest;else delete vi[vk];
               SD.visits=vi;
               btn.style.opacity='0.3';
               btn.innerHTML='<span class="vc-empty-ring"></span>';
@@ -609,7 +752,10 @@ function _buildCell(co,col,vd,vk,opts){
       var _longPressTimer2,_longPressActive2=false;
       btn.addEventListener('click',function(){
         if(_longPressActive2)return; /* Long press yürüyorsa tıklama yok */
-        var vi=SD.visits;if(vi[vk]){vi[vk].status='done';vi[vk].dates=[vi[vk].date];}SD.visits=vi;UI.toast('Onaylandı','success');if(opts.onUpdate)opts.onUpdate();
+        var vi=SD.visits,myCode=(SD.actingTech(co)||{}).code||'—';
+        var mine=SD.visitEntryFor(vi[vk],myCode);
+        if(mine)vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,count:mine.count||1,status:'done',dates:[mine.date]});
+        SD.visits=vi;UI.toast('Onaylandı','success');if(opts.onUpdate)opts.onUpdate();
       });
       /* Long press silme (4 saniye) */
       btn.addEventListener('mousedown',function(){_startLongPress2();});
@@ -633,7 +779,9 @@ function _buildCell(co,col,vd,vk,opts){
             btn.innerHTML='<div style="font-size:11px;color:#991B1B;font-weight:700;">Siliniyor...</div>';
             setTimeout(function(){
               var vi=SD.visits;
-              delete vi[vk];
+              /* Yalnızca kendi girişini sil; aynı firmaya giren diğer teknisyenin kaydı kalsın */
+              var rest=SD.removeVisitEntry(vi[vk],(SD.actingTech(co)||{}).code||'—');
+              if(rest)vi[vk]=rest;else delete vi[vk];
               SD.visits=vi;
               btn.style.opacity='0.3';
               btn.innerHTML='<span class="vc-empty-ring"></span>';
@@ -659,8 +807,8 @@ function _buildCell(co,col,vd,vk,opts){
       var _longPressTimer3,_longPressActive3=false;
       btn.addEventListener('click',function(){
         if(_longPressActive3)return; /* Long press yürüyorsa tıklama yok */
-        var vi=SD.visits,ac=SD.activeTech(),n=new Date();
-        vi[vk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};
+        var vi=SD.visits,ac=SD.actingTech(co),n=new Date();
+        vi[vk]=SD.putVisitEntry(vi[vk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});
         SD.visits=vi;UI.toast('Planlandı','info');if(opts.onUpdate)opts.onUpdate();
       });
       /* Long press silme (4 saniye) - empty state'i silme (zaten boş ama placeholder kaldırabilir) */
@@ -707,8 +855,8 @@ function _buildCell(co,col,vd,vk,opts){
       +'<span class="vc-miss-lbl">Eksik</span>';
     if(opts.editable){
       btn.addEventListener('click',function(){
-        var vi=SD.visits,ac=SD.activeTech(),n=new Date();
-        vi[vk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};
+        var vi=SD.visits,ac=SD.actingTech(co),n=new Date();
+        vi[vk]=SD.putVisitEntry(vi[vk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});
         SD.visits=vi;UI.toast('Planlandı','info');if(opts.onUpdate)opts.onUpdate();
       });
     }
@@ -722,7 +870,7 @@ function _buildCell(co,col,vd,vk,opts){
 function _lockSvg(){return'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="3"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';}
 function _sendTruck(co){
   if(!co.email){UI.toast('E-posta tanımlı değil.','warning');return;}
-  var at=SD.activeTech();
+  var at=SD.actingTech(co);
   var subject='Teknik Servis Ziyareti - Drama Makine';
   var departureAt=new Date();
   var plannedDate=DT.ddmmyyyy(departureAt);
