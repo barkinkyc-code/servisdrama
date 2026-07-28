@@ -1752,27 +1752,45 @@ function renderVisitDashboard(){
   var host=document.getElementById('visitDashboardContent');if(!host)return;
   var isMobile=window.innerWidth<768;
 
-  // Mobilde dashboard tamamen gizle
-  if(isMobile){
-    host.innerHTML='';
-    return;
-  }
+  // Mobil ve tablet görünümüne dokunma: dashboard yalnızca masaüstünde gösterilir.
+  if(isMobile){host.innerHTML='';return;}
 
-  // Desktop'ta dashboard göster
-  var cos=SD.companies||[],vis=SD.visits||{},techs=SD.technicians||[];
+  var cos=SD.companies||[],vis=SD.visits||{};
   var now=new Date(),month=now.getMonth(),year=now.getFullYear();
   var cwk=DT.wkey(now),weeks=DT.monthWeeks(year,month);
   var cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(now).getTime();})+1;
-
   var scheduled=cos.filter(function(c){return c.aktif!==false&&BL.scheduled(c,cwi);});
   var completed=scheduled.filter(function(c){var v=vis[c.id+'_'+cwk];return v&&v.status==='done';}).length;
   var progress=scheduled.length>0?Math.round((completed/scheduled.length)*100):0;
+  var safeProgress=Math.max(0,Math.min(100,progress));
 
-  var html='<div style="margin-bottom:24px;"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px;display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center;">';
-  html+='<div style=""><div style="font-size:14px;font-weight:600;color:#6b7280;margin-bottom:12px;">BU HAFTA</div><div style="width:140px;height:140px;border-radius:50%;background:conic-gradient(#10b981 0deg '+(progress*3.6)+'deg,#e5e7eb '+(progress*3.6)+'deg);display:flex;align-items:center;justify-content:center;"><div style="width:130px;height:130px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;"><div style="font-size:28px;font-weight:700;color:#111827;">'+completed+'</div><div style="font-size:11px;color:#6b7280;">tamamlandı</div><div style="font-size:16px;font-weight:700;color:#10b981;margin-top:4px;">%'+progress+'</div></div></div></div>';
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#3b82f6;font-weight:700;">'+scheduled.length+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">PLANLANDI ZIYARET</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#10b981;font-weight:700;">'+completed+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">TAMAMLANDI</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div><div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;"><div style="font-size:32px;color:#f59e0b;font-weight:700;">%'+progress+'</div><div style="font-size:12px;color:#6b7280;margin-top:4px;">İLERLEME</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Bu hafta</div></div></div></div>';
-  html+='</div></div>';
+  host.innerHTML=''
+    +'<div class="premium-visit-summary" style="--visit-progress:'+safeProgress+'">'
+      +'<article class="pvs-card pvs-ring-card">'
+        +'<div class="pvs-eyebrow">BU HAFTA</div>'
+        +'<div class="pvs-ring" role="img" aria-label="Yüzde '+safeProgress+' tamamlandı">'
+          +'<div class="pvs-ring-core"><strong>'+completed+'</strong><span>tamamlandı</span><b>%'+safeProgress+'</b></div>'
+          +'<i class="pvs-ring-glow" aria-hidden="true"></i>'
+        +'</div>'
+      +'</article>'
+      +'<article class="pvs-card pvs-metric pvs-blue">'
+        +'<div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>'
+        +'<strong>'+scheduled.length+'</strong><span>PLANLANDI ZİYARET</span><small>Bu hafta</small>'
+        +'<div class="pvs-wave"><i></i><em></em></div>'
+      +'</article>'
+      +'<article class="pvs-card pvs-metric pvs-green">'
+        +'<div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg></div>'
+        +'<strong>'+completed+'</strong><span>TAMAMLANDI</span><small>Bu hafta</small>'
+        +'<div class="pvs-wave"><i></i><em></em></div>'
+      +'</article>'
+      +'<article class="pvs-card pvs-metric pvs-orange">'
+        +'<div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-5 4 3 7-8"/><path d="M15 6h5v5"/></svg></div>'
+        +'<strong>%'+safeProgress+'</strong><span>İLERLEME ORANI</span><small>Bu hafta</small>'
+        +'<div class="pvs-wave"><i></i><em></em></div>'
+      +'</article>'
+    +'</div>';
 
-  host.innerHTML=html;
+  // Yeniden render edildiğinde CSS giriş animasyonunu güvenli biçimde tetikle.
+  window.requestAnimationFrame(function(){host.classList.remove('pvs-ready');void host.offsetWidth;host.classList.add('pvs-ready');});
 }
 function renderDashboard(){renderVisitDashboard();}
