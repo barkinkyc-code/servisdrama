@@ -794,17 +794,51 @@ function renderStat(){
     });
 
     var card=document.createElement('div');
-    card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);';
-    var header='<div style="background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;"><div style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</div></div>';
-    var body='<div style="padding:12px 0;">';
+    card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;'+(isMob?'overflow:visible;':'overflow:hidden;')+'box-shadow:0 2px 8px rgba(0,0,0,.08);';
+    var isMob=A.isMobile();
+    var header='<div style="background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;'+(isMob?'cursor:pointer;':'')+'display:flex;justify-content:space-between;align-items:center;user-select:none;"><div style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</div>'+(isMob?'<span style="font-size:18px;transition:transform .2s;display:inline-block;">▼</span>':'')+'</div>';
+    var body='<div style="padding:12px 0;'+(isMob?'display:none;':'')+'">';
     firmalar.forEach(function(f){
       var visitText=f.lastVisit?'Son ziyaret: '+f.lastVisit+(f.daysAgo||''):' Kayıt yok';
       body+='<div style="padding:8px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="font-weight:600;color:#1E293B;">'+f.name+'</div><div style="font-size:12px;color:#64748B;margin-top:2px;">'+visitText+'</div></div>';
     });
     body+='</div>';
     card.innerHTML=header+body;
+    if(isMob){
+      var headerEl=card.children[0];
+      var bodyEl=card.children[1];
+      if(headerEl&&bodyEl){
+        bodyEl.style.display='none';
+        headerEl.addEventListener('click',function(){
+          var isOpen=bodyEl.style.display!=='none';
+          bodyEl.style.display=isOpen?'none':'block';
+          var arrow=headerEl.querySelector('span');
+          if(arrow)arrow.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
+        });
+      }
+    }
     tg.appendChild(card);
   });
+  console.log('renderStat mobile check:', A.isMobile());
+  if(A.isMobile()){
+    console.log('Setting up collapsible cards, tg.children.length=', tg.children.length);
+    for(var i=0;i<tg.children.length;i++){
+      var card=tg.children[i];
+      var headerEl=card.children[0];
+      var bodyEl=card.children[1];
+      if(headerEl&&bodyEl){
+        bodyEl.style.display='none';
+        (function(h,b){
+          h.addEventListener('click',function(){
+            var isOpen=b.style.display!=='none';
+            b.style.display=isOpen?'none':'block';
+            var arrow=h.querySelector('span');
+            if(arrow)arrow.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
+          });
+        })(headerEl,bodyEl);
+      }
+    }
+  }
 }
 
 /* ═══ EKİP ═══ */
