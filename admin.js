@@ -28,17 +28,18 @@ function setupResponsive(){
   }
 }
 
+/* Menü artık üst panelde; mobilde hamburger üst paneli açıp linkleri alta indirir */
 function toggleMobileMenu(){
-  var navbar=document.getElementById('navbar');
+  var topbar=document.getElementById('topbar');
   var overlay=document.getElementById('mobileOverlay');
-  if(navbar)navbar.classList.toggle('open');
+  if(topbar)topbar.classList.toggle('nav-open');
   if(overlay)overlay.classList.toggle('show');
 }
 
 function closeMobileMenu(){
-  var navbar=document.getElementById('navbar');
+  var topbar=document.getElementById('topbar');
   var overlay=document.getElementById('mobileOverlay');
-  if(navbar)navbar.classList.remove('open');
+  if(topbar)topbar.classList.remove('nav-open');
   if(overlay)overlay.classList.remove('show');
 }
 
@@ -1770,6 +1771,38 @@ function _visitRecordDate(record,key){
   if(record.dateISO){var iso=new Date(record.dateISO+'T12:00:00');if(!isNaN(iso.getTime()))return iso;}
   return SD.parseVisitDate?SD.parseVisitDate(record.date,key):null;
 }
+/* İstatistikler için premium kart seti — Ziyaret Takibi ile aynı yapı, beyaz tema.
+   Beyaz zeminde kontrast tutsun diye vurgu renkleri koyu tonlardan seçilir. */
+function renderStatPremium(host,d){
+  var pct=Math.max(0,Math.min(100,d.pct||0));
+  var radius=69,circ=2*Math.PI*radius,offset=circ-(circ*pct/100);
+  var key='st'+Date.now().toString(36);
+  host.innerHTML=''
+    +'<div class="premium-visit-summary pvs-light" style="--visit-progress:'+pct+';--ring-circ:'+circ.toFixed(2)+';--ring-offset:'+offset.toFixed(2)+'">'
+      +'<article class="pvs-card pvs-ring-card">'
+        +'<div class="pvs-card-top"><div class="pvs-eyebrow">BU AY</div><span class="pvs-info" title="Aylık tamamlanma oranı">i</span></div>'
+        +'<div class="pvs-ring" role="img" aria-label="Yüzde '+pct+' tamamlandı">'
+          +'<svg viewBox="0 0 160 160" aria-hidden="true"><circle class="pvs-ring-track" cx="80" cy="80" r="69"/><circle class="pvs-ring-value" cx="80" cy="80" r="69"/></svg>'
+          +'<div class="pvs-ring-core"><strong>'+d.totD+'</strong><span>/ '+d.totS+' tamamlandı</span><b>%'+pct+'</b></div>'
+          +'<i class="pvs-ring-end" aria-hidden="true"></i>'
+        +'</div>'
+      +'</article>'
+      +'<article class="pvs-card pvs-metric pvs-blue">'
+        +'<div class="pvs-card-top"><div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg></div><span class="pvs-info" title="Sistemdeki toplam firma">i</span></div>'
+        +'<strong>'+d.firma+'</strong><span>TOPLAM FİRMA</span><small>'+d.teknisyen+' teknisyen</small>'+pvsSparkline('stBlue','#2563EB',Math.max(12,pct),'rise',key)
+      +'</article>'
+      +'<article class="pvs-card pvs-metric pvs-green">'
+        +'<div class="pvs-card-top"><div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg></div><span class="pvs-info" title="Bu hafta tamamlanan ziyaret">i</span></div>'
+        +'<strong>'+d.thisWD+'</strong><span>BU HAFTA</span><small>tamamlanan</small>'+pvsSparkline('stGreen','#059669',pct,'flow',key)
+      +'</article>'
+      +'<article class="pvs-card pvs-metric pvs-orange">'
+        +'<div class="pvs-card-top"><div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/></svg></div><span class="pvs-info" title="Sonucu bekleyen numune">i</span></div>'
+        +'<strong>'+d.numune+'</strong><span>BEKLEYEN NUMUNE</span><small>analiz bekliyor</small>'+pvsSparkline('stOrange','#D97706',pct,'calm',key)
+      +'</article>'
+    +'</div>';
+  host.classList.add('pvs-settled');
+}
+
 function pvsSparkline(id,color,progress,variant,renderKey){
   var paths={
     calm:'M0 42 C48 43 72 39 104 41 C142 44 166 25 206 25 C242 25 267 39 300 36',

@@ -16,13 +16,39 @@
     window.location.href = 'index.html';
   }
 </script>
-<!-- Mobile Top Header (sadece mobilde görünür) -->
-<header class="mobile-topbar" id="mobileTopbar">
-  <img class="mobile-topbar-logo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
-  <div class="mobile-topbar-right">
+<!-- ═══ ÜST PANEL (tüm ekran genişliklerinde) ═══ -->
+<header class="topbar" id="topbar">
+  <img class="topbar-logo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
+
+  <!-- Ana menü: masaüstünde satır içi, mobilde hamburger ile açılan panel -->
+  <nav class="topbar-nav" id="navTabs">
+    <button class="nav-tab" data-page="ziyaret">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
+      Ziyaret Takibi
+    </button>
+    <button class="nav-tab" data-page="firmalar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      Firmalar
+    </button>
+    <button class="nav-tab" data-page="numune">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
+      Numune Takip
+    </button>
+    <button class="nav-tab" data-page="istatistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>
+      İstatistikler
+    </button>
+    <a class="topbar-portal" href="https://dk.dramagroup.com.tr/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
+      DK Portal
+    </a>
+  </nav>
+
+  <div class="topbar-right">
     <div class="nav-user-menu" id="navUserMenu">
       <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
         <div class="nav-avatar-img" id="navAvatarImg"></div>
+        <span class="topbar-username" id="navUserLabel"></span>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
       </div>
       <div class="nav-dropdown hidden" id="navDropdown">
@@ -55,71 +81,6 @@
   </div>
 </header>
 <div class="overlay-mobile" id="mobileOverlay" onclick="closeMobileMenu()"></div>
-
-<!-- ═══ NAVBAR (LEFT SIDEBAR) ═══ -->
-<nav class="navbar" id="navbar">
-  <div class="nav-header">
-    <div class="nav-brand-panel">
-      <div class="nav-logo">
-        <img id="navLogo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
-      </div>
-      <div class="nav-product">
-        <div class="nav-product-name">ServisDrama</div>
-        <div class="nav-product-subtitle">Teknik Servis Yönetimi</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="nav-sections">
-    <div class="nav-section">
-      <div class="nav-section-title">ANA MENÜ</div>
-      <div class="nav-tabs" id="navTabs">
-        <button class="nav-tab" data-page="ziyaret">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
-          Ziyaret Takibi
-        </button>
-        <button class="nav-tab" data-page="firmalar">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-          Firmalar
-        </button>
-        <button class="nav-tab" data-page="numune">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
-          Numune
-        </button>
-        <button class="nav-tab" data-page="istatistik">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>
-          İstatistikler
-        </button>
-        <button class="nav-tab" data-page="ekip" onclick="goto('ekip')">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-          Teknisyenler
-        </button>
-      </div>
-    </div>
-
-    <div class="nav-section" style="margin-top:auto;">
-      <div class="nav-section-title">AYARLAR</div>
-      <div class="nav-tabs-sub">
-        <button class="nav-tab" data-page="ayarlar" onclick="goto('ayarlar')">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.62l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.48.1.62l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.62l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.48-.1-.62l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-          Ayarlar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="nav-footer">
-    <div class="nav-user">
-      <div class="nav-user-avatar">BK</div>
-      <div class="nav-user-info">
-        <div class="nav-user-name" id="navUserLabel">Barkın Kayacı</div>
-        <div class="nav-user-role">Admin Panel</div>
-      </div>
-      <button class="nav-user-logout" onclick="doLogout()">→</button>
-    </div>
-  </div>
-
-</nav>
 
 <!-- ═══ SAYFALAR ═══ -->
 <main id="mainContent">

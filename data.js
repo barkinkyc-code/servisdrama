@@ -613,7 +613,11 @@ function buildVisitTable(opts){
   var h0=document.createElement('div');h0.className='vt-hc';h0.textContent='Firma';head.appendChild(h0);
   cols.forEach(function(col){
     var hc=document.createElement('div');hc.className='vt-hc'+(col.isCur?' vt-hc-cur':'');
-    hc.textContent=col.wn+'. Hafta';head.appendChild(hc);
+    /* Hafta numarasının altında o haftanın kapsadığı tarih aralığı (Pzt – Paz) */
+    var wEnd=new Date(col.m.getTime());wEnd.setDate(wEnd.getDate()+6);
+    hc.innerHTML='<span class="vt-hc-wk">'+col.wn+'. Hafta</span>'
+      +'<span class="vt-hc-dates">'+DT.ddmm(col.m)+' – '+DT.ddmm(wEnd)+'</span>';
+    head.appendChild(hc);
   });
   wrap.appendChild(head);
 
@@ -648,18 +652,18 @@ function buildVisitTable(opts){
 
 function _buildCell(co,col,vd,vk,opts){
   var btn=document.createElement('button');btn.className='vc';
-  if(!BL.scheduled(co,col.wi)){btn.className='vc vc-dash';btn.disabled=true;btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span><span class="vc-dash-line"></span>';return btn;}
+  if(!BL.scheduled(co,col.wi)){btn.className='vc vc-dash';btn.disabled=true;btn.innerHTML=_wkBadge(col)+'<span class="vc-dash-line"></span>';return btn;}
   var st=vd?vd.status:'';
   if(st==='done'){
     var cnt=vd.count||1;
     btn.className='vc '+(cnt>1?'vc-multi':'vc-done');
     if(cnt>1){
-      btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span>'
+      btn.innerHTML=_wkBadge(col)
         +'<div class="vc-double"><div class="vc-lock-icon">'+_lockSvg()+'</div><div class="vc-lock-icon vc-lock-2">'+_lockSvg()+'</div></div>'
         +'<span class="vc-d1">'+cnt+'x · '+vd.date+'</span>'
         +'<span class="vc-d2">'+vd.tc+'</span>';
     }else{
-      btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span>'
+      btn.innerHTML=_wkBadge(col)
         +'<div class="vc-lock-icon">'+_lockSvg()+'</div>'
         +'<span class="vc-d1">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
         +'<span class="vc-d2">'+vd.tc+'</span>';
@@ -744,7 +748,7 @@ function _buildCell(co,col,vd,vk,opts){
     }
   }else if(st==='pending'){
     btn.className='vc vc-pending';
-    btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span>'
+    btn.innerHTML=_wkBadge(col)
       +'<div class="vc-pend-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
       +'<span class="vc-d1">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
       +'<span class="vc-d2">'+vd.tc+'</span>';
@@ -802,7 +806,7 @@ function _buildCell(co,col,vd,vk,opts){
     }
   }else if(col.isCur){
     btn.className='vc vc-empty';
-    btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span><div class="vc-empty-ring"></div><span class="vc-empty-lbl">Ziyaret Et</span>';
+    btn.innerHTML=_wkBadge(col)+'<div class="vc-empty-ring"></div><span class="vc-empty-lbl">Ziyaret Et</span>';
     if(opts.editable){
       var _longPressTimer3,_longPressActive3=false;
       btn.addEventListener('click',function(){
@@ -862,11 +866,15 @@ function _buildCell(co,col,vd,vk,opts){
     }
   }else{
     btn.className='vc vc-future';btn.disabled=true;
-    btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span><div class="vc-future-ring">'+_lockSvg()+'</div><span class="vc-future-lbl">Planlandı</span><span class="vc-future-lbl-mobile">Sonra</span>';
+    btn.innerHTML=_wkBadge(col)+'<div class="vc-future-ring">'+_lockSvg()+'</div><span class="vc-future-lbl">Planlandı</span><span class="vc-future-lbl-mobile">Sonra</span>';
   }
   return btn;
 }
 
+/* Hücre hafta rozeti — mobilde başlık satırı gizli olduğu için tarih rozetin altına iner */
+function _wkBadge(col){
+  return '<span class="vc-wk">H'+col.wn+'<i class="vc-wk-date">'+DT.ddmm(col.m)+'</i></span>';
+}
 function _lockSvg(){return'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="3"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';}
 function _sendTruck(co){
   if(!co.email){UI.toast('E-posta tanımlı değil.','warning');return;}
