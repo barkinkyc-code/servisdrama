@@ -1,0 +1,40 @@
+SERVİSDRAMA — TAM PROJE DÜZELTME RAPORU
+Tarih: 28.07.2026
+
+UYGULANAN DÜZELTMELER
+1. Masaüstü Ziyaret Takibi ekranındaki dört özet kartı ortak premium tasarım sisteminde korunmuştur.
+2. Dairesel ilerleme göstergesi gerçek tamamlanma yüzdesine göre dolmaktadır.
+3. Planlandı, Tamamlandı ve İlerleme kartlarının SVG çizgileri gerçek oranı göstermektedir.
+4. Sürekli yanıp sönen ve dikkat dağıtan pulse animasyonları kaldırılmıştır.
+5. Kart parıltısı sürekli çalışmak yerine yalnızca hover sırasında kısa süreli çalışmaktadır.
+6. Açılış animasyonları yalnızca dashboard ilk kez açıldığında oynar; her veri render işleminde sıfırlanmaz.
+7. Animasyon tamamlandıktan sonra göstergeler doğru son konumlarında sabit kalır.
+8. Her dashboard render işleminde benzersiz SVG gradient ve filter kimlikleri üretilerek DOM çakışmaları önlenmiştir.
+9. Hareket azaltma tercihi bulunan cihazlarda animasyonlar kapalı kalır.
+10. Silinen eski teknisyen sayfalarına giden kırık “Teknisyen Ekranı” butonu kaldırılmıştır.
+11. Kullanılmayan eski bağımsız teknisyen arayüzleri kaldırılmıştır: tech.html, tech-mobile.html, tech.js.
+12. Git bağlantısı, .git klasörü, GitHub remote ve main branch yapısı korunmuştur.
+13. Vercel dosyaları, API yönlendirmeleri, package.json ve backend bağlantıları korunmuştur.
+14. node_modules pakete eklenmemiştir; Vercel bağımlılıkları package.json üzerinden kurar.
+15. CSS önbelleğinin eski görünümü göstermemesi için style.css sürüm parametresi güncellenmiştir.
+
+MAIL SİSTEMİ
+Mail sistemine hiçbir şekilde müdahale edilmemiştir.
+Aşağıdaki dosyalar önceki teslimle SHA-256 düzeyinde birebir aynıdır:
+- email-template.js
+- email-preview.html
+- data.js
+- server.js
+
+KORUNAN YAPILAR
+- .git ve GitHub bağlantısı
+- vercel.json ve api/index.js
+- .env ve mevcut ortam ayarları
+- servisdrama.db ve mevcut yerel veriler
+- initial-state.json ve mevcut veri yapısı
+- giriş sistemi ve kullanıcı hesapları
+- firma, ziyaret, numune, istatistik ve ayarlar işlevleri
+- masaüstü dışındaki mevcut responsive admin görünümü
+
+KURULUM
+Bu paket tam proje paketidir. Mevcut proje klasörünün yedeğini aldıktan sonra eski klasörü kaldırıp ZIP içindeki “DM final” klasörünü aynı konuma koyabilirsiniz. .git klasörü gizli olduğundan Windows Gezgini’nde gizli dosyaların kopyalandığından emin olun.

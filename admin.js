@@ -291,7 +291,6 @@ function goto(p){
   if(p==='numune')renderNumune();
   if(p==='ayarlar'){renderSettingsTab('genel');}
   if(p==='numune'&&typeof renderSamples==='function')renderSamples();
-  if(p==='tech-ekran')window.location.href='tech.html';
   var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
 }
 
@@ -1748,11 +1747,26 @@ function _visitRecordDate(record,key){
   if(record.dateISO){var iso=new Date(record.dateISO+'T12:00:00');if(!isNaN(iso.getTime()))return iso;}
   return SD.parseVisitDate?SD.parseVisitDate(record.date,key):null;
 }
+function pvsSparkline(id,color,progress,variant,renderKey){
+  var paths={
+    calm:'M0 42 C48 43 72 39 104 41 C142 44 166 25 206 25 C242 25 267 39 300 36',
+    rise:'M0 43 C45 45 80 43 112 39 C150 34 174 20 211 23 C249 26 273 40 300 37',
+    flow:'M0 41 C44 45 82 43 113 38 C150 32 169 19 205 23 C239 28 266 40 300 35'
+  };
+  var path=paths[variant]||paths.calm;
+  var p=Math.max(0,Math.min(100,Number(progress)||0));
+  var uid=id+'_'+String(renderKey||'0').replace(/[^a-zA-Z0-9_-]/g,'');
+  return '<svg class="pvs-spark" viewBox="0 0 300 54" preserveAspectRatio="none" aria-hidden="true">'
+    +'<defs><linearGradient id="'+uid+'Fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+color+'" stop-opacity=".24"/><stop offset="100%" stop-color="'+color+'" stop-opacity="0"/></linearGradient><filter id="'+uid+'Glow" x="-20%" y="-80%" width="140%" height="260%"><feGaussianBlur stdDeviation="2.8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
+    +'<path class="pvs-spark-area" d="'+path+' L300 54 L0 54 Z" fill="url(#'+uid+'Fill)"/>'
+    +'<path class="pvs-spark-track" d="'+path+'" pathLength="100"/>'
+    +'<path class="pvs-spark-value" d="'+path+'" pathLength="100" style="--pvs-value:'+p+'" stroke="'+color+'" filter="url(#'+uid+'Glow)"/>'
+    +'<circle class="pvs-spark-dot" r="3.8" fill="#fff" stroke="'+color+'" stroke-width="2" style="--pvs-value:'+p+';offset-path:path(\''+path+'\')"/>'
+    +'</svg>';
+}
 function renderVisitDashboard(){
   var host=document.getElementById('visitDashboardContent');if(!host)return;
   var isMobile=window.innerWidth<768;
-
-  // Mobil ve tablet görünümüne dokunma: dashboard yalnızca masaüstünde gösterilir.
   if(isMobile){host.innerHTML='';return;}
 
   var cos=SD.companies||[],vis=SD.visits||{};
@@ -1763,34 +1777,41 @@ function renderVisitDashboard(){
   var completed=scheduled.filter(function(c){var v=vis[c.id+'_'+cwk];return v&&v.status==='done';}).length;
   var progress=scheduled.length>0?Math.round((completed/scheduled.length)*100):0;
   var safeProgress=Math.max(0,Math.min(100,progress));
+  var firstDashboardRender=host.dataset.pvsInitialized!=='1';
+  var renderKey=Date.now().toString(36);
+  var radius=69,circ=2*Math.PI*radius,offset=circ-(circ*safeProgress/100);
 
   host.innerHTML=''
-    +'<div class="premium-visit-summary" style="--visit-progress:'+safeProgress+'">'
+    +'<div class="premium-visit-summary" style="--visit-progress:'+safeProgress+';--ring-circ:'+circ.toFixed(2)+';--ring-offset:'+offset.toFixed(2)+'">'
       +'<article class="pvs-card pvs-ring-card">'
-        +'<div class="pvs-eyebrow">BU HAFTA</div>'
+        +'<div class="pvs-card-top"><div class="pvs-eyebrow">BU HAFTA</div><span class="pvs-info" title="Haftalık tamamlanma oranı">i</span></div>'
         +'<div class="pvs-ring" role="img" aria-label="Yüzde '+safeProgress+' tamamlandı">'
+          +'<svg viewBox="0 0 160 160" aria-hidden="true"><defs><linearGradient id="pvsRingGradient_'+renderKey+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ce796"/><stop offset=".48" stop-color="#55d8ff"/><stop offset="1" stop-color="#5f9dff"/></linearGradient><filter id="pvsRingGlow_'+renderKey+'" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><circle class="pvs-ring-track" cx="80" cy="80" r="69"/><circle class="pvs-ring-value" cx="80" cy="80" r="69"/></svg>'
           +'<div class="pvs-ring-core"><strong>'+completed+'</strong><span>tamamlandı</span><b>%'+safeProgress+'</b></div>'
-          +'<i class="pvs-ring-glow" aria-hidden="true"></i>'
+          +'<i class="pvs-ring-end" aria-hidden="true"></i>'
         +'</div>'
       +'</article>'
       +'<article class="pvs-card pvs-metric pvs-blue">'
-        +'<div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>'
-        +'<strong>'+scheduled.length+'</strong><span>PLANLANDI ZİYARET</span><small>Bu hafta</small>'
-        +'<div class="pvs-wave"><i></i><em></em></div>'
+        +'<div class="pvs-card-top"><div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div><span class="pvs-info" title="Bu hafta planlanan toplam ziyaret">i</span></div>'
+        +'<strong>'+scheduled.length+'</strong><span>PLANLANDI ZİYARET</span><small>Bu hafta</small>'+pvsSparkline('pvsBlue','#5f9dff',Math.max(12,safeProgress),'rise',renderKey)
       +'</article>'
       +'<article class="pvs-card pvs-metric pvs-green">'
-        +'<div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg></div>'
-        +'<strong>'+completed+'</strong><span>TAMAMLANDI</span><small>Bu hafta</small>'
-        +'<div class="pvs-wave"><i></i><em></em></div>'
+        +'<div class="pvs-card-top"><div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg></div><span class="pvs-info" title="Bu hafta tamamlanan ziyaret">i</span></div>'
+        +'<strong>'+completed+'</strong><span>TAMAMLANDI</span><small>Bu hafta</small>'+pvsSparkline('pvsGreen','#5ce796',safeProgress,'flow',renderKey)
       +'</article>'
       +'<article class="pvs-card pvs-metric pvs-orange">'
-        +'<div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-5 4 3 7-8"/><path d="M15 6h5v5"/></svg></div>'
-        +'<strong>%'+safeProgress+'</strong><span>İLERLEME ORANI</span><small>Bu hafta</small>'
-        +'<div class="pvs-wave"><i></i><em></em></div>'
+        +'<div class="pvs-card-top"><div class="pvs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-5 4 3 7-8"/><path d="M15 6h5v5"/></svg></div><span class="pvs-info" title="Haftalık ilerleme yüzdesi">i</span></div>'
+        +'<strong>%'+safeProgress+'</strong><span>İLERLEME ORANI</span><small>Bu hafta</small>'+pvsSparkline('pvsOrange','#ffae42',safeProgress,'calm',renderKey)
       +'</article>'
     +'</div>';
 
-  // Yeniden render edildiğinde CSS giriş animasyonunu güvenli biçimde tetikle.
-  window.requestAnimationFrame(function(){host.classList.remove('pvs-ready');void host.offsetWidth;host.classList.add('pvs-ready');});
+  host.classList.remove('pvs-ready','pvs-settled');
+  if(firstDashboardRender){
+    host.dataset.pvsInitialized='1';
+    window.requestAnimationFrame(function(){host.classList.add('pvs-ready');});
+    window.setTimeout(function(){host.classList.remove('pvs-ready');host.classList.add('pvs-settled');},1750);
+  }else{
+    host.classList.add('pvs-settled');
+  }
 }
 function renderDashboard(){renderVisitDashboard();}
