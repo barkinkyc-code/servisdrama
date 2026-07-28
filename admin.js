@@ -284,6 +284,7 @@ function goto(p){
   if(p==='ayarlar'){renderSettingsTab('genel');}
   if(p==='numune'&&typeof renderSamples==='function')renderSamples();
   if(p==='tech-ekran')window.location.href='tech.html';
+  var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
 }
 
 function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();}
