@@ -49,6 +49,13 @@ input,select,textarea{font-family:inherit;}
   box-shadow:4px 0 12px rgba(0, 0, 0, 0.15);
   overflow-y:auto;
 }
+main{margin-left:240px;}
+
+/* Mobil üst başlık (logo + avatar + hamburger) - varsayılan gizli, sadece mobilde görünür */
+.mobile-topbar{display:none;}
+.mobile-hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;color:#1f2937;align-items:center;justify-content:center;}
+.mobile-hamburger:active{opacity:0.6;}
+.zt-extra-icon{display:none;}
 .nav-header{padding:16px 12px;border-bottom:1px solid rgba(100, 116, 139, 0.2);display:flex;justify-content:center;}
 .nav-brand-panel{width:100%;}
 .nav-logo{height:70px;display:flex;align-items:center;justify-content:center;padding:12px 16px;border:none;overflow:hidden;background:rgba(30,41,59,0.5);border-radius:12px;margin-bottom:8px;}
@@ -308,6 +315,8 @@ textarea.inp{resize:vertical;line-height:1.6;}
 .vc-miss-lbl{font-size:10px;font-weight:700;color:var(--red);margin-top:2px;}
 .vc-future-lbl{font-size:10.5px;font-weight:600;color:var(--muted);margin-top:2px;}
 .vc-future-ring{width:20px;height:20px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;opacity:.6;}
+.vc-wk{display:none;}
+.vc-future-lbl-mobile{display:none;}
 .vc-future-ring svg{width:11px;height:11px;color:var(--surface);}
 .vc-dash-line{display:block;width:16px;height:2px;background:var(--border);border-radius:99px;}
 
@@ -674,9 +683,14 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .overlay-mobile{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99;}
   .overlay-mobile.show{display:block;}
 
-  /* Hamburger Button - SAĞ ÜSTE */
-  .mobile-hamburger{display:block;position:fixed;top:12px;right:12px;z-index:101;background:none;border:none;font-size:24px;cursor:pointer;padding:6px;color:#333;}
-  .mobile-hamburger:active{opacity:0.7;}
+  /* Mobil üst başlık - logo solda, avatar+hamburger sağda, normal akışta (sabit değil) */
+  .mobile-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:60;}
+  .mobile-topbar-logo{height:30px;width:auto;object-fit:contain;}
+  .mobile-topbar-right{display:flex;align-items:center;gap:10px;}
+  .mobile-topbar .nav-user-menu{position:relative;}
+  .mobile-topbar .nav-avatar-btn{border:none;background:none;padding:0;gap:3px;}
+  .mobile-topbar .nav-dropdown{position:absolute;top:calc(100% + 10px);right:-8px;}
+  .mobile-hamburger{display:flex;}
 
   /* PAGE HEADER */
   .pg-hd{margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
@@ -685,12 +699,17 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .pg-acts{gap:6px;order:3;}
   .pg-acts button{font-size:12px;padding:8px 12px;}
 
-  /* MONTH NAVIGATION - Sadece Ziyaret Takibi'nde, icon format hamburger menünün yanında. Diğer sayfalardaki .month-nav (örn. İstatistikler) mobilde gizli kalır. */
+  /* ZİYARET TAKİBİ - Aksiyon ikon satırı: tarih + rapor gönder + program dışı ziyaret, sadece Ziyaret Takibi'nde, normal akışta (sabit konum değil). Diğer sayfalardaki .month-nav (örn. İstatistikler) mobilde gizli kalır. */
   .month-nav{display:none;}
-  #visitMonthNav{position:fixed;top:16px;left:12px;z-index:101;gap:2px;display:flex;align-items:center;}
-  #visitMonthNav button{padding:6px;background:none;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;color:#666;transition:all 0.2s;display:flex;align-items:center;justify-content:center;}
-  #visitMonthNav button:active{background:#f3f4f6;}
-  #visitMonthNav span{font-size:11px;font-weight:600;min-width:55px;text-align:center;padding:4px 6px;color:#666;}
+  #pg-ziyaret .pg-acts{width:100%;flex-direction:row;flex-wrap:nowrap;}
+  #visitMonthNav{position:static;display:flex;gap:6px;flex:1;min-width:0;height:42px;padding:0;border:none;background:none;box-shadow:none;}
+  #visitMonthNav #prevM,#visitMonthNav #nextM{border:1.5px solid var(--border);border-radius:10px;width:42px;height:42px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:center;color:#1f2937;padding:0;}
+  #visitMonthNav #monthLabel{border:1.5px solid var(--border);border-radius:10px;flex:1;min-width:0;height:42px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#111827;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .zt-rapor-btn{width:42px!important;height:42px;flex-shrink:0;padding:0!important;justify-content:center;border-radius:10px!important;}
+  .zt-rapor-btn .btn-label{display:none;}
+  .zt-extra-icon{display:flex;align-items:center;justify-content:center;width:42px!important;height:42px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--purple-m,#DDD6FE);background:var(--purple-l,#F5F3FF);color:var(--purple,#7C3AED);cursor:pointer;}
+  .zt-extra-icon:active{background:var(--purple-m,#DDD6FE);}
+  #ztActiveLbl,#extraBtn{display:none;}
 
   /* INPUTS & FORMS */
   .inp{font-size:16px;padding:12px;border-radius:6px;}
@@ -769,6 +788,12 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .zt-bar{flex-wrap:wrap;padding:12px;}
   .zt-tech-btns{gap:6px;flex-wrap:wrap;}
   .zt-extra{width:100%;margin-top:8px;}
+
+  /* ZİYARET KARTLARI - mobilde sadeleştirilmiş görünüm: "H31" rozeti + ikon, tarih/teknisyen detayı gizli */
+  .vc-wk{display:block;font-size:11px;font-weight:800;color:inherit;margin-bottom:2px;}
+  .vc-done .vc-wk,.vc-multi .vc-wk{color:#fff;}
+  .vc-d1,.vc-d2,.vc-empty-lbl,.vc-future-lbl{display:none;}
+  .vc-future-lbl-mobile{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-top:1px;}
 
   /* FIRMA MODAL */
   .form-row2{grid-template-columns:1fr;}

@@ -518,11 +518,13 @@ function _buildCell(co,col,vd,vk,opts){
     var cnt=vd.count||1;
     btn.className='vc '+(cnt>1?'vc-multi':'vc-done');
     if(cnt>1){
-      btn.innerHTML='<div class="vc-double"><div class="vc-lock-icon">'+_lockSvg()+'</div><div class="vc-lock-icon vc-lock-2">'+_lockSvg()+'</div></div>'
+      btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span>'
+        +'<div class="vc-double"><div class="vc-lock-icon">'+_lockSvg()+'</div><div class="vc-lock-icon vc-lock-2">'+_lockSvg()+'</div></div>'
         +'<span class="vc-d1">'+cnt+'x · '+vd.date+'</span>'
         +'<span class="vc-d2">'+vd.tc+'</span>';
     }else{
-      btn.innerHTML='<div class="vc-lock-icon">'+_lockSvg()+'</div>'
+      btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span>'
+        +'<div class="vc-lock-icon">'+_lockSvg()+'</div>'
         +'<span class="vc-d1">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
         +'<span class="vc-d2">'+vd.tc+'</span>';
     }
@@ -599,7 +601,8 @@ function _buildCell(co,col,vd,vk,opts){
     }
   }else if(st==='pending'){
     btn.className='vc vc-pending';
-    btn.innerHTML='<div class="vc-pend-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
+    btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span>'
+      +'<div class="vc-pend-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
       +'<span class="vc-d1">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
       +'<span class="vc-d2">'+vd.tc+'</span>';
     if(opts.editable){
@@ -651,7 +654,7 @@ function _buildCell(co,col,vd,vk,opts){
     }
   }else if(col.isCur){
     btn.className='vc vc-empty';
-    btn.innerHTML='<div class="vc-empty-ring"></div><span class="vc-empty-lbl">Ziyaret Et</span>';
+    btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span><div class="vc-empty-ring"></div><span class="vc-empty-lbl">Ziyaret Et</span>';
     if(opts.editable){
       var _longPressTimer3,_longPressActive3=false;
       btn.addEventListener('click',function(){
@@ -711,7 +714,7 @@ function _buildCell(co,col,vd,vk,opts){
     }
   }else{
     btn.className='vc vc-future';btn.disabled=true;
-    btn.innerHTML='<div class="vc-future-ring">'+_lockSvg()+'</div><span class="vc-future-lbl">Planlandı</span>';
+    btn.innerHTML='<span class="vc-wk">H'+col.wn+'</span><div class="vc-future-ring">'+_lockSvg()+'</div><span class="vc-future-lbl">Planlandı</span><span class="vc-future-lbl-mobile">Sonra</span>';
   }
   return btn;
 }

@@ -16,62 +16,48 @@
     window.location.href = 'index.html';
   }
 </script>
-<style>
-  main { margin-left: 240px; }
-
-  /* Hamburger Menu - SAĞ ÜSTE */
-  .mobile-hamburger {
-    display: none;
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 101;
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 8px;
-    color: #333;
-  }
-
-  .mobile-hamburger.show {
-    display: block;
-  }
-
-  .mobile-hamburger:active {
-    opacity: 0.6;
-  }
-
-  @media(max-width:768px){
-    main { margin-left: 0; }
-    .mobile-hamburger.show { display: block; }
-    .navbar {
-      position: fixed;
-      left: -240px;
-      transition: left 0.3s ease;
-      z-index: 100;
-    }
-    .navbar.open {
-      left: 0;
-    }
-    .overlay-mobile {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 99;
-    }
-    .overlay-mobile.show {
-      display: block;
-    }
-  }
-</style>
-
-<!-- Hamburger Menu (Mobile) -->
-<button class="mobile-hamburger" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+<!-- Mobile Top Header (sadece mobilde görünür) -->
+<header class="mobile-topbar" id="mobileTopbar">
+  <img class="mobile-topbar-logo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
+  <div class="mobile-topbar-right">
+    <div class="nav-user-menu" id="navUserMenu">
+      <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
+        <div class="nav-avatar-img" id="navAvatarImg"></div>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="nav-dropdown hidden" id="navDropdown">
+        <div class="nav-dd-header">
+          <div class="nav-dd-avatar" id="navDdAvatar"></div>
+          <div>
+            <div class="nav-dd-name" id="navDdName"></div>
+            <div class="nav-dd-role">Yönetici · Admin</div>
+          </div>
+        </div>
+        <div class="nav-dd-divider"></div>
+        <button class="nav-dd-item" onclick="goto('ayarlar')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Ayarlar
+        </button>
+        <button class="nav-dd-item" onclick="goto('ekip')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Ekip Yönetimi
+        </button>
+        <button class="nav-dd-item" onclick="goto('tech-ekran')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Teknisyen Ekranı
+        </button>
+        <div class="nav-dd-divider"></div>
+        <button class="nav-dd-item red" onclick="doLogout()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Çıkış Yap
+        </button>
+      </div>
+    </div>
+    <button class="mobile-hamburger" id="mobileMenuBtn" onclick="toggleMobileMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</header>
 <div class="overlay-mobile" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 
 <!-- ═══ NAVBAR (LEFT SIDEBAR) ═══ -->
@@ -137,50 +123,6 @@
     </div>
   </div>
 
-  <div class="nav-right">
-    <a class="nav-portal" href="https://dk.dramagroup.com.tr/" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      DK Portal
-    </a>
-    <!-- Avatar menü -->
-    <div class="nav-user-menu" id="navUserMenu">
-      <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
-        <div class="nav-avatar-img" id="navAvatarImg"></div>
-        <span id="navUserLabel">Barkın Kayacı</span>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
-      </div>
-      <div class="nav-dropdown hidden" id="navDropdown">
-        <div class="nav-dd-header">
-          <div class="nav-dd-avatar" id="navDdAvatar"></div>
-          <div>
-            <div class="nav-dd-name" id="navDdName"></div>
-            <div class="nav-dd-role">Yönetici · Admin</div>
-          </div>
-        </div>
-        <div class="nav-dd-divider"></div>
-        <button class="nav-dd-item" onclick="goto('ayarlar')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Ayarlar
-        </button>
-        <button class="nav-dd-item" onclick="goto('ekip')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-          Ekip Yönetimi
-        </button>
-        <button class="nav-dd-item" onclick="goto('tech-ekran')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          Teknisyen Ekranı
-        </button>
-        <div class="nav-dd-divider"></div>
-        <button class="nav-dd-item red" onclick="doLogout()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-          Çıkış Yap
-        </button>
-      </div>
-    </div>
-    <button class="nav-hamburger" id="hamburger">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-  </div>
 </nav>
 
 <!-- ═══ SAYFALAR ═══ -->
@@ -193,9 +135,12 @@
     <div><h1 class="pg-title">Ziyaret Takibi</h1><div class="pg-sub" id="visitSub">0 / 0 ziyaret tamamlandı</div></div>
     <div class="pg-acts">
       <div class="month-nav" id="visitMonthNav"><button id="prevM"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round"/></svg></button><span id="monthLabel" style="cursor:pointer;padding:4px 8px;border-radius:4px;transition:background .2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''" onclick="openDatePicker('month')"></span><button id="nextM"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6" stroke-linecap="round"/></svg></button></div>
-      <button class="btn btn-outline btn-sm" onclick="openRapor()" style="background:rgba(59, 130, 246, 0.05);border-color:rgba(59, 130, 246, 0.2);color:#3b82f6;transition:all 0.2s ease;">
+      <button class="btn btn-outline btn-sm zt-rapor-btn" onclick="openRapor()" style="background:rgba(59, 130, 246, 0.05);border-color:rgba(59, 130, 246, 0.2);color:#3b82f6;transition:all 0.2s ease;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"/><line x1="12" y1="13" x2="8" y2="13" style="stroke:currentColor;stroke-width:2;stroke-linecap:round;"/><line x1="12" y1="17" x2="8" y2="17" style="stroke:currentColor;stroke-width:2;stroke-linecap:round;"/></svg>
-        Rapor Gönder
+        <span class="btn-label">Rapor Gönder</span>
+      </button>
+      <button class="zt-extra-icon" onclick="openExtraVisitModal()" title="Program Dışı Ziyaret">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
   </div>
