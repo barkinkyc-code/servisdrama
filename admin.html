@@ -45,6 +45,10 @@
   </nav>
 
   <div class="topbar-right">
+    <a class="topbar-portal-dt" href="https://dk.dramagroup.com.tr/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
+      DK Portal
+    </a>
     <div class="nav-user-menu" id="navUserMenu">
       <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
         <div class="nav-avatar-img" id="navAvatarImg"></div>
@@ -81,6 +85,40 @@
   </div>
 </header>
 <div class="overlay-mobile" id="mobileOverlay" onclick="closeMobileMenu()"></div>
+
+<!-- ═══ SOL PANEL (yalnızca masaüstü) ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-nav">
+    <button class="nav-tab" data-page="ziyaret">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
+      Ziyaret Takibi
+    </button>
+    <button class="nav-tab" data-page="firmalar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      Firmalar
+    </button>
+    <button class="nav-tab" data-page="numune">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
+      Numune Takip
+    </button>
+    <button class="nav-tab" data-page="istatistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>
+      İstatistikler
+    </button>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-section-title">AYARLAR</div>
+    <button class="nav-tab" data-page="ekip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Ekip Yönetimi
+    </button>
+    <button class="nav-tab" data-page="ayarlar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ayarlar
+    </button>
+  </div>
+</aside>
 
 <!-- ═══ SAYFALAR ═══ -->
 <main id="mainContent">

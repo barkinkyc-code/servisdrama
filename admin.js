@@ -1838,7 +1838,7 @@ function renderVisitDashboard(){
   var radius=69,circ=2*Math.PI*radius,offset=circ-(circ*safeProgress/100);
 
   host.innerHTML=''
-    +'<div class="premium-visit-summary" style="--visit-progress:'+safeProgress+';--ring-circ:'+circ.toFixed(2)+';--ring-offset:'+offset.toFixed(2)+'">'
+    +'<div class="premium-visit-summary pvs-light" style="--visit-progress:'+safeProgress+';--ring-circ:'+circ.toFixed(2)+';--ring-offset:'+offset.toFixed(2)+'">'
       +'<article class="pvs-card pvs-ring-card">'
         +'<div class="pvs-card-top"><div class="pvs-eyebrow">BU HAFTA</div><span class="pvs-info" title="Haftalık tamamlanma oranı">i</span></div>'
         +'<div class="pvs-ring" role="img" aria-label="Yüzde '+safeProgress+' tamamlandı">'
