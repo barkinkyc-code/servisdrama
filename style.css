@@ -1195,3 +1195,18 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .extra-history-control{top:64px;flex-wrap:nowrap}
   .extra-history-control input{width:132px}
 }
+
+/* v15 mobile header order: DK Portal, avatar, hamburger */
+@media(max-width:768px){
+  .topbar{flex-wrap:nowrap!important;}
+  .topbar-logo{margin-right:auto;min-width:0;max-width:118px;object-fit:contain;}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .mobile-visit-portal{order:1;display:inline-flex;white-space:nowrap;}
+  .nav-user-menu{order:2;}
+  .mobile-hamburger{order:3;margin-left:0!important;}
+  .nav-avatar-btn svg{display:none;}
+  .mobile-visit-portal span{font-size:11px;}
+  .mobile-visit-portal svg{width:15px;height:15px;}
+  .tech-stat-header{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+  .tech-stat-header .tech-stat-arrow{min-width:34px;min-height:34px;align-items:center;justify-content:center;}
+}

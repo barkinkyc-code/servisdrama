@@ -6,7 +6,7 @@
 <title>ServisDrama — Yönetici</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="style.css?v=20260728c">
+<link rel="stylesheet" href="style.css?v=20260731v15">
 </head>
 <body class="admin-body">
 
@@ -281,16 +281,6 @@
         <label class="form-lbl">Manuel Firma Adı (listede yoksa)</label>
         <input class="inp st-uppercase" id="extraManuelAdi" placeholder="ör: ABC Makine San. Ltd.">
       </div>
-      <div class="form-row2">
-        <div class="form-grp">
-          <label class="form-lbl">Ziyaret Tarihi</label>
-          <input class="inp" type="date" id="extraTarih">
-        </div>
-        <div class="form-grp">
-          <label class="form-lbl">Ziyaret Saati</label>
-          <input class="inp" type="time" id="extraSaat">
-        </div>
-      </div>
       <div class="form-grp">
         <label class="form-lbl">Not (opsiyonel)</label>
         <input class="inp st-uppercase" id="extraNot" placeholder="ör: Cihaz arızası nedeniyle gidildi">
@@ -330,8 +320,12 @@
       <div class="fbox fbox-purple" style="margin-top:10px;">
         <div class="fbox-ttl">🔧 Kurulum Süreci</div>
         <div class="form-row2" style="margin-top:7px;">
-          <div><label class="form-lbl">Başlangıç</label><input class="inp" type="date" id="fKurulumStart"></div>
-          <div><label class="form-lbl">Bitiş</label><input class="inp" type="date" id="fKurulumEnd"></div>
+          <div><label class="form-lbl">Başlangıç Tarihi</label><input class="inp" type="date" id="fKurulumStart"></div>
+          <div><label class="form-lbl">Başlangıç Saati</label><input class="inp" type="time" id="fKurulumStartTime"></div>
+        </div>
+        <div class="form-row2" style="margin-top:7px;">
+          <div><label class="form-lbl">Bitiş Tarihi</label><input class="inp" type="date" id="fKurulumEnd"></div>
+          <div><label class="form-lbl">Bitiş Saati</label><input class="inp" type="time" id="fKurulumEndTime"></div>
         </div>
       </div>
       <div class="fbox fbox-blue" style="margin-top:10px;">
@@ -540,9 +534,9 @@
 <script src="data.js"></script>
 <script src="companies.js"></script>
 <script src="email-template.js"></script>
-<script src="admin.js"></script>
+<script src="admin.js?v=20260731v15"></script>
 <script src="numune.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="enhancements.js"></script>
+<script src="enhancements.js?v=20260731v15"></script>
 </body>
 </html>

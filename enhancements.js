@@ -69,8 +69,8 @@
       var co=item.co,row=document.createElement('div');row.className='miss-item enhanced'+(item.current?' ongoing':'');
       var lv=item.lv?DT.ddmmyyyy(item.lv.d):'Kayıt yok';
       var dayText=item.days>90?'+90 ~':(item.lv?(item.days+' gün geçti'):'Henüz ziyaret yok');
-      var urgency=item.current?'<span class="ongoing-chip">Devam ediyor<br><small>'+esc(item.current.startTime||item.current.saat||'')+'</small></span>':(item.over>0?'<span class="overdue-chip">+'+item.over+' gün gecikmiş</span>':'<span class="due-chip">Periyot içinde</span>');
-      row.innerHTML='<span class="miss-num">'+(i+1)+'</span><div class="miss-main"><div class="miss-nm">'+esc(co.name)+'</div><div class="miss-rg">'+esc(co.bolge||'')+'</div><div class="last-visit-line">En son ziyaret: '+lv+(item.lv?' • '+dayText:'')+'</div><div class="double-tap-hint">'+(item.current?'2 kez dokun: işi bitir':'2 kez dokun: ziyareti başlat')+'</div></div>'+urgency;
+      var urgency=item.current?'<span class="ongoing-chip">Devam ediyor<br><small>'+esc(item.current.startTime||item.current.saat||'')+'</small></span>':(item.over>90?'<span class="overdue-chip">+90 ~</span>':(item.over>0?'<span class="overdue-chip">+'+item.over+' gün gecikmiş</span>':'<span class="due-chip">Periyot içinde</span>'));
+      row.innerHTML='<span class="miss-num">'+(i+1)+'</span><div class="miss-main"><div class="miss-nm">'+esc(co.name)+'</div><div class="miss-rg">'+esc(co.bolge||'')+'</div><div class="last-visit-line">En son ziyaret: '+lv+(item.lv?' • '+dayText:'')+'</div></div>'+urgency;
       var clicks=0,t;
       row.onclick=function(){
         clicks++;clearTimeout(t);

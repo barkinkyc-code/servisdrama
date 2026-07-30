@@ -341,7 +341,7 @@ function renderSetupBanner(){
     +'<span class="setup-ttl">Kurulum Sürecindeki Firmalar</span>'
     +'<span class="setup-count">'+setup.length+'</span></div>';
   setup.forEach(function(c){
-    html+='<div class="setup-row"><span class="setup-name">'+c.name+'</span><span class="setup-date">'+c.kurulumStart+' – '+c.kurulumEnd+'</span></div>';
+    html+='<div class="setup-row"><span class="setup-name">'+c.name+'</span><span class="setup-date">'+c.kurulumStart+(c.kurulumStartTime?' '+c.kurulumStartTime:'')+' – '+(c.kurulumEnd||'Devam ediyor')+(c.kurulumEndTime?' '+c.kurulumEndTime:'')+'</span></div>';
   });
   html+='</div>';
   banner.innerHTML=html;
@@ -428,13 +428,15 @@ function openFirmaModal(id){
     document.getElementById('fPasif').checked=co.aktif===false;
     document.getElementById('fKonumNot').value=co.konumNot||'';
     document.getElementById('fKurulumStart').value=co.kurulumStart||'';
+    document.getElementById('fKurulumStartTime').value=co.kurulumStartTime||'';
     document.getElementById('fKurulumEnd').value=co.kurulumEnd||'';
+    document.getElementById('fKurulumEndTime').value=co.kurulumEndTime||'';
     A.selWeeks=(co.weeks||[1,2,3,4]).slice();
     A.aMails=(co.aMails||[]).slice();
     A.mapLat=co.lat||null;A.mapLng=co.lng||null;
     if(A.mapLat&&lbl)lbl.textContent='📍 '+A.mapLat.toFixed(5)+', '+A.mapLng.toFixed(5);
   }else{
-    ['fAdi','fBolge','fEmail','fKonumNot','fKurulumStart','fKurulumEnd'].forEach(function(i){document.getElementById(i).value='';});
+    ['fAdi','fBolge','fEmail','fKonumNot','fKurulumStart','fKurulumStartTime','fKurulumEnd','fKurulumEndTime'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('fTruck').checked=false;document.getElementById('fPasif').checked=false;A.selWeeks=[1,2,3,4];
   }
   renderWeekToggles();renderAMails();UI.openModal('firmaModal');
@@ -452,7 +454,7 @@ function renderAMails(){
 function addAMail(){var inp=document.getElementById('fAMail'),v=inp.value.trim();if(!v)return;A.aMails.push(v);inp.value='';renderAMails();}
 function saveFirma(){
   var name=document.getElementById('fAdi').value.trim();if(!name){UI.toast('Firma adı gerekli.','error');return;}
-  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,aktif:!document.getElementById('fPasif').checked,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:document.getElementById('fKurulumStart').value,kurulumEnd:document.getElementById('fKurulumEnd').value,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]};
+  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,aktif:!document.getElementById('fPasif').checked,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:document.getElementById('fKurulumStart').value,kurulumStartTime:document.getElementById('fKurulumStartTime').value,kurulumEnd:document.getElementById('fKurulumEnd').value,kurulumEndTime:document.getElementById('fKurulumEndTime').value,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]};
   var cos=SD.companies;
   if(A.editId){cos=cos.map(function(c){return c.id===A.editId?Object.assign({},c,payload):c;});}
   else{cos.push(Object.assign({id:'c'+Date.now()},payload));}
@@ -520,12 +522,6 @@ function openMissedModal(){
   missed.forEach(function(co,i){
     var row=document.createElement('div');row.className='miss-item';
     row.innerHTML='<span class="miss-num">'+(i+1)+'</span><div><div class="miss-nm">'+co.name+'</div>'+(co.bolge?'<div class="miss-rg">'+co.bolge+'</div>':'')+'</div>';
-    var clicks=0,ct;
-    row.addEventListener('click',function(){
-      clicks++;clearTimeout(ct);
-      if(clicks>=2){clicks=0;row.classList.add('ok');var vi=SD.visits,ac=SD.actingTech(co),n=new Date();vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n),startDate:DT.ddmmyyyy(n),startTime:DT.hhii(n)});SD.visits=vi;row.style.opacity='0.5';openMissedModal();}
-      else{ct=setTimeout(function(){clicks=0;},600);}
-    });
     list.appendChild(row);
   });
   UI.openModal('missedModal');
@@ -539,8 +535,6 @@ function openExtraVisitModal(){
   var mn=document.getElementById('extraManuelAdi');if(mn)mn.value='';
   var nt=document.getElementById('extraNot');if(nt)nt.value='';
   var nowExtra=new Date();
-  var et=document.getElementById('extraTarih');if(et)et.value=nowExtra.getFullYear()+'-'+String(nowExtra.getMonth()+1).padStart(2,'0')+'-'+String(nowExtra.getDate()).padStart(2,'0');
-  var es=document.getElementById('extraSaat');if(es)es.value=DT.hhii(nowExtra);
   var ac=document.getElementById('extraFirmaAC');if(ac)ac.innerHTML='';
   /* Firma autocomplete + manuel giriş */
   var fInp=document.getElementById('extraFirmaInp'),fAc=document.getElementById('extraFirmaAC');
@@ -572,11 +566,9 @@ function saveExtraVisit(){
   var firmAdi=(A.extraFirmaAdi||manuelAdi).toUpperCase();
   if(!firmAdi){UI.toast('Firma adı veya seçimi gerekli.','error');return;}
   var not=(document.getElementById('extraNot')||{}).value||'';
-  var tarihInp=document.getElementById('extraTarih');
-  var saarInp=document.getElementById('extraSaat');
-  var dateISO=tarihInp&&tarihInp.value?tarihInp.value:'';
-  var dateStr=dateISO?dateISO.split('-').reverse().join('.'):'';
-  var timeStr=saarInp&&saarInp.value?saarInp.value:'';
+  var dateISO='';
+  var dateStr=DT.ddmmyyyy(new Date());
+  var timeStr=DT.hhii(new Date());
   var extraCo=A.extraFirmaId?SD.companies.find(function(c){return c.id===A.extraFirmaId;}):null;
   var ac=SD.actingTech(extraCo),n=new Date();
 
@@ -831,31 +823,28 @@ function renderStat(){
       return b.lastVisitObj-a.lastVisitObj;
     });
 
-    var isMob=A.isMobile();
+    var isMob=window.matchMedia('(max-width: 768px)').matches;
     var card=document.createElement('div');
     card.className='tech-stat-card';
-    card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;'+(isMob?'overflow:visible;':'overflow:hidden;')+'box-shadow:0 2px 8px rgba(0,0,0,.08);';
-    var header='<div class="tech-stat-header" style="background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;'+(isMob?'cursor:pointer;':'')+'display:flex;justify-content:space-between;align-items:center;user-select:none;"><div style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</div>'+(isMob?'<span style="font-size:18px;transition:transform .2s;display:inline-block;">▼</span>':'')+'</div>';
-    var body='<div class="tech-stat-body" style="padding:12px 0;'+(isMob?'display:none;':'')+'">';
+    card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);';
+    var header='<button type="button" class="tech-stat-header" aria-expanded="'+(!isMob)+'" style="width:100%;border:0;background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;text-align:left;"><span style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</span><span class="tech-stat-arrow" style="font-size:18px;transition:transform .2s;display:inline-flex;">▼</span></button>';
+    var body='<div class="tech-stat-body" style="padding:12px 0;display:'+(isMob?'none':'block')+';">';
     firmalar.forEach(function(f){
       var visitText=f.lastVisit?'Son ziyaret: '+f.lastVisit+(f.daysAgo||''):' Kayıt yok';
       body+='<div style="padding:8px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="font-weight:600;color:#1E293B;">'+f.name+'</div><div style="font-size:12px;color:#64748B;margin-top:2px;">'+visitText+'</div></div>';
     });
     body+='</div>';
     card.innerHTML=header+body;
-    if(isMob){
-      var headerEl=card.children[0];
-      var bodyEl=card.children[1];
-      if(headerEl&&bodyEl){
-        bodyEl.style.display='none';
-        headerEl.addEventListener('click',function(){
-          var isOpen=bodyEl.style.display!=='none';
-          bodyEl.style.display=isOpen?'none':'block';
-          var arrow=headerEl.querySelector('span');
-          if(arrow)arrow.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
-        });
-      }
-    }
+    var headerEl=card.querySelector('.tech-stat-header');
+    var bodyEl=card.querySelector('.tech-stat-body');
+    headerEl.onclick=function(ev){
+      ev.preventDefault();ev.stopPropagation();
+      var open=bodyEl.style.display!=='none';
+      bodyEl.style.display=open?'none':'block';
+      headerEl.setAttribute('aria-expanded',String(!open));
+      var arrow=headerEl.querySelector('.tech-stat-arrow');
+      if(arrow)arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+    };
     tg.appendChild(card);
   });
   if(tg){
