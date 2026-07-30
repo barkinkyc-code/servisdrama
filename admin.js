@@ -523,7 +523,7 @@ function openMissedModal(){
     var clicks=0,ct;
     row.addEventListener('click',function(){
       clicks++;clearTimeout(ct);
-      if(clicks>=2){clicks=0;row.classList.add('ok');var vi=SD.visits,ac=SD.actingTech(co),n=new Date();vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});SD.visits=vi;row.style.opacity='0.5';openMissedModal();}
+      if(clicks>=2){clicks=0;row.classList.add('ok');var vi=SD.visits,ac=SD.actingTech(co),n=new Date();vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n),startDate:DT.ddmmyyyy(n),startTime:DT.hhii(n)});SD.visits=vi;row.style.opacity='0.5';openMissedModal();}
       else{ct=setTimeout(function(){clicks=0;},600);}
     });
     list.appendChild(row);
@@ -589,7 +589,7 @@ function saveExtraVisit(){
   /* Program dışı ziyaret normal listesine ekle (girilen tarihte) */
   if(A.extraFirmaId){
     var vi=SD.visits;
-    vi[A.extraFirmaId+'_'+cwk]=SD.putVisitEntry(vi[A.extraFirmaId+'_'+cwk],ac?ac.code:'—',{date:dateStr||DT.ddmm(n),count:1,status:'done',saat:timeStr||DT.hhii(n),extraNot:not});
+    vi[A.extraFirmaId+'_'+cwk]=SD.putVisitEntry(vi[A.extraFirmaId+'_'+cwk],ac?ac.code:'—',{date:dateStr||DT.ddmm(n),count:1,status:'done',saat:timeStr||DT.hhii(n),startDate:dateStr||DT.ddmmyyyy(n),startTime:timeStr||DT.hhii(n),endDate:dateStr||DT.ddmmyyyy(n),endTime:timeStr||DT.hhii(n),extraNot:not});
     SD.visits=vi;renderVisit();
   }
   /* Extras listesine kaydet */

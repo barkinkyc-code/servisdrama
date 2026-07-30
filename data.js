@@ -651,7 +651,7 @@ function buildVisitTable(opts){
 }
 
 function _buildCell(co,col,vd,vk,opts){
-  var btn=document.createElement('button');btn.className='vc';
+  var btn=document.createElement('button');btn.className='vc';btn.dataset.visitKey=vk;btn.dataset.companyId=co.id;
   if(!BL.scheduled(co,col.wi)){btn.className='vc vc-dash';btn.disabled=true;btn.innerHTML=_wkBadge(col)+'<span class="vc-dash-line"></span>';return btn;}
   var st=vd?vd.status:'';
   if(st==='done'){
@@ -665,7 +665,7 @@ function _buildCell(co,col,vd,vk,opts){
     }else{
       btn.innerHTML=_wkBadge(col)
         +'<div class="vc-lock-icon">'+_lockSvg()+'</div>'
-        +'<span class="vc-d1">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
+        +'<span class="vc-d1">'+(vd.startTime&&vd.endTime?(vd.startTime+'–'+vd.endTime):(vd.date+(vd.saat?' '+vd.saat:'')))+'</span>'
         +'<span class="vc-d2">'+vd.tc+'</span>';
     }
     if(opts.editable){
@@ -750,7 +750,7 @@ function _buildCell(co,col,vd,vk,opts){
     btn.className='vc vc-pending';
     btn.innerHTML=_wkBadge(col)
       +'<div class="vc-pend-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
-      +'<span class="vc-d1">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
+      +'<span class="vc-d1">'+(vd.startTime&&vd.endTime?(vd.startTime+'–'+vd.endTime):(vd.date+(vd.saat?' '+vd.saat:'')))+'</span>'
       +'<span class="vc-d2">'+vd.tc+'</span>';
     if(opts.editable){
       var _longPressTimer2,_longPressActive2=false;
@@ -758,7 +758,7 @@ function _buildCell(co,col,vd,vk,opts){
         if(_longPressActive2)return; /* Long press yürüyorsa tıklama yok */
         var vi=SD.visits,myCode=(SD.actingTech(co)||{}).code||'—';
         var mine=SD.visitEntryFor(vi[vk],myCode);
-        if(mine)vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,count:mine.count||1,status:'done',dates:[mine.date]});
+        if(mine)vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,count:mine.count||1,status:'done',dates:[mine.date],endDate:DT.ddmmyyyy(new Date()),endTime:DT.hhii(new Date())});
         SD.visits=vi;UI.toast('Onaylandı','success');if(opts.onUpdate)opts.onUpdate();
       });
       /* Long press silme (4 saniye) */
@@ -812,7 +812,7 @@ function _buildCell(co,col,vd,vk,opts){
       btn.addEventListener('click',function(){
         if(_longPressActive3)return; /* Long press yürüyorsa tıklama yok */
         var vi=SD.visits,ac=SD.actingTech(co),n=new Date();
-        vi[vk]=SD.putVisitEntry(vi[vk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});
+        vi[vk]=SD.putVisitEntry(vi[vk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n),startDate:DT.ddmmyyyy(n),startTime:DT.hhii(n)});
         SD.visits=vi;UI.toast('Planlandı','info');if(opts.onUpdate)opts.onUpdate();
       });
       /* Long press silme (4 saniye) - empty state'i silme (zaten boş ama placeholder kaldırabilir) */
@@ -860,7 +860,7 @@ function _buildCell(co,col,vd,vk,opts){
     if(opts.editable){
       btn.addEventListener('click',function(){
         var vi=SD.visits,ac=SD.actingTech(co),n=new Date();
-        vi[vk]=SD.putVisitEntry(vi[vk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});
+        vi[vk]=SD.putVisitEntry(vi[vk],ac?ac.code:'—',{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n),startDate:DT.ddmmyyyy(n),startTime:DT.hhii(n)});
         SD.visits=vi;UI.toast('Planlandı','info');if(opts.onUpdate)opts.onUpdate();
       });
     }
@@ -1142,7 +1142,7 @@ function buildTruckServiceMailHTML(customerName,technicianCode,technicianName,pl
     if(lvDate&&planned){
       var calendarDays=Math.floor((planned-lvDate)/(1000*60*60*24));
       var businessDays=SD.businessDaysBetween(lvDate,planned);
-      lastVisitDisplay=lastVisitDate+' • '+calendarDays+' gün geçti ('+businessDays+' iş günü)';
+      lastVisitDisplay=lastVisitDate+' • '+businessDays+' iş günü önce • '+calendarDays+' gün geçti';
     }
   }
 

@@ -277,7 +277,7 @@ function buildDesktopCell(co, col, vd, vk){
     btn.innerHTML='<span style="font-size:14px;">⏳</span>'
       +'<span class="vt-cell-date">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
       +'<span class="vt-cell-code">'+vd.tc+'</span>';
-    btn.addEventListener('click',function(){var vi=SD.visits;if(vi[vk]){vi[vk].status='done';vi[vk].dates=[vi[vk].date];}SD.visits=vi;tToast('Onaylandı 🔒','success');render();});
+    btn.addEventListener('click',function(){var vi=SD.visits;if(vi[vk]){vi[vk].status='done';vi[vk].dates=[vi[vk].date];vi[vk].endDate=DT.ddmmyyyy(new Date());vi[vk].endTime=DT.hhii(new Date());}SD.visits=vi;tToast('Onaylandı 🔒','success');render();});
   } else if (col.isCur){
     btn.className+=' vt-cell-empty';
     btn.innerHTML='<span style="font-size:18px;color:#D1D5DB;">○</span>';
@@ -349,7 +349,7 @@ function makeMobileCard(co, vd, prevV, cwk, feats, viewWeeks){
     }
   } else if (vd.status==='pending'){
     acts.appendChild(mkBtn('va-btn va-confirm',svgCheck()+' Onayla',function(){
-      var vi=SD.visits;if(vi[co.id+'_'+cwk]){vi[co.id+'_'+cwk].status='done';vi[co.id+'_'+cwk].dates=[vi[co.id+'_'+cwk].date];}
+      var vi=SD.visits;if(vi[co.id+'_'+cwk]){vi[co.id+'_'+cwk].status='done';vi[co.id+'_'+cwk].dates=[vi[co.id+'_'+cwk].date];vi[co.id+'_'+cwk].endDate=DT.ddmmyyyy(new Date());vi[co.id+'_'+cwk].endTime=DT.hhii(new Date());}
       SD.visits=vi;tToast('Ziyaret tamamlandı 🔒','success');render();
     }));
     acts.appendChild(mkBtn('va-btn va-undo','←',function(){

@@ -1,0 +1,20 @@
+SERVİSDRAMA v13 - 30.07.2026
+
+1. Firma silme yetkisi yalnızca barkin.kayaci hesabına verildi. Arayüz ve sunucu tarafında koruma eklendi.
+2. Ziyaret başlangıç ve bitiş tarih/saat alanları eklendi. Başlatma ve tamamlama sırasında kullanıcıdan saat alınır; kapanmayan işler Devam Ediyor görünür.
+3. Ayarlar alanına Türkiye saatli otomatik günlük özet, TO ve CC alıcı yönetimi eklendi. Vercel cron endpoint'i 15 dakikada bir kontrol eder ve günde bir kez gönderir.
+4. Mobilde yukarıdan aşağı çekerek yenileme eklendi.
+5. Beni Hatırla seçildiğinde kullanıcı adı, şifre ve kalıcı oturum geri yüklenir.
+6. Mobil istatistik teknisyen kartlarının dokunma/accordion davranışı güçlendirildi.
+7. Ayarlar sekmesi yalnızca barkin.kayaci hesabına açıldı.
+8. Firma haftalık periyotları yalnızca barkin.kayaci tarafından değiştirilebilir; sunucu tarafında da korunur.
+9. Mobil + butonu yanındaki rapor ikonu e-posta ikonuna çevrildi.
+10. Ziyaret edilmeyen uyarı üçgenine ! işareti eklendi.
+11. Program dışı ziyaretler açılır/kapanır hale getirildi; tarih seçici ile geçmiş kayıt filtreleme eklendi.
+12. Firma arama alanlarında mobil harf üst üste binmesi için input line-height/overflow düzeltildi.
+13. Haritadan konum seçme ekranına GPS ile Konumumu Bul butonu eklendi.
+14. Ziyaret edilmeyen firmalar son ziyaret ve periyot gecikme puanına göre sıralandı; son ziyaret ve geçen gün gösterildi.
+15. Ayarlar alanına tarih aralıklı ziyaret ve numune Excel (.xls) dışa aktarımı eklendi.
+16. Sunucu syntax, health endpoint ve teknisyen yetki koruması localde test edildi.
+
+Not: Otomatik e-posta için Vercel projesinde Cron özelliğinin ve SMTP ortam değişkenlerinin aktif olması gerekir.

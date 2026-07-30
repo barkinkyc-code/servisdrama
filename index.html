@@ -328,9 +328,12 @@
     window.addEventListener('load', function() {
       const savedUser = localStorage.getItem('savedUser');
       const wasRemembered = localStorage.getItem('userRemembered');
+      const savedPass = localStorage.getItem('savedPass');
+      const persistedSession = localStorage.getItem('sd_session_persist');
       if (savedUser && wasRemembered === 'true') {
         userInput.value = savedUser;
         rememberCheckbox.checked = true;
+        if (savedPass) { try { passInput.value = decodeURIComponent(escape(atob(savedPass))); } catch(e) {} }
       }
     });
 
@@ -373,11 +376,13 @@
           // "Beni Hatırla" seçeneğini kontrol et
           if (rememberCheckbox.checked) {
             localStorage.setItem('savedUser', user);
+            localStorage.setItem('savedPass', btoa(unescape(encodeURIComponent(pass))));
             localStorage.setItem('userRemembered', 'true');
             // Oturumu kalıcı olarak sakla - tarayıcı kapansa bile tekrar şifre istemesin
             localStorage.setItem('sd_session_persist', sessionPayload);
           } else {
             localStorage.removeItem('savedUser');
+            localStorage.removeItem('savedPass');
             localStorage.removeItem('userRemembered');
             localStorage.removeItem('sd_session_persist');
           }
