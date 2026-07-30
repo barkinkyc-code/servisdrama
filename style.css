@@ -1165,3 +1165,33 @@ textarea.inp{resize:vertical;line-height:1.6;}
 /* v13 enhancements */
 .gps-locate-btn{position:absolute;right:34px;top:22px;z-index:1000;border:0;border-radius:12px;background:#fff;color:#1457d9;padding:11px 14px;font-weight:800;box-shadow:0 6px 22px rgba(15,23,42,.2);cursor:pointer}.gps-locate-btn:disabled{opacity:.7}.miss-item.enhanced{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px}.miss-main{min-width:0}.last-visit-line{font-size:11.5px;color:#64748b;margin-top:4px}.overdue-chip,.due-chip{font-size:10.5px;font-weight:800;padding:5px 8px;border-radius:99px;white-space:nowrap}.overdue-chip{background:#fee2e2;color:#b91c1c}.due-chip{background:#ecfdf5;color:#047857}.setting-note{font-size:13px;color:var(--text3);margin:0 0 16px}.schedule-grid{display:grid;grid-template-columns:180px 1fr 1fr;gap:12px}.schedule-grid label,.export-grid label{font-size:12px;font-weight:700;color:#475569}.schedule-grid .inp,.export-grid .inp{margin-top:6px}.settings-sep{border:0;border-top:1px solid #e2e8f0;margin:22px 0}.export-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}.extra-history-control{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:9px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px}.extra-history-control button{border:0;background:transparent;font-weight:800;color:#1e293b;cursor:pointer}.extra-history-control label{display:flex;align-items:center;gap:6px}.extra-history-control input{max-width:145px;border:1px solid #dbe3ef;border-radius:8px;padding:6px}.extra-history-control+.collapsed{display:none!important}.pull-refresh{position:fixed;left:50%;top:12px;transform:translate(-50%,-70px);z-index:99999;background:#0f172a;color:#fff;padding:10px 16px;border-radius:99px;font-size:12px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:.2s}.pull-refresh.show{transform:translate(-50%,0)}
 @media(max-width:767px){.schedule-grid,.export-grid{grid-template-columns:1fr}.gps-locate-btn{right:22px;top:18px}.miss-item.enhanced{grid-template-columns:28px minmax(0,1fr)}.overdue-chip,.due-chip{grid-column:2;justify-self:start}.search-box{overflow:hidden}.search-box input{min-width:0;width:100%;line-height:normal;padding-top:10px!important;padding-bottom:10px!important}.extra-history-control{position:sticky;top:62px;z-index:5}.extra-history-control button{font-size:12px}.extra-history-control input{width:125px}.tech-stat-grid>div>div:first-child{touch-action:manipulation;pointer-events:auto!important}}
+
+/* v14 mobile visit refinements */
+.topbar-logo{cursor:pointer}
+.mobile-visit-portal{display:none;align-items:center;gap:5px;padding:7px 9px;border:1px solid #dbe7f7;border-radius:10px;background:#f8fbff;color:#1457d9;font-size:11px;font-weight:800;white-space:nowrap}
+.mobile-visit-portal svg{width:15px;height:15px}
+.ongoing-chip{font-size:10.5px;font-weight:800;padding:5px 8px;border-radius:10px;white-space:nowrap;background:#fff7ed;color:#c2410c;text-align:center;border:1px solid #fed7aa}
+.ongoing-chip small{font-size:10px;font-weight:700}
+.double-tap-hint{font-size:10.5px;color:#94a3b8;margin-top:5px;font-weight:700}
+.miss-item.ongoing{background:#fffaf0;border-color:#fdba74}
+@media(max-width:768px){
+  .topbar{gap:8px;padding:0 10px}
+  .topbar-logo{max-width:92px;height:27px}
+  .topbar-right{gap:6px;min-width:0}
+  .mobile-visit-portal{order:0;max-width:92px}
+  .nav-user-menu{order:1}
+  .topbar-portal,.topbar-portal-dt{display:none!important}
+  #missedModal .modal{width:calc(100vw - 16px);max-width:none;margin:8px;max-height:calc(100dvh - 16px);border-radius:16px}
+  #missedModal .modal-body{padding:12px;overflow:auto}
+  #missedModal .miss-list{max-height:calc(100dvh - 145px);gap:7px}
+  #missedModal .miss-item.enhanced{grid-template-columns:28px minmax(0,1fr);padding:10px;border-radius:12px;gap:9px}
+  #missedModal .miss-num{width:26px;height:26px}
+  #missedModal .miss-nm{font-size:12.5px;line-height:1.25;overflow-wrap:anywhere}
+  #missedModal .miss-rg,#missedModal .last-visit-line{font-size:10.5px;line-height:1.35}
+  #missedModal .overdue-chip,#missedModal .due-chip,#missedModal .ongoing-chip{grid-column:2;justify-self:start;margin-top:2px}
+  .tech-stat-header{min-height:54px;position:relative;z-index:2;touch-action:manipulation}
+  .tech-stat-header span{min-width:34px;min-height:34px;display:flex!important;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.15)}
+  .tech-stat-body{position:relative;z-index:1}
+  .extra-history-control{top:64px;flex-wrap:nowrap}
+  .extra-history-control input{width:132px}
+}

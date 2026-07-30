@@ -538,6 +538,9 @@ function openExtraVisitModal(){
   var sel=document.getElementById('extraFirmaSelected');if(sel)sel.textContent='—';
   var mn=document.getElementById('extraManuelAdi');if(mn)mn.value='';
   var nt=document.getElementById('extraNot');if(nt)nt.value='';
+  var nowExtra=new Date();
+  var et=document.getElementById('extraTarih');if(et)et.value=nowExtra.getFullYear()+'-'+String(nowExtra.getMonth()+1).padStart(2,'0')+'-'+String(nowExtra.getDate()).padStart(2,'0');
+  var es=document.getElementById('extraSaat');if(es)es.value=DT.hhii(nowExtra);
   var ac=document.getElementById('extraFirmaAC');if(ac)ac.innerHTML='';
   /* Firma autocomplete + manuel giriş */
   var fInp=document.getElementById('extraFirmaInp'),fAc=document.getElementById('extraFirmaAC');
@@ -571,17 +574,20 @@ function saveExtraVisit(){
   var not=(document.getElementById('extraNot')||{}).value||'';
   var tarihInp=document.getElementById('extraTarih');
   var saarInp=document.getElementById('extraSaat');
-  var dateStr=tarihInp&&tarihInp.value?tarihInp.value:'';
+  var dateISO=tarihInp&&tarihInp.value?tarihInp.value:'';
+  var dateStr=dateISO?dateISO.split('-').reverse().join('.'):'';
   var timeStr=saarInp&&saarInp.value?saarInp.value:'';
   var extraCo=A.extraFirmaId?SD.companies.find(function(c){return c.id===A.extraFirmaId;}):null;
   var ac=SD.actingTech(extraCo),n=new Date();
 
   /* Girilen tarih için hafta hesapla, yoksa bugünün haftası */
   var visitDate=n;
-  if(dateStr){
+  if(dateISO){
+    visitDate=new Date(dateISO+'T12:00:00');
+  }else if(dateStr){
     var parts=dateStr.split('.');
-    if(parts.length===2){
-      visitDate=new Date(new Date().getFullYear(),parseInt(parts[1])-1,parseInt(parts[0]));
+    if(parts.length>=2){
+      visitDate=new Date(parseInt(parts[2]||new Date().getFullYear()),parseInt(parts[1])-1,parseInt(parts[0]));
     }
   }
   var cwk=DT.wkey(visitDate);
@@ -825,11 +831,12 @@ function renderStat(){
       return b.lastVisitObj-a.lastVisitObj;
     });
 
-    var card=document.createElement('div');
-    card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;'+(isMob?'overflow:visible;':'overflow:hidden;')+'box-shadow:0 2px 8px rgba(0,0,0,.08);';
     var isMob=A.isMobile();
-    var header='<div style="background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;'+(isMob?'cursor:pointer;':'')+'display:flex;justify-content:space-between;align-items:center;user-select:none;"><div style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</div>'+(isMob?'<span style="font-size:18px;transition:transform .2s;display:inline-block;">▼</span>':'')+'</div>';
-    var body='<div style="padding:12px 0;'+(isMob?'display:none;':'')+'">';
+    var card=document.createElement('div');
+    card.className='tech-stat-card';
+    card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;'+(isMob?'overflow:visible;':'overflow:hidden;')+'box-shadow:0 2px 8px rgba(0,0,0,.08);';
+    var header='<div class="tech-stat-header" style="background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;'+(isMob?'cursor:pointer;':'')+'display:flex;justify-content:space-between;align-items:center;user-select:none;"><div style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</div>'+(isMob?'<span style="font-size:18px;transition:transform .2s;display:inline-block;">▼</span>':'')+'</div>';
+    var body='<div class="tech-stat-body" style="padding:12px 0;'+(isMob?'display:none;':'')+'">';
     firmalar.forEach(function(f){
       var visitText=f.lastVisit?'Son ziyaret: '+f.lastVisit+(f.daysAgo||''):' Kayıt yok';
       body+='<div style="padding:8px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="font-weight:600;color:#1E293B;">'+f.name+'</div><div style="font-size:12px;color:#64748B;margin-top:2px;">'+visitText+'</div></div>';
@@ -1726,7 +1733,7 @@ function editExtraVisit(idx){
 
   if(firmInp)firmInp.value=ex.firmaId?'':ex.firmAdi;
   if(manuelInp)manuelInp.value=ex.firmAdi;
-  if(tarihInp)tarihInp.value=ex.date;
+  if(tarihInp){var ep=String(ex.date||'').split('.');tarihInp.value=ep.length===3?(ep[2]+'-'+ep[1]+'-'+ep[0]):'';}
   if(saarInp)saarInp.value=ex.saat||'';
   if(notInp)notInp.value=ex.not||'';
 

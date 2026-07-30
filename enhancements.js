@@ -45,15 +45,58 @@
     },450);
   };
 
-  /* Ziyaret edilmeyenleri periyot gecikmesine göre sırala */
+  /* Ziyaret edilmeyenleri periyot gecikmesine göre sırala; devam eden kayıt kaybolmaz */
   window.openMissedModal=function(){
     var today=new Date(),cwk=DT.wkey(today),weeks=DT.monthWeeks(today.getFullYear(),today.getMonth()),cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(today).getTime();})+1;
-    var at=SD.activeTech(),cos=SD.companies.filter(function(c){return c.aktif!==false&&(!at||c.techId===at.id)&&BL.scheduled(c,cwi);});
+    var at=SD.activeTech(),me=SD.sessionTech(),viewerCode=me?me.code:(at?at.code:null);
+    var cos=SD.companies.filter(function(c){return c.aktif!==false&&(!at||c.techId===at.id)&&BL.scheduled(c,cwi);});
     var vis=SD.visits;
-    var missed=cos.filter(function(c){var v=vis[c.id+'_'+cwk];return !v||v.status!=='done';}).map(function(c){var lv=lastVisitFor(c),days=lv?Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-new Date(lv.d.getFullYear(),lv.d.getMonth(),lv.d.getDate()))/86400000):9999;var n=(c.weeks||[1,2,3,4]).length;var threshold=n>=4?7:n===3?9:n===2?14:30;return {co:c,lv:lv,days:days,threshold:threshold,over:days-threshold};}).sort(function(a,b){return b.over-a.over||b.days-a.days;});
+    function intervalDays(c){var n=(c.weeks||[1,2,3,4]).length;return n>=4?7:n===3?10:n===2?14:30;}
+    var missed=cos.map(function(c){
+      var current=SD.visitEntryFor(vis[c.id+'_'+cwk],viewerCode);
+      if(current&&current.status==='done')return null;
+      var lv=lastVisitFor(c),days=lv?Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-new Date(lv.d.getFullYear(),lv.d.getMonth(),lv.d.getDate()))/86400000):9999;
+      var threshold=intervalDays(c),over=days-threshold;
+      return {co:c,current:current,lv:lv,days:days,threshold:threshold,over:over};
+    }).filter(Boolean).sort(function(a,b){
+      if(!!a.current!==!!b.current)return a.current?-1:1;
+      return b.over-a.over||b.days-a.days;
+    });
     var list=document.getElementById('missedList');if(!list)return;list.innerHTML='';
+    var title=document.getElementById('missedTitle');if(title)title.textContent='Ziyaret Edilmeyenler'+(at?' — '+at.code:'')+' ('+missed.length+')';
     if(!missed.length){list.innerHTML='<p class="miss-empty">Tüm firmalar ziyaret edildi 🎉</p>';UI.openModal('missedModal');return;}
-    missed.forEach(function(item,i){var co=item.co,row=document.createElement('div');row.className='miss-item enhanced';var lv=item.lv?DT.ddmmyyyy(item.lv.d):'Kayıt yok';var urgency=item.over>0?'<span class="overdue-chip">+'+item.over+' gün gecikmiş</span>':'<span class="due-chip">Periyot içinde</span>';row.innerHTML='<span class="miss-num">'+(i+1)+'</span><div class="miss-main"><div class="miss-nm">'+esc(co.name)+'</div><div class="miss-rg">'+esc(co.bolge||'')+'</div><div class="last-visit-line">En son ziyaret: '+lv+(item.lv?' • '+item.days+' gün geçti':'')+'</div></div>'+urgency;var clicks=0,t;row.onclick=function(){clicks++;clearTimeout(t);if(clicks>=2){var p=todayParts(),vi=SD.visits,ac=SD.actingTech(co);vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],ac?ac.code:'—',{date:p.short,saat:p.time,startDate:p.date,startTime:p.time,status:'pending',count:1});SD.visits=vi;openMissedModal();renderVisit();}else t=setTimeout(function(){clicks=0;},550);};list.appendChild(row);});UI.openModal('missedModal');
+    missed.forEach(function(item,i){
+      var co=item.co,row=document.createElement('div');row.className='miss-item enhanced'+(item.current?' ongoing':'');
+      var lv=item.lv?DT.ddmmyyyy(item.lv.d):'Kayıt yok';
+      var dayText=item.days>90?'+90 ~':(item.lv?(item.days+' gün geçti'):'Henüz ziyaret yok');
+      var urgency=item.current?'<span class="ongoing-chip">Devam ediyor<br><small>'+esc(item.current.startTime||item.current.saat||'')+'</small></span>':(item.over>0?'<span class="overdue-chip">+'+item.over+' gün gecikmiş</span>':'<span class="due-chip">Periyot içinde</span>');
+      row.innerHTML='<span class="miss-num">'+(i+1)+'</span><div class="miss-main"><div class="miss-nm">'+esc(co.name)+'</div><div class="miss-rg">'+esc(co.bolge||'')+'</div><div class="last-visit-line">En son ziyaret: '+lv+(item.lv?' • '+dayText:'')+'</div><div class="double-tap-hint">'+(item.current?'2 kez dokun: işi bitir':'2 kez dokun: ziyareti başlat')+'</div></div>'+urgency;
+      var clicks=0,t;
+      row.onclick=function(){
+        clicks++;clearTimeout(t);
+        if(clicks<2){t=setTimeout(function(){clicks=0;},650);return;}
+        clicks=0;
+        var p=todayParts(),vi=SD.visits,ac=SD.actingTech(co),code=ac?ac.code:'—';
+        if(item.current){
+          var ed=window.prompt('Bitiş tarihi (GG.AA.YYYY)',p.date);if(ed===null)return;
+          var et=window.prompt('Bitiş saati (SS:DD)',p.time);if(et===null)return;
+          if(!/^\d{2}\.\d{2}\.\d{4}$/.test(ed)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(et)){UI.toast('Tarih veya saat formatı geçersiz.','error');return;}
+          vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:item.current.date||ed.slice(0,5),saat:item.current.saat||item.current.startTime,startDate:item.current.startDate||p.date,startTime:item.current.startTime||item.current.saat,endDate:ed,endTime:et,status:'done',count:item.current.count||1,workType:item.current.workType||'Teknik Servis',dates:[item.current.date||ed.slice(0,5)]});
+          UI.toast('İş '+(item.current.startTime||item.current.saat||'—')+'–'+et+' arasında tamamlandı.','success');
+        }else{
+          var type=window.prompt('İş türü: Kurulum veya Teknik Servis','Teknik Servis');if(type===null)return;
+          type=/kurulum/i.test(type)?'Kurulum':'Teknik Servis';
+          var sd=window.prompt('Başlama tarihi (GG.AA.YYYY)',p.date);if(sd===null)return;
+          var st=window.prompt('Başlama saati (SS:DD)',p.time);if(st===null)return;
+          if(!/^\d{2}\.\d{2}\.\d{4}$/.test(sd)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(st)){UI.toast('Tarih veya saat formatı geçersiz.','error');return;}
+          vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:sd.slice(0,5),saat:st,startDate:sd,startTime:st,status:'pending',count:1,workType:type});
+          UI.toast(type+' '+st+' saatinde başlatıldı; kayıt devam ediyor olarak tutuldu.','info');
+        }
+        SD.visits=vi;openMissedModal();renderVisit();
+      };
+      list.appendChild(row);
+    });
+    UI.openModal('missedModal');
   };
 
   /* Ayarlar: otomatik rapor ve Excel alanı */
@@ -65,15 +108,38 @@
 
   window.exportOperationalExcel=function(){if(!SD_isOwner())return;var s=document.getElementById('exportStart').value,e=document.getElementById('exportEnd').value,sd=s?new Date(s+'T00:00:00'):null,ed=e?new Date(e+'T23:59:59'):null;function inRange(d){var x=parseDate(d);return x&&(!sd||x>=sd)&&(!ed||x<=ed);}var rows=[['Tür','Firma','Teknisyen','Başlangıç Tarihi','Başlangıç Saati','Bitiş Tarihi','Bitiş Saati','Durum','Not/Numune','Periyot']];var companies=SD.companies||[],techs=SD.technicians||[];Object.keys(SD.visits||{}).forEach(function(k){var cid=k.split('_')[0],co=companies.find(function(c){return c.id===cid;})||{},rec=SD.visits[k],entries=rec&&rec.entries?Object.keys(rec.entries).map(function(x){return rec.entries[x];}):[rec];entries.forEach(function(v){if(!v||!inRange(v.endDate||v.startDate||v.date))return;var t=techs.find(function(x){return x.code===v.tc;})||{};rows.push(['Ziyaret',co.name||cid,t.name||v.tc,v.startDate||v.date||'',v.startTime||v.saat||'',v.endDate||'',v.endTime||'',v.status==='done'?'Tamamlandı':'Devam Ediyor',v.extraNot||'',(co.weeks||[]).join(',')]);});});(SD.samples||[]).forEach(function(n){var d=n.date||n.tarih||n.createdAt;if(!inRange(d))return;rows.push(['Numune',n.firma||n.company||n.firmaAdi||'',n.tech||n.teknisyen||'',d||'',n.saat||'','','',n.result?'Sonuçlandı':'Bekliyor',n.urun||n.product||n.not||'', '']);});var html='<html><head><meta charset="UTF-8"></head><body><table border="1">'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('')+'</tr>';}).join('')+'</table></body></html>';var blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ServisDrama_Veriler_'+(s||'baslangic')+'_'+(e||'bugun')+'.xls';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);};
 
-  /* Program dışı ziyaretleri bugün + tarih seçici ile göster */
+  /* Program dışı ziyaretler: ilk açılışta bugünün tarihi seçili ve yalnızca o gün görünür */
   var oldExtra=window.renderExtraVisits;
-  if(typeof oldExtra==='function')window.renderExtraVisits=function(){oldExtra.apply(this,arguments);setTimeout(function(){var section=document.getElementById('extraVisitList');if(!section||document.getElementById('extraHistoryControl'))return;var ctl=document.createElement('div');ctl.id='extraHistoryControl';ctl.className='extra-history-control';ctl.innerHTML='<button type="button" id="extraCollapseBtn">Program Dışı Ziyaretler <span>▾</span></button><label title="Geçmiş tarihe bak">📅 <input type="date" id="extraHistoryDate"></label>';section.parentNode.insertBefore(ctl,section);var btn=ctl.querySelector('button'),date=ctl.querySelector('input');btn.onclick=function(){section.classList.toggle('collapsed');btn.querySelector('span').textContent=section.classList.contains('collapsed')?'▸':'▾';};date.onchange=function(){var wanted=date.value?date.value.split('-').reverse().slice(0,2).join('.'):DT.ddmm(new Date());Array.from(section.children).forEach(function(card){card.style.display=!date.value||card.textContent.indexOf(wanted)>=0?'':'none';});};date.dispatchEvent(new Event('change'));},0);};
+  if(typeof oldExtra==='function')window.renderExtraVisits=function(){
+    oldExtra.apply(this,arguments);
+    setTimeout(function(){
+      var section=document.getElementById('extraVisitList');if(!section)return;
+      var ctl=document.getElementById('extraHistoryControl');
+      if(!ctl){
+        ctl=document.createElement('div');ctl.id='extraHistoryControl';ctl.className='extra-history-control';
+        ctl.innerHTML='<button type="button" id="extraCollapseBtn">Program Dışı Ziyaretler <span>▾</span></button><label title="Geçmiş tarihe bak">📅 <input type="date" id="extraHistoryDate"></label>';
+        section.parentNode.insertBefore(ctl,section);
+        ctl.querySelector('button').onclick=function(){section.classList.toggle('collapsed');this.querySelector('span').textContent=section.classList.contains('collapsed')?'▸':'▾';};
+      }
+      var date=ctl.querySelector('input'),now=new Date(),todayISO=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      if(!date.value)date.value=todayISO;
+      function filter(){var wanted=date.value?date.value.split('-').reverse().join('.'):DT.ddmmyyyy(new Date());var any=false;Array.from(section.children).forEach(function(card){var show=card.textContent.indexOf(wanted)>=0||card.textContent.indexOf(wanted.slice(0,5))>=0;card.style.display=show?'':'none';if(show)any=true;});var empty=document.getElementById('extraEmpty');if(empty){empty.style.display=any?'none':'block';empty.textContent='Seçilen tarihte program dışı ziyaret bulunmuyor.';}}
+      date.onchange=filter;filter();
+    },0);
+  };
 
   /* Mobil pull-to-refresh */
   var startY=0,pulling=false,indicator;
   document.addEventListener('touchstart',function(e){if(window.scrollY===0&&e.touches.length===1){startY=e.touches[0].clientY;pulling=true;}},{passive:true});
   document.addEventListener('touchmove',function(e){if(!pulling)return;var dy=e.touches[0].clientY-startY;if(dy>55){if(!indicator){indicator=document.createElement('div');indicator.className='pull-refresh';indicator.textContent='↓ Yenilemek için bırak';document.body.appendChild(indicator);}indicator.classList.add('show');}},{passive:true});
   document.addEventListener('touchend',function(e){if(!pulling)return;pulling=false;if(indicator&&indicator.classList.contains('show')){indicator.textContent='↻ Yenileniyor...';location.reload();}else if(indicator)indicator.remove();indicator=null;},{passive:true});
+
+
+  /* Logo her zaman Ziyaret Takibi'ne döner; DK Portal mobilde yalnızca bu sayfada adın solunda görünür */
+  function syncMobilePortal(){var p=(window.A&&A.page)||'ziyaret',el=document.getElementById('mobileVisitPortal');if(el)el.style.display=(p==='ziyaret'&&window.innerWidth<=768)?'inline-flex':'none';}
+  document.addEventListener('DOMContentLoaded',function(){var logo=document.getElementById('topbarLogo');if(logo){logo.addEventListener('click',function(){goto('ziyaret');});logo.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();goto('ziyaret');}});}syncMobilePortal();});
+  window.addEventListener('resize',syncMobilePortal);
+  var _gotoPortalSync=window.goto;if(typeof _gotoPortalSync==='function')window.goto=function(){var r=_gotoPortalSync.apply(this,arguments);setTimeout(syncMobilePortal,0);return r;};
 
   /* Uyarı üçgenindeki boş işareti düzelt */
   document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('#warnBanner svg, .warn-banner svg').forEach(function(svg){if(!svg.textContent.trim()){var t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x','12');t.setAttribute('y','17');t.setAttribute('text-anchor','middle');t.setAttribute('font-size','14');t.setAttribute('font-weight','900');t.setAttribute('fill','currentColor');t.textContent='!';svg.appendChild(t);}});});
@@ -88,10 +154,13 @@
     var key=btn.dataset.visitKey,coid=btn.dataset.companyId,rec=SD.visits[key],co=SD.companies.find(function(c){return c.id===coid;});
     var code=(SD.actingTech(co)||{}).code||'—',mine=SD.visitEntryFor(rec,code),now=new Date(),date=DT.ddmmyyyy(now),time=DT.hhii(now);
     if(btn.classList.contains('vc-empty')||btn.classList.contains('vc-miss')){
-      e.preventDefault();e.stopImmediatePropagation();var sd=askDate('Başlama tarihi',date);if(sd===null)return;var st=askTime('Başlama saati',time);if(st===null)return;var vi=SD.visits;vi[key]=SD.putVisitEntry(vi[key],code,{date:sd.slice(0,5),saat:st,startDate:sd,startTime:st,status:'pending',count:1});SD.visits=vi;UI.toast('Ziyaret '+st+' saatinde başlatıldı.','info');if(typeof renderVisit==='function')renderVisit();return;
+      e.preventDefault();e.stopImmediatePropagation();
+      var wt=window.prompt('İş türü: Kurulum veya Teknik Servis','Teknik Servis');if(wt===null)return;wt=/kurulum/i.test(wt)?'Kurulum':'Teknik Servis';
+      var sd=askDate('Başlama tarihi',date);if(sd===null)return;var st=askTime('Başlama saati',time);if(st===null)return;
+      var vi=SD.visits;vi[key]=SD.putVisitEntry(vi[key],code,{date:sd.slice(0,5),saat:st,startDate:sd,startTime:st,status:'pending',count:1,workType:wt});SD.visits=vi;UI.toast(wt+' '+st+' saatinde başlatıldı; devam ediyor.','info');if(typeof renderVisit==='function')renderVisit();return;
     }
     if(btn.classList.contains('vc-pending')){
-      e.preventDefault();e.stopImmediatePropagation();var ed=askDate('Bitiş tarihi',date);if(ed===null)return;var et=askTime('Bitiş saati',time);if(et===null)return;var vi2=SD.visits,entry=mine||{};vi2[key]=SD.putVisitEntry(vi2[key],code,{date:entry.date||ed.slice(0,5),saat:entry.saat||entry.startTime||et,startDate:entry.startDate||ed,startTime:entry.startTime||entry.saat||et,endDate:ed,endTime:et,status:'done',count:entry.count||1,dates:[entry.date||ed.slice(0,5)]});SD.visits=vi2;UI.toast('Ziyaret '+(entry.startTime||entry.saat||'—')+'–'+et+' arasında tamamlandı.','success');if(typeof renderVisit==='function')renderVisit();return;
+      e.preventDefault();e.stopImmediatePropagation();var ed=askDate('Bitiş tarihi',date);if(ed===null)return;var et=askTime('Bitiş saati',time);if(et===null)return;var vi2=SD.visits,entry=mine||{};vi2[key]=SD.putVisitEntry(vi2[key],code,{date:entry.date||ed.slice(0,5),saat:entry.saat||entry.startTime||et,startDate:entry.startDate||ed,startTime:entry.startTime||entry.saat||et,endDate:ed,endTime:et,status:'done',count:entry.count||1,workType:entry.workType||'Teknik Servis',dates:[entry.date||ed.slice(0,5)]});SD.visits=vi2;UI.toast('Ziyaret '+(entry.startTime||entry.saat||'—')+'–'+et+' arasında tamamlandı.','success');if(typeof renderVisit==='function')renderVisit();return;
     }
   },true);
 })();

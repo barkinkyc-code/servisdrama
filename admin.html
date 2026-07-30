@@ -18,7 +18,7 @@
 </script>
 <!-- ═══ ÜST PANEL (tüm ekran genişliklerinde) ═══ -->
 <header class="topbar" id="topbar">
-  <img class="topbar-logo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
+  <img class="topbar-logo" id="topbarLogo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine" role="button" tabindex="0" title="Ziyaret Takibine Git">
 
   <!-- Ana menü: masaüstünde satır içi, mobilde hamburger ile açılan panel -->
   <nav class="topbar-nav" id="navTabs">
@@ -45,6 +45,9 @@
   </nav>
 
   <div class="topbar-right">
+    <a class="mobile-visit-portal" id="mobileVisitPortal" href="https://dk.dramagroup.com.tr/" target="_blank" rel="noopener" aria-label="DK Portal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg><span>DK Portal</span>
+    </a>
     <a class="topbar-portal-dt" href="https://dk.dramagroup.com.tr/" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
       DK Portal
@@ -277,6 +280,16 @@
       <div class="form-grp">
         <label class="form-lbl">Manuel Firma Adı (listede yoksa)</label>
         <input class="inp st-uppercase" id="extraManuelAdi" placeholder="ör: ABC Makine San. Ltd.">
+      </div>
+      <div class="form-row2">
+        <div class="form-grp">
+          <label class="form-lbl">Ziyaret Tarihi</label>
+          <input class="inp" type="date" id="extraTarih">
+        </div>
+        <div class="form-grp">
+          <label class="form-lbl">Ziyaret Saati</label>
+          <input class="inp" type="time" id="extraSaat">
+        </div>
       </div>
       <div class="form-grp">
         <label class="form-lbl">Not (opsiyonel)</label>
