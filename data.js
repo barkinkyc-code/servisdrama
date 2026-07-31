@@ -14,18 +14,14 @@ var SD=(function(){
   function snapshot(){var out={};SHARED_KEYS.forEach(function(k){var v=load(k,null);if(v!==null)out[k]=v;});return out;}
   function token(){return localStorage.getItem('token')||'';}
   function pushRemote(){
-    if(!remoteLoaded) return Promise.reject(new Error('Neon bağlantısı henüz hazırlanmadı'));
-    if(!token()) return Promise.reject(new Error('Oturum süresi dolmuş. Yeniden giriş yapın.'));
-    if(syncInFlight){syncPending=true;return Promise.resolve({queued:true});}
+    if(!remoteLoaded||!token())return Promise.resolve();
+    if(syncInFlight){syncPending=true;return Promise.resolve();}
     syncInFlight=true;
     return fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({state:snapshot()})})
-      .then(async function(r){
-        var data={};try{data=await r.json();}catch(_e){}
-        if(!r.ok)throw new Error(data.details||data.error||('Ortak veri kaydedilemedi ('+r.status+')'));
-        store.setItem('sd_last_sync',new Date().toISOString());
-        return data;
-      })
-      .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;setTimeout(function(){pushRemote().catch(function(e){console.error(e);});},0);}});
+      .then(function(r){if(!r.ok)throw new Error('Ortak veri kaydedilemedi');return r.json();})
+      .then(function(){store.setItem('sd_last_sync',new Date().toISOString());})
+      .catch(function(e){console.error(e);})
+      .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;pushRemote();}});
   }
   function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(pushRemote,350);}
   function save(k,v){try{store.setItem(k,JSON.stringify(v));if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0)scheduleSync();}catch(e){}}

@@ -464,7 +464,7 @@ function renderFirma(){
     var card=document.createElement('div');card.className='co-card'+(isPasif?' co-card-pasif':'');
     var icon='<div class="co-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>';
     var badges=(isPasif?'<span class="co-pasif-badge">PASİF</span> ':'')+(co.truck?'🚚 ':'')+' '+(co.lat?'📍 ':'')+' '+(getCompanySetup(co).active?'🔧':'');
-    var kurulum=getCompanySetup(co).active?'<div class="co-kurulum"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Kurulum: '+co.kurulumStart+' → '+co.kurulumEnd+'</div>':'';
+    var coSetup=getCompanySetup(co); var kurulum=coSetup.active?'<div class="co-kurulum"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Kurulum: '+(coSetup.startDate||'')+' → '+(coSetup.endDate||'Devam ediyor')+'</div>':'';
     var body='<div class="co-body"><div style="display:flex;align-items:center;gap:7px;"><div class="co-name">'+co.name+'</div><span style="font-size:13px;">'+badges+'</span></div>'
       +'<div class="co-meta">'+(t?t.code+' · ':'')+((co.weeks||[1,2,3,4]).length)+'x/ay ('+weeks+')</div>'+kurulum+'</div>';
     var toggleTitle=isPasif?'Aktif Et':'Pasife Al';
@@ -527,7 +527,7 @@ function renderAMails(){
   });
 }
 function addAMail(){var inp=document.getElementById('fAMail'),v=inp.value.trim();if(!v)return;A.aMails.push(v);inp.value='';renderAMails();}
-async function saveFirma(){
+function saveFirma(){
   var name=document.getElementById('fAdi').value.trim();if(!name){UI.toast('Firma adı gerekli.','error');return;}
   var startDate=document.getElementById('fKurulumStart').value||'';
   var startTime=document.getElementById('fKurulumStartTime').value||'';
@@ -536,50 +536,15 @@ async function saveFirma(){
   if(startTime&&!startDate){UI.toast('Kurulum başlangıç saati için başlangıç tarihi de gerekli.','error');return;}
   if(endDate&&!startDate){UI.toast('Bitiş tarihinden önce başlangıç tarihi girilmeli.','error');return;}
   if(endTime&&!endDate){UI.toast('Bitiş saati için bitiş tarihi de gerekli.','error');return;}
-  var payload={
-    name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,
-    email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,
-    aktif:!document.getElementById('fPasif').checked,konumNot:document.getElementById('fKonumNot').value.trim(),
-    kurulumAktif:!!startDate,kurulumStart:startDate,kurulumStartTime:startTime,kurulumEnd:endDate,kurulumEndTime:endTime,
-    kurulumDevreyeAlma:{active:!!startDate,startDate:startDate,startTime:startTime,endDate:endDate,endTime:endTime},
-    aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]
-  };
-  var id=A.editId||('c'+Date.now());
-  var oldCompany=(Array.isArray(SD.companies)?SD.companies:[]).find(function(c){return String(c.id)===String(id);})||{};
-  var company=Object.assign({},oldCompany,{id:id},payload);
-  var cos=(Array.isArray(SD.companies)?SD.companies:[]).slice();
-  var found=false;
-  cos=cos.map(function(c){if(String(c.id)===String(id)){found=true;return company;}return c;});
-  if(!found)cos.push(company);
+  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,aktif:!document.getElementById('fPasif').checked,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:startDate,kurulumStartTime:startTime,kurulumEnd:endDate,kurulumEndTime:endTime,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]};
+  var cos=Array.isArray(SD.companies)?SD.companies.slice():[];
+  if(A.editId){cos=cos.map(function(c){return String(c.id)===String(A.editId)?Object.assign({},c,payload):c;});}
+  else{cos.push(Object.assign({id:'c'+Date.now()},payload));}
   SD.companies=cos;
-
-  var saveBtn=document.getElementById('firmaSaveBtn');
-  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Neon’a kaydediliyor…';}
-  try{
-    var token=localStorage.getItem('token')||'';
-    if(!token)throw new Error('Oturum süresi dolmuş. Çıkış yapıp yeniden giriş yapın.');
-    var response=await fetch('/api/state/company/'+encodeURIComponent(id),{
-      method:'PUT',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({company:company})
-    });
-    var result={};try{result=await response.json();}catch(_e){}
-    if(!response.ok||!result.success){
-      if(response.status===401)throw new Error('Oturum süresi dolmuş. Çıkış yapıp yeniden giriş yapın.');
-      throw new Error(result.details||result.error||('Neon kaydı başarısız ('+response.status+')'));
-    }
-    localStorage.setItem('sd_last_sync',result.updatedAt||new Date().toISOString());
-    UI.closeModal('firmaModal');
-    try{renderFirma();}catch(e){console.error('Firma render:',e);}
-    try{renderVisit();}catch(e){console.error('Ziyaret render:',e);}
-    try{renderSetupBanner();}catch(e){console.error('Kurulum banner render:',e);}
-    UI.toast(startDate?'Kurulum Neon’a kaydedildi ve ana ekrana aktarıldı.':'Firma Neon’a kaydedildi.','success');
-  }catch(err){
-    console.error('Firma/kurulum Neon kaydetme hatası:',err);
-    UI.toast(err.message||'Neon kaydı başarısız.','error');
-  }finally{
-    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.oldText||'Kaydet';}
-  }
+  SD.save('sd_co',SD.companies);
+  UI.closeModal('firmaModal');
+  renderFirma();renderVisit();renderSetupBanner();
+  UI.toast(startDate?'Firma ve kurulum kaydedildi.':'Firma kaydedildi.','success');
 }
 function exportFirmalar(){var d=JSON.stringify({firmalar:SD.companies,teknisyenler:SD.technicians},null,2);var a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(d);a.download='firmalar.json';a.click();UI.toast('İndirildi.','success');}
 function importFirmalar(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.firmalar){SD.companies=d.firmalar;SD.save('sd_co',SD.companies);}renderFirma();renderVisit();UI.toast('Yüklendi!','success');}catch(err){UI.toast('Dosya okunamadı.','error');}};r.readAsText(f);e.target.value='';}
