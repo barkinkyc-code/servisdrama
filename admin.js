@@ -340,8 +340,15 @@ function renderSetupBanner(){
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
     +'<span class="setup-ttl">Kurulum Sürecindeki Firmalar</span>'
     +'<span class="setup-count">'+setup.length+'</span></div>';
+  function setupDateLabel(raw){
+    if(!raw)return'';
+    var m=String(raw).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m?m[3]+'.'+m[2]+'.'+m[1]:String(raw);
+  }
   setup.forEach(function(c){
-    html+='<div class="setup-row"><span class="setup-name">'+c.name+'</span><span class="setup-date">'+c.kurulumStart+(c.kurulumStartTime?' '+c.kurulumStartTime:'')+' – '+(c.kurulumEnd||'Devam ediyor')+(c.kurulumEndTime?' '+c.kurulumEndTime:'')+'</span></div>';
+    var start=setupDateLabel(c.kurulumStart)+(c.kurulumStartTime?' · '+c.kurulumStartTime:'');
+    var end=c.kurulumEnd?(setupDateLabel(c.kurulumEnd)+(c.kurulumEndTime?' · '+c.kurulumEndTime:'')):'Devam ediyor';
+    html+='<div class="setup-row"><span class="setup-name">'+BL.esc(c.name)+'</span><span class="setup-date"><span>'+start+'</span><b aria-hidden="true">→</b><span>'+end+'</span></span></div>';
   });
   html+='</div>';
   banner.innerHTML=html;
@@ -837,44 +844,18 @@ function renderStat(){
     card.innerHTML=header+body;
     var headerEl=card.querySelector('.tech-stat-header');
     var bodyEl=card.querySelector('.tech-stat-body');
-    headerEl.onclick=function(ev){
-      ev.preventDefault();ev.stopPropagation();
-      var open=bodyEl.style.display!=='none';
+    headerEl.addEventListener('click',function(ev){
+      ev.preventDefault();
+      var open=bodyEl.hidden===false;
+      bodyEl.hidden=open;
       bodyEl.style.display=open?'none':'block';
       headerEl.setAttribute('aria-expanded',String(!open));
       var arrow=headerEl.querySelector('.tech-stat-arrow');
       if(arrow)arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
-    };
+    },false);
+    bodyEl.hidden=isMob;
     tg.appendChild(card);
   });
-  if(tg){
-    setTimeout(function(){
-      for(var i=0;i<tg.children.length;i++){
-        var card=tg.children[i];
-        var headerEl=card.children[0];
-        var bodyEl=card.children[1];
-        if(headerEl&&bodyEl){
-          if(A.isMobile()){
-            bodyEl.style.display='none';
-            headerEl.style.cursor='pointer';
-          }
-          (function(h,b){
-            h.addEventListener('click',function(){
-              if(b.style.display==='none'){
-                b.style.display='block';
-                var arrow=h.querySelector('span');
-                if(arrow)arrow.style.transform='rotate(180deg)';
-              }else{
-                b.style.display='none';
-                var arrow=h.querySelector('span');
-                if(arrow)arrow.style.transform='rotate(0deg)';
-              }
-            });
-          })(headerEl,bodyEl);
-        }
-      }
-    },100);
-  }
 }
 
 /* ═══ EKİP ═══ */
