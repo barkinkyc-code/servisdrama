@@ -541,25 +541,42 @@ async function saveFirma(){
     email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,
     aktif:!document.getElementById('fPasif').checked,konumNot:document.getElementById('fKonumNot').value.trim(),
     kurulumAktif:!!startDate,kurulumStart:startDate,kurulumStartTime:startTime,kurulumEnd:endDate,kurulumEndTime:endTime,
-    /* Aynı veri iç içe de tutulur; eski/yeni istemcilerde alan kaybı yaşanmaz. */
     kurulumDevreyeAlma:{active:!!startDate,startDate:startDate,startTime:startTime,endDate:endDate,endTime:endTime},
     aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]
   };
-  var cos=Array.isArray(SD.companies)?SD.companies.slice():[];
-  if(A.editId){cos=cos.map(function(c){return c.id===A.editId?Object.assign({},c,payload):c;});}
-  else{cos.push(Object.assign({id:'c'+Date.now()},payload));}
+  var id=A.editId||('c'+Date.now());
+  var oldCompany=(Array.isArray(SD.companies)?SD.companies:[]).find(function(c){return String(c.id)===String(id);})||{};
+  var company=Object.assign({},oldCompany,{id:id},payload);
+  var cos=(Array.isArray(SD.companies)?SD.companies:[]).slice();
+  var found=false;
+  cos=cos.map(function(c){if(String(c.id)===String(id)){found=true;return company;}return c;});
+  if(!found)cos.push(company);
   SD.companies=cos;
-  /* Debounce beklemeden Neon'a gönder. Kullanıcı hemen sayfa değiştirirse kayıt kaybolmaz. */
+
   var saveBtn=document.getElementById('firmaSaveBtn');
-  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Kaydediliyor…';}
+  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Neon’a kaydediliyor…';}
   try{
-    await SD.pushRemote();
+    var token=localStorage.getItem('token')||'';
+    if(!token)throw new Error('Oturum süresi dolmuş. Çıkış yapıp yeniden giriş yapın.');
+    var response=await fetch('/api/state/company/'+encodeURIComponent(id),{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({company:company})
+    });
+    var result={};try{result=await response.json();}catch(_e){}
+    if(!response.ok||!result.success){
+      if(response.status===401)throw new Error('Oturum süresi dolmuş. Çıkış yapıp yeniden giriş yapın.');
+      throw new Error(result.details||result.error||('Neon kaydı başarısız ('+response.status+')'));
+    }
+    localStorage.setItem('sd_last_sync',result.updatedAt||new Date().toISOString());
     UI.closeModal('firmaModal');
-    renderFirma();renderVisit();renderSetupBanner();
-    UI.toast(startDate?'Firma ve kurulum ana ekrana kaydedildi.':'Firma kaydedildi.','success');
+    try{renderFirma();}catch(e){console.error('Firma render:',e);}
+    try{renderVisit();}catch(e){console.error('Ziyaret render:',e);}
+    try{renderSetupBanner();}catch(e){console.error('Kurulum banner render:',e);}
+    UI.toast(startDate?'Kurulum Neon’a kaydedildi ve ana ekrana aktarıldı.':'Firma Neon’a kaydedildi.','success');
   }catch(err){
-    console.error('Firma/kurulum kaydetme hatası:',err);
-    UI.toast('Kayıt cihazda tutuldu ancak Neon senkronu doğrulanamadı. Tekrar deneyin.','error');
+    console.error('Firma/kurulum Neon kaydetme hatası:',err);
+    UI.toast(err.message||'Neon kaydı başarısız.','error');
   }finally{
     if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.oldText||'Kaydet';}
   }
