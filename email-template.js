@@ -111,9 +111,14 @@
     var installationRows='';
     data.installations.forEach(function(inst){
       var startText=formatSetupDate(inst.start)+(inst.startTime?' · '+esc(inst.startTime):'');
-      var endText=formatSetupDate(inst.end)+(inst.endTime?' · '+esc(inst.endTime):'');
-      var dates=inst.end?(startText+' – '+endText):(startText+' – Devam ediyor');
-      installationRows+='<tr><td class="pad" style="padding:14px 30px 10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffaf0" style="background-color:#fffaf0;border-left:5px solid #f59a00;border-top:1px solid #f3d9a8;border-right:1px solid #f3d9a8;border-bottom:1px solid #f3d9a8;"><tr><td style="padding:18px 12px 18px 18px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:12px;line-height:18px;font-weight:bold;color:#dc7900;letter-spacing:.5px;">KURULUM &amp; DEVREYE ALMA</div><div class="install-company" style="padding-top:5px;font-size:15px;line-height:21px;font-weight:bold;color:#13233f;">'+esc(inst.name)+'</div><div class="install-date" style="padding-top:5px;font-size:13px;line-height:20px;color:#65748a;white-space:nowrap;">'+dates+'</div></td><td class="install-status" width="116" align="center" valign="middle" style="width:116px;padding:18px 12px 18px 8px;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;padding:8px 9px;border:1px solid #f3d9a8;background-color:#fff7e6;color:#875000;font-size:12px;line-height:18px;white-space:nowrap;">Devam ediyor</span></td></tr></table></td></tr>';
+      var isCompleted=!!String(inst.endTime||'').trim();
+      var endText=isCompleted?(formatSetupDate(inst.end||inst.start)+' · '+esc(inst.endTime)):'';
+      var dates=isCompleted?(startText+' – '+endText):(startText+' – Devam ediyor');
+      var statusText=isCompleted?'Tamamlandı':'Devam ediyor';
+      var statusStyle=isCompleted
+        ?'border:1px solid #b7e4d5;background-color:#ecfdf5;color:#047857;'
+        :'border:1px solid #f3d9a8;background-color:#fff7e6;color:#875000;';
+      installationRows+='<tr><td class="pad" style="padding:14px 30px 10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffaf0" style="background-color:#fffaf0;border-left:5px solid #f59a00;border-top:1px solid #f3d9a8;border-right:1px solid #f3d9a8;border-bottom:1px solid #f3d9a8;"><tr><td style="padding:18px 12px 18px 18px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:12px;line-height:18px;font-weight:bold;color:#dc7900;letter-spacing:.5px;">KURULUM &amp; DEVREYE ALMA</div><div class="install-company" style="padding-top:5px;font-size:15px;line-height:21px;font-weight:bold;color:#13233f;">'+esc(inst.name)+'</div><div class="install-date" style="padding-top:5px;font-size:13px;line-height:20px;color:#65748a;white-space:nowrap;">'+dates+'</div></td><td class="install-status" width="116" align="center" valign="middle" style="width:116px;padding:18px 12px 18px 8px;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;padding:8px 9px;'+statusStyle+'font-size:12px;line-height:18px;white-space:nowrap;">'+statusText+'</span></td></tr></table></td></tr>';
     });
     var staffRows=data.people.map(staffCard).join('');
     var emptyRows=data.people.length?'':'<tr><td class="pad" style="padding:0 30px 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#6b778a;">Bugün tamamlanan teknik ziyaret bulunmuyor.</td></tr>';
