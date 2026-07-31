@@ -144,23 +144,3 @@
   /* Uyarı üçgenindeki boş işareti düzelt */
   document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('#warnBanner svg, .warn-banner svg').forEach(function(svg){if(!svg.textContent.trim()){var t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x','12');t.setAttribute('y','17');t.setAttribute('text-anchor','middle');t.setAttribute('font-size','14');t.setAttribute('font-weight','900');t.setAttribute('fill','currentColor');t.textContent='!';svg.appendChild(t);}});});
 })();
-
-/* Start/end date-time capture for visit cells */
-(function(){
-  function askTime(label,def){var v=window.prompt(label,def);if(v===null)return null;return /^([01]\d|2[0-3]):[0-5]\d$/.test(v)?v:def;}
-  function askDate(label,def){var v=window.prompt(label+' (GG.AA.YYYY)',def);if(v===null)return null;return /^\d{2}\.\d{2}\.\d{4}$/.test(v)?v:def;}
-  document.addEventListener('click',function(e){
-    var btn=e.target.closest&&e.target.closest('.vc[data-visit-key]');if(!btn||btn.disabled)return;
-    var key=btn.dataset.visitKey,coid=btn.dataset.companyId,rec=SD.visits[key],co=SD.companies.find(function(c){return c.id===coid;});
-    var code=(SD.actingTech(co)||{}).code||'—',mine=SD.visitEntryFor(rec,code),now=new Date(),date=DT.ddmmyyyy(now),time=DT.hhii(now);
-    if(btn.classList.contains('vc-empty')||btn.classList.contains('vc-miss')){
-      e.preventDefault();e.stopImmediatePropagation();
-      var wt=window.prompt('İş türü: Kurulum veya Teknik Servis','Teknik Servis');if(wt===null)return;wt=/kurulum/i.test(wt)?'Kurulum':'Teknik Servis';
-      var sd=askDate('Başlama tarihi',date);if(sd===null)return;var st=askTime('Başlama saati',time);if(st===null)return;
-      var vi=SD.visits;vi[key]=SD.putVisitEntry(vi[key],code,{date:sd.slice(0,5),saat:st,startDate:sd,startTime:st,status:'pending',count:1,workType:wt});SD.visits=vi;UI.toast(wt+' '+st+' saatinde başlatıldı; devam ediyor.','info');if(typeof renderVisit==='function')renderVisit();return;
-    }
-    if(btn.classList.contains('vc-pending')){
-      e.preventDefault();e.stopImmediatePropagation();var ed=askDate('Bitiş tarihi',date);if(ed===null)return;var et=askTime('Bitiş saati',time);if(et===null)return;var vi2=SD.visits,entry=mine||{};vi2[key]=SD.putVisitEntry(vi2[key],code,{date:entry.date||ed.slice(0,5),saat:entry.saat||entry.startTime||et,startDate:entry.startDate||ed,startTime:entry.startTime||entry.saat||et,endDate:ed,endTime:et,status:'done',count:entry.count||1,workType:entry.workType||'Teknik Servis',dates:[entry.date||ed.slice(0,5)]});SD.visits=vi2;UI.toast('Ziyaret '+(entry.startTime||entry.saat||'—')+'–'+et+' arasında tamamlandı.','success');if(typeof renderVisit==='function')renderVisit();return;
-    }
-  },true);
-})();
