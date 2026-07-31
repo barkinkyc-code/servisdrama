@@ -49,11 +49,29 @@ function toggleMobileMenu(event){
 }
 function closeMobileMenu(){setMobileMenu(false);}
 
+/* Hamburger menü, API/Neon ve oturum yüklemesinden bağımsız olarak hemen bağlanır. */
+function initMobileMenuControls(){
+  var button=document.getElementById('mobileMenuBtn');
+  var overlay=document.getElementById('mobileOverlay');
+  if(button&&!button.dataset.menuBound){
+    button.dataset.menuBound='1';
+    button.setAttribute('aria-expanded','false');
+    button.addEventListener('click',toggleMobileMenu,{passive:false});
+  }
+  if(overlay&&!overlay.dataset.menuBound){
+    overlay.dataset.menuBound='1';
+    overlay.addEventListener('click',function(e){e.preventDefault();closeMobileMenu();});
+  }
+}
+
+
 window.addEventListener('resize',setupResponsive);
 setupResponsive();
 
 /* ═══ BOOT ═══ */
 document.addEventListener('DOMContentLoaded',async function(){
+  initMobileMenuControls();
+  setupResponsive();
   /* Oturum kontrolü */
   var sess=sessionStorage.getItem('sd_session');
   if(!sess){
@@ -113,11 +131,6 @@ document.addEventListener('DOMContentLoaded',async function(){
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(btn){
     btn.addEventListener('click',function(){goto(btn.dataset.page);closeDropdown();closeMobileMenu();});
   });
-  var mobileMenuButton=document.getElementById('mobileMenuBtn');
-  if(mobileMenuButton){
-    mobileMenuButton.setAttribute('aria-expanded','false');
-    mobileMenuButton.addEventListener('click',toggleMobileMenu);
-  }
 
   /* Ay nav */
   on('prevM','click',function(){A.vm--;if(A.vm<0){A.vm=11;A.vy--;}renderVisit();});
