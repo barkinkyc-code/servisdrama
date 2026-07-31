@@ -6,7 +6,7 @@
 <title>ServisDrama — Yönetici</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="style.css?v=20260731v17">
+<link rel="stylesheet" href="style.css?v=20260731v18">
 </head>
 <body class="admin-body">
 
@@ -128,7 +128,7 @@
 
 
 <!-- ZİYARET TAKİBİ -->
-<div class="pg hidden" id="pg-ziyaret">
+<div class="pg" id="pg-ziyaret">
   <div class="pg-hd">
     <div><h1 class="pg-title">Ziyaret Takibi</h1><div class="pg-sub" id="visitSub">0 / 0 ziyaret tamamlandı</div></div>
     <div class="pg-acts">
@@ -525,7 +525,7 @@
 <!-- Ziyaret Edilmeyenler -->
 <div class="overlay hidden" id="missedModal">
   <div class="modal modal-lg"><div class="modal-hd"><h2 id="missedTitle">Ziyaret Edilmeyenler</h2><button class="modal-x" onclick="UI.closeModal('missedModal')">×</button></div>
-    <div class="modal-body"><p style="font-size:12.5px;color:var(--text3);margin-bottom:12px;">2 kez dokun → gidildi olarak işaretle</p><div class="miss-list" id="missedList"></div></div>
+    <div class="modal-body"><div class="miss-list" id="missedList"></div></div>
   </div>
 </div>
 
@@ -534,9 +534,9 @@
 <script src="data.js"></script>
 <script src="companies.js"></script>
 <script src="email-template.js"></script>
-<script src="admin.js?v=20260731v17"></script>
+<script src="admin.js?v=20260731v18"></script>
 <script src="numune.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="enhancements.js?v=20260731v17"></script>
+<script src="enhancements.js?v=20260731v18"></script>
 </body>
 </html>

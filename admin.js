@@ -78,7 +78,9 @@ document.addEventListener('DOMContentLoaded',async function(){
      ekranı boş görünmesin. Teknisyen kendi hesabında kendi kapsamına, admin ise
      firması bulunan ilk teknisyene; o da yoksa ALL görünümüne alınır. */
   (function normalizeActiveVisitScope(){
-    var companies=SD.companies||[], techs=SD.technicians||[], active=SD.activeTechId;
+    var companies=Array.isArray(SD.companies)?SD.companies:[];
+    var techs=Array.isArray(SD.technicians)?SD.technicians:[];
+    var active=SD.activeTechId;
     if(sessTech){ SD.activeTechId=sessTech.id; return; }
     if(active===SD.ALL_TECH)return;
     var valid=techs.some(function(t){
@@ -262,11 +264,41 @@ document.addEventListener('DOMContentLoaded',async function(){
     inp.addEventListener('input',function(){this.value=this.value.toUpperCase();});
   });
 
-  renderAll();
+  try{
+    renderAll();
+  }catch(bootRenderError){
+    console.error('İlk ekran oluşturma hatası:',bootRenderError);
+  }
   var lastPage=localStorage.getItem('lastPage')||'ziyaret';
   if(lastPage==='dashboard')lastPage='ziyaret';
-  goto(lastPage);
+  var allowedPages=['ziyaret','firmalar','numune','istatistik','ekip','ayarlar'];
+  if(allowedPages.indexOf(lastPage)<0)lastPage='ziyaret';
+  try{goto(lastPage);}catch(pageError){
+    console.error('Sayfa açma hatası:',pageError);
+    goto('ziyaret');
+  }
 });
+
+/* Mobil Safari/Neon verisi beklenmeyen biçimde gelse bile ana içerik tamamen boş kalmasın. */
+window.setTimeout(function(){
+  var pages=document.querySelectorAll('.pg');
+  var visible=false;
+  pages.forEach(function(page){if(!page.classList.contains('hidden'))visible=true;});
+  if(!visible){
+    var visitPage=document.getElementById('pg-ziyaret');
+    if(visitPage)visitPage.classList.remove('hidden');
+    try{
+      if(typeof renderTechBtns==='function')renderTechBtns();
+      if(typeof renderVisit==='function')renderVisit();
+      if(typeof renderExtraVisits==='function')renderExtraVisits();
+      if(typeof renderSetupBanner==='function')renderSetupBanner();
+    }catch(fallbackError){
+      console.error('Ziyaret Takibi güvenli açılış hatası:',fallbackError);
+      var container=document.getElementById('visitContainer');
+      if(container&&!container.innerHTML.trim())container.innerHTML='<div class="vt-empty-msg" style="padding:24px">Veriler yüklenemedi. Sayfayı yenileyin veya tekrar giriş yapın.</div>';
+    }
+  }
+},1200);
 
 /* ═══ LOGOUT ═══ */
 function doLogout(){
@@ -350,7 +382,7 @@ function renderTechBtns(){
 /* ═══ KURULUM BANNER ═══ */
 function renderSetupBanner(){
   var banner=document.getElementById('setupBanner');if(!banner)return;
-  var cos=SD.companies;
+  var cos=Array.isArray(SD.companies)?SD.companies:[];
   /* Devam eden kurulumlarda bitiş tarihi henüz yoktur. Başlangıç girildiği anda
      ana ekrana gelmeli; eski/alternatif alan adları da canlı veriden okunur. */
   var setup=cos.filter(function(c){
@@ -530,7 +562,8 @@ function saveMap(){var lbl=document.getElementById('coordsLbl');if(lbl&&A.mapLat
 function renderVisit(){
   var ml=document.getElementById('monthLabel');if(ml)ml.textContent=DT.MONTHS[A.vm]+' '+A.vy;
   renderVisitDashboard();
-  var at=SD.activeTech(), companies=SD.companies||[];
+  var at=SD.activeTech();
+  var companies=Array.isArray(SD.companies)?SD.companies:[];
   /* Seçili teknisyende aktif firma yoksa görünümü boş bırakmak yerine ALL aç. */
   if(at&&!companies.some(function(c){return c.aktif!==false&&c.techId===at.id;})){
     SD.activeTechId=SD.ALL_TECH;at=null;
