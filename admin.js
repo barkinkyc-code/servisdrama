@@ -74,6 +74,22 @@ document.addEventListener('DOMContentLoaded',async function(){
   var sessTech=SD.sessionTech();
   if(sessTech&&SD.activeTechId!==SD.ALL_TECH&&SD.activeTechId!==sessTech.id)SD.activeTechId=sessTech.id;
 
+  /* Canlı Neon verisinde eski/geçersiz bir teknisyen seçimi kalmışsa ziyaret
+     ekranı boş görünmesin. Teknisyen kendi hesabında kendi kapsamına, admin ise
+     firması bulunan ilk teknisyene; o da yoksa ALL görünümüne alınır. */
+  (function normalizeActiveVisitScope(){
+    var companies=SD.companies||[], techs=SD.technicians||[], active=SD.activeTechId;
+    if(sessTech){ SD.activeTechId=sessTech.id; return; }
+    if(active===SD.ALL_TECH)return;
+    var valid=techs.some(function(t){
+      return t.id===active&&companies.some(function(c){return c.aktif!==false&&c.techId===t.id;});
+    });
+    if(!valid){
+      var first=techs.find(function(t){return companies.some(function(c){return c.aktif!==false&&c.techId===t.id;});});
+      SD.activeTechId=first?first.id:SD.ALL_TECH;
+    }
+  })();
+
   /* Logo */
   var nl=document.getElementById('navLogo');if(nl)nl.src='assets/email/servisdrama/drama-makine-logo.png';
 
@@ -292,6 +308,7 @@ function goto(p){
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(b){b.classList.toggle('active',b.dataset.page===p);});
   document.querySelectorAll('.pg').forEach(function(el){el.classList.toggle('hidden',el.id!=='pg-'+p);});
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
+  if(p==='ziyaret'){renderTechBtns();renderVisit();renderExtraVisits();renderSetupBanner();}
   if(p==='istatistik')renderStat();
   if(p==='ekip')renderTechAdmin();
   if(p==='numune')renderNumune();
@@ -334,7 +351,11 @@ function renderTechBtns(){
 function renderSetupBanner(){
   var banner=document.getElementById('setupBanner');if(!banner)return;
   var cos=SD.companies;
-  var setup=cos.filter(function(c){return c.kurulumStart&&c.kurulumEnd;});
+  /* Devam eden kurulumlarda bitiş tarihi henüz yoktur. Başlangıç girildiği anda
+     ana ekrana gelmeli; eski/alternatif alan adları da canlı veriden okunur. */
+  var setup=cos.filter(function(c){
+    return !!(c.kurulumStart||c.kurulumBaslangic||c.installationStart||c.setupStart);
+  });
   if(!setup.length){banner.innerHTML='';return;}
   var html='<div class="setup-banner"><div class="setup-hd">'
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
@@ -346,8 +367,12 @@ function renderSetupBanner(){
     return m?m[3]+'.'+m[2]+'.'+m[1]:String(raw);
   }
   setup.forEach(function(c){
-    var start=setupDateLabel(c.kurulumStart)+(c.kurulumStartTime?' · '+c.kurulumStartTime:'');
-    var end=c.kurulumEnd?(setupDateLabel(c.kurulumEnd)+(c.kurulumEndTime?' · '+c.kurulumEndTime:'')):'Devam ediyor';
+    var startDate=c.kurulumStart||c.kurulumBaslangic||c.installationStart||c.setupStart||'';
+    var startTime=c.kurulumStartTime||c.kurulumBaslangicSaat||c.installationStartTime||c.setupStartTime||'';
+    var endDate=c.kurulumEnd||c.kurulumBitis||c.installationEnd||c.setupEnd||'';
+    var endTime=c.kurulumEndTime||c.kurulumBitisSaat||c.installationEndTime||c.setupEndTime||'';
+    var start=setupDateLabel(startDate)+(startTime?' · '+startTime:'');
+    var end=endDate?(setupDateLabel(endDate)+(endTime?' · '+endTime:'')):'Devam ediyor';
     html+='<div class="setup-row"><span class="setup-name">'+BL.esc(c.name)+'</span><span class="setup-date"><span>'+start+'</span><b aria-hidden="true">→</b><span>'+end+'</span></span></div>';
   });
   html+='</div>';
@@ -505,8 +530,19 @@ function saveMap(){var lbl=document.getElementById('coordsLbl');if(lbl&&A.mapLat
 function renderVisit(){
   var ml=document.getElementById('monthLabel');if(ml)ml.textContent=DT.MONTHS[A.vm]+' '+A.vy;
   renderVisitDashboard();
-  var at=SD.activeTech();
-  SD.buildVisitTable({containerId:'visitContainer',techId:at?at.id:null,year:A.vy,month:A.vm,editable:true,onUpdate:function(needsFirmaRender){renderVisit();if(needsFirmaRender)renderFirma();},warnBannerId:'warnBanner',warnTitleId:'warnTitle',warnBadgeId:'warnBadge',progFillId:'progFill',countLabelId:'visitSub',searchVal:A.vsearch});
+  var at=SD.activeTech(), companies=SD.companies||[];
+  /* Seçili teknisyende aktif firma yoksa görünümü boş bırakmak yerine ALL aç. */
+  if(at&&!companies.some(function(c){return c.aktif!==false&&c.techId===at.id;})){
+    SD.activeTechId=SD.ALL_TECH;at=null;
+    setTimeout(function(){renderTechBtns();},0);
+  }
+  try{
+    SD.buildVisitTable({containerId:'visitContainer',techId:at?at.id:null,year:A.vy,month:A.vm,editable:true,onUpdate:function(needsFirmaRender){renderVisit();if(needsFirmaRender)renderFirma();},warnBannerId:'warnBanner',warnTitleId:'warnTitle',warnBadgeId:'warnBadge',progFillId:'progFill',countLabelId:'visitSub',searchVal:A.vsearch});
+  }catch(err){
+    console.error('Ziyaret Takibi render hatası:',err);
+    var container=document.getElementById('visitContainer');
+    if(container)container.innerHTML='<div class="vt-empty-msg" style="padding:24px">Ziyaret verileri yüklenirken hata oluştu. Sayfayı yenileyin.</div>';
+  }
 }
 
 /* ═══ ZİYARET EDİLMEYENLER ═══ */
