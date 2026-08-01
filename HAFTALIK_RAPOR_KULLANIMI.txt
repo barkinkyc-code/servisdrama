@@ -1,0 +1,24 @@
+SERVİSDRAMA PROFESYONEL HAFTALIK RAPOR
+
+1. Admin paneli > Ayarlar > Raporlar sekmesine girin.
+2. Başlangıç ve bitiş tarihini seçin.
+3. "Raporu Getir" ile uygulama içi dashboard'u açın.
+4. "Excel İndir" ile gerçek .xlsx dosyasını indirin.
+5. "Mail Gönder" ile aynı Excel dosyasını SMTP üzerinden ek olarak gönderin.
+
+Raporda kullanılan alanlar:
+- Firma
+- Teknisyen
+- Ziyaret Tarihi
+- Durum
+- Firma Kayıtlı Periyodu
+- Plan Durumu
+
+Rapor sahibi sabit olarak Barkın Kayacı'dır.
+Firma periyotları firma kayıtlarındaki weeks alanından otomatik alınır.
+Not, kayıt no, tür, başlangıç, bitiş, süre, firma kodu, ticari not ve teknik sonuç rapora dahil edilmez.
+
+Excel sayfaları:
+- Haftalık Rapor
+- Teknisyen Özeti
+- Firma Analizi

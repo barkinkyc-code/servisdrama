@@ -13,8 +13,8 @@ const app = express();
 // Security Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting (only in production)
 if (process.env.NODE_ENV === 'production') {
@@ -64,7 +64,7 @@ function buildCidAttachments(names) {
 // Mail gönder endpoint (CID attachments + Nodemailer)
 app.post('/api/send-test-mail', (req, res) => {
   try {
-    let { to, cc, subject, html, smtpHost, smtpPort, smtpUser, smtpPass, smtpTls, from, attachmentNames } = req.body;
+    let { to, cc, subject, html, smtpHost, smtpPort, smtpUser, smtpPass, smtpTls, from, attachmentNames, attachments: uploadedAttachments } = req.body;
 
     // Array'ları string'e çevir
     to = Array.isArray(to) ? to.join(', ') : to;
@@ -102,6 +102,16 @@ app.post('/api/send-test-mail', (req, res) => {
 
     // Build attachments array from PNG files
     const attachments = buildCidAttachments(attachmentNames);
+    if (Array.isArray(uploadedAttachments)) {
+      uploadedAttachments.forEach(file => {
+        if (!file || !file.filename || !file.contentBase64) return;
+        attachments.push({
+          filename: String(file.filename).replace(/[\\/]/g, '_'),
+          content: Buffer.from(file.contentBase64, 'base64'),
+          contentType: file.contentType || 'application/octet-stream'
+        });
+      });
+    }
 
     const mailOptions = {
       from: from || process.env.SMTP_FROM || 'Drama Kimya <kimyaservis@dramamakine.com>',

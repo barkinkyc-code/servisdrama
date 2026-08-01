@@ -1880,3 +1880,88 @@ function renderVisitDashboard(){
   }
 }
 function renderDashboard(){renderVisitDashboard();}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SERVİSDRAMA PROFESYONEL HAFTALIK RAPOR MERKEZİ
+   Gerçek ziyaretler + firma periyodu + Excel + mail eki
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  function escR(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+  function mondayR(d){var x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;}
+  function addDaysR(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+  function isoR(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function trR(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();}
+  function weekOfMonthR(d){var first=new Date(d.getFullYear(),d.getMonth(),1),firstMon=mondayR(first);return Math.floor((mondayR(d)-firstMon)/604800000)+1;}
+  function periodTextR(w){w=(w||[1,2,3,4]).map(Number).filter(Boolean).sort();var key=w.join(',');if(key==='1,2,3,4')return'Her hafta';if(w.length===1)return w[0]+'. hafta';return w.map(function(x,i){return x+'.'+(i===w.length-1?' hafta':'');}).join(', ').replace(/, ([0-9]+)\. hafta$/, ' ve $1. hafta');}
+  function techByCodeR(code){var ts=SD.technicians||[];return ts.find(function(t){return String(t.code)===String(code);})||{name:code||'—',code:code||'—'};}
+  function entryListR(rec){if(!rec)return[];if(rec.by&&typeof rec.by==='object')return Object.keys(rec.by).map(function(k){return rec.by[k];});return[rec];}
+  function reportDataR(start,end){
+    start=new Date(start+'T00:00:00');end=new Date(end+'T23:59:59');
+    var companies=SD.companies||[], visits=SD.visits||{}, rows=[];
+    Object.keys(visits).forEach(function(key){
+      var pos=key.lastIndexOf('_');if(pos<0)return;var cid=key.slice(0,pos),wk=key.slice(pos+1),co=companies.find(function(c){return String(c.id)===String(cid);});if(!co)return;
+      entryListR(visits[key]).forEach(function(v){
+        if(!v||v.status!=='done')return;
+        var dates=(v.dates&&v.dates.length?v.dates:[v.date]).filter(Boolean);
+        dates.forEach(function(ds){
+          var parts=String(ds).match(/(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{4}))?/);if(!parts)return;
+          var y=parts[3]?Number(parts[3]):start.getFullYear(),dt=new Date(y,Number(parts[2])-1,Number(parts[1]));
+          if(dt<start||dt>end)return;
+          var t=techByCodeR(v.tc), wom=weekOfMonthR(dt), weeks=(co.weeks||[1,2,3,4]).map(Number);
+          rows.push({firma:co.name||'—',teknisyen:t.name||v.tc||'—',tarih:trR(dt),date:dt,durum:'Tamamlandı',periyot:periodTextR(weeks),plan:weeks.indexOf(wom)>=0?'Plana Uygun':'Plan Dışı',firmaId:co.id,techCode:v.tc||t.code||'—'});
+        });
+      });
+    });
+    (SD.extras||[]).forEach(function(ex){
+      var ds=ex.tarih||ex.date,parts=String(ds||'').match(/(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{4}))?/);if(!parts)return;
+      var y=parts[3]?Number(parts[3]):start.getFullYear(),dt=new Date(y,Number(parts[2])-1,Number(parts[1]));if(dt<start||dt>end)return;
+      var co=companies.find(function(c){return String(c.id)===String(ex.firmaId);}),t=techByCodeR(ex.tc||ex.tekKod),weeks=co?(co.weeks||[1,2,3,4]):[];
+      rows.push({firma:co?co.name:(ex.firmaAdi||'Program Dışı Firma'),teknisyen:ex.tekAdi||t.name||'—',tarih:trR(dt),date:dt,durum:'Tamamlandı',periyot:co?periodTextR(weeks):'Kayıtlı periyot yok',plan:'Plan Dışı',firmaId:co?co.id:'extra',techCode:ex.tc||ex.tekKod||'—'});
+    });
+    rows.sort(function(a,b){return a.date-b.date||a.firma.localeCompare(b.firma,'tr');});
+    var unique={};rows.forEach(function(r){unique[r.firmaId||r.firma]=1;});
+    var tech={};rows.forEach(function(r){tech[r.teknisyen]=(tech[r.teknisyen]||0)+1;});
+    var days={};rows.forEach(function(r){days[r.tarih]=(days[r.tarih]||0)+1;});
+    return{rows:rows,total:rows.length,unique:Object.keys(unique).length,tech:tech,days:days,uygun:rows.filter(function(r){return r.plan==='Plana Uygun';}).length,disi:rows.filter(function(r){return r.plan==='Plan Dışı';}).length,start:start,end:end};
+  }
+  function barsR(obj){var keys=Object.keys(obj),max=Math.max.apply(null,keys.map(function(k){return obj[k];}).concat([1]));return keys.map(function(k){return'<div class="wr-bar-row"><span>'+escR(k)+'</span><div><i style="width:'+Math.max(8,Math.round(obj[k]/max*100))+'%"></i></div><b>'+obj[k]+'</b></div>';}).join('')||'<div class="wr-empty">Kayıt yok</div>';}
+  function dashboardR(d){
+    var rows=d.rows.map(function(r){return'<tr><td>'+escR(r.firma)+'</td><td>'+escR(r.teknisyen)+'</td><td>'+r.tarih+'</td><td><span class="wr-badge ok">'+r.durum+'</span></td><td>'+escR(r.periyot)+'</td><td><span class="wr-badge '+(r.plan==='Plana Uygun'?'ok':'warn')+'">'+r.plan+'</span></td></tr>';}).join('');
+    return'<div class="weekly-report">'
+      +'<div class="wr-head"><div><small>DK PORTAL</small><h2>TEKNİK SERVİS HAFTALIK RAPORU</h2><p>Dönem: '+trR(d.start)+' - '+trR(d.end)+' &nbsp; | &nbsp; Rapor Sahibi: <b>Barkın Kayacı</b></p></div><div class="wr-actions"><button onclick="previewWeeklyReport()">Önizle</button><button class="primary" onclick="generateWeeklyReport()">Excel İndir</button><button onclick="mailWeeklyReport()">Mail Gönder</button></div></div>'
+      +'<div class="wr-kpis"><div><span>Toplam Ziyaret</span><b>'+d.total+'</b></div><div><span>Ziyaret Edilen Firma</span><b>'+d.unique+'</b></div>'
+      +Object.keys(d.tech).map(function(k){return'<div><span>'+escR(k)+'</span><b>'+d.tech[k]+'</b></div>';}).join('')
+      +'<div><span>Plana Uygun</span><b>'+d.uygun+'</b></div><div><span>Plan Dışı</span><b>'+d.disi+'</b></div></div>'
+      +'<div class="wr-charts"><section><h3>Teknisyene Göre Ziyaret</h3>'+barsR(d.tech)+'</section><section><h3>Günlere Göre Dağılım</h3>'+barsR(d.days)+'</section><section><h3>Plan Durumu</h3><div class="wr-plan"><strong>'+d.total+'</strong><span>Toplam</span></div><p><i class="green"></i> Plana Uygun: '+d.uygun+' &nbsp; <i class="orange"></i> Plan Dışı: '+d.disi+'</p></section></div>'
+      +'<div class="wr-table"><h3>HAFTALIK ZİYARET LİSTESİ</h3><div><table><thead><tr><th>Firma</th><th>Teknisyen</th><th>Ziyaret Tarihi</th><th>Durum</th><th>Firma Kayıtlı Periyodu</th><th>Plan Durumu</th></tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
+  }
+  function rangeR(){var s=document.getElementById('raporStart'),e=document.getElementById('raporEnd'),now=new Date(),m=mondayR(now),f=addDaysR(m,4);return{start:s&&s.value?s.value:isoR(m),end:e&&e.value?e.value:isoR(f)};}
+  window.renderDetailedReports=function(){
+    var content=document.getElementById('settingsContent');if(!content)return;var now=new Date(),m=mondayR(now),f=addDaysR(m,4);
+    content.innerHTML='<style>.weekly-report{font-family:Inter,Arial,sans-serif;color:#10244a}.wr-head{display:flex;justify-content:space-between;gap:20px;align-items:center;background:#fff;border:1px solid #dce4ef;border-radius:14px;padding:20px;margin-bottom:14px}.wr-head small{font-weight:800;color:#2563eb}.wr-head h2{margin:4px 0;font-size:23px}.wr-head p{margin:0;color:#64748b}.wr-actions{display:flex;gap:8px;flex-wrap:wrap}.wr-actions button{border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}.wr-actions .primary{background:#0b3a78;color:#fff;border-color:#0b3a78}.wr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}.wr-kpis>div{background:#fff;border:1px solid #dce4ef;border-radius:12px;padding:14px}.wr-kpis span{font-size:12px;color:#64748b;font-weight:700}.wr-kpis b{display:block;font-size:26px;margin-top:5px}.wr-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}.wr-charts section,.wr-table{background:#fff;border:1px solid #dce4ef;border-radius:12px;padding:14px}.wr-charts h3,.wr-table h3{font-size:13px;margin:0 0 12px;color:#0b3a78}.wr-bar-row{display:grid;grid-template-columns:100px 1fr 30px;gap:8px;align-items:center;font-size:12px;margin:10px 0}.wr-bar-row>div{height:10px;background:#e8eef7;border-radius:10px;overflow:hidden}.wr-bar-row i{display:block;height:100%;background:#1769c2;border-radius:10px}.wr-plan{width:110px;height:110px;margin:6px auto;border:18px solid #2f9960;border-right-color:#f28b24;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}.wr-plan strong{font-size:25px}.wr-plan span{font-size:11px}.wr-charts p{text-align:center;font-size:12px}.wr-charts p i{display:inline-block;width:9px;height:9px;border-radius:2px}.green{background:#2f9960}.orange{background:#f28b24}.wr-table>div{overflow:auto}.wr-table table{width:100%;border-collapse:collapse;font-size:12px}.wr-table th{background:#0b3a78;color:#fff;padding:9px;text-align:left;white-space:nowrap}.wr-table td{padding:8px;border-bottom:1px solid #e5eaf1}.wr-badge{display:inline-block;padding:3px 8px;border-radius:5px;color:#fff;font-weight:700;white-space:nowrap}.wr-badge.ok{background:#3c9b60}.wr-badge.warn{background:#f28b24}.wr-filter{display:flex;gap:10px;align-items:end;background:#fff;border:1px solid #dce4ef;border-radius:12px;padding:12px;margin-bottom:12px}.wr-filter label{font-size:12px;font-weight:700;color:#475569}.wr-filter input{display:block;margin-top:5px;padding:8px;border:1px solid #cbd5e1;border-radius:7px}@media(max-width:900px){.wr-head{align-items:flex-start;flex-direction:column}.wr-charts{grid-template-columns:1fr}.wr-kpis{grid-template-columns:repeat(2,1fr)}}</style>'
+      +'<div class="wr-filter"><label>Başlangıç Tarihi<input type="date" id="raporStart" value="'+isoR(m)+'"></label><label>Bitiş Tarihi<input type="date" id="raporEnd" value="'+isoR(f)+'"></label><button class="btn btn-primary" onclick="previewWeeklyReport()">Raporu Getir</button></div><div id="raporPreviewArea"></div>';
+    window.previewWeeklyReport();
+  };
+  window.previewWeeklyReport=function(){var r=rangeR(),d=reportDataR(r.start,r.end),p=document.getElementById('raporPreviewArea');if(p)p.innerHTML=dashboardR(d);};
+  async function workbookR(d){
+    if(typeof ExcelJS==='undefined')throw new Error('ExcelJS yüklenemedi. İnternet bağlantısını kontrol edin.');
+    var wb=new ExcelJS.Workbook();wb.creator='DK Portal';wb.created=new Date();
+    var ws=wb.addWorksheet('Haftalık Rapor',{views:[{state:'frozen',ySplit:7}]});ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+    ws.mergeCells('A1:F1');ws.getCell('A1').value='TEKNİK SERVİS HAFTALIK RAPORU';ws.getCell('A1').font={size:22,bold:true,color:{argb:'FFFFFFFF'}};ws.getCell('A1').fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};ws.getCell('A1').alignment={vertical:'middle',horizontal:'center'};ws.getRow(1).height=34;
+    ws.mergeCells('A2:F2');ws.getCell('A2').value='Dönem: '+trR(d.start)+' - '+trR(d.end)+'    |    Rapor Sahibi: Barkın Kayacı';ws.getCell('A2').font={bold:true,color:{argb:'FF334155'}};ws.getCell('A2').alignment={horizontal:'center'};
+    [['A4','Toplam Ziyaret',d.total],['B4','Ziyaret Edilen Firma',d.unique],['C4','Plana Uygun',d.uygun],['D4','Plan Dışı',d.disi]].forEach(function(x){var c=ws.getCell(x[0]);c.value=x[1]+'\n'+x[2];c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.font={bold:true,size:14,color:{argb:'FF0B3A78'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEFF6FF'}};c.border={top:{style:'thin',color:{argb:'FFCBD5E1'}},left:{style:'thin',color:{argb:'FFCBD5E1'}},bottom:{style:'thin',color:{argb:'FFCBD5E1'}},right:{style:'thin',color:{argb:'FFCBD5E1'}}};});ws.getRow(4).height=46;
+    var head=['Firma','Teknisyen','Ziyaret Tarihi','Durum','Firma Kayıtlı Periyodu','Plan Durumu'];ws.addRow([]);ws.addRow(head);var hr=ws.lastRow;hr.font={bold:true,color:{argb:'FFFFFFFF'}};hr.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};hr.alignment={horizontal:'center'};
+    d.rows.forEach(function(r){var row=ws.addRow([r.firma,r.teknisyen,r.tarih,r.durum,r.periyot,r.plan]);row.getCell(6).fill={type:'pattern',pattern:'solid',fgColor:{argb:r.plan==='Plana Uygun'?'FFC6EFCE':'FFFCE4D6'}};});
+    ws.columns=[{width:42},{width:23},{width:16},{width:16},{width:25},{width:18}];ws.autoFilter={from:'A7',to:'F7'};
+    ws.eachRow(function(row,no){if(no>=7){row.alignment={vertical:'middle'};row.eachCell(function(c){c.border={bottom:{style:'hair',color:{argb:'FFD9E2F0'}}};});}});
+    var ts=wb.addWorksheet('Teknisyen Özeti');ts.columns=[{header:'Teknisyen',key:'t',width:30},{header:'Toplam Ziyaret',key:'n',width:18}];Object.keys(d.tech).forEach(function(k){ts.addRow({t:k,n:d.tech[k]});});ts.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ts.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};
+    var fs=wb.addWorksheet('Firma Analizi');var fm={};d.rows.forEach(function(r){if(!fm[r.firma])fm[r.firma]={firma:r.firma,periyot:r.periyot,ziyaret:0,uygun:0,disi:0};fm[r.firma].ziyaret++;r.plan==='Plana Uygun'?fm[r.firma].uygun++:fm[r.firma].disi++;});fs.columns=[{header:'Firma',key:'firma',width:48},{header:'Kayıtlı Periyot',key:'periyot',width:25},{header:'Ziyaret',key:'ziyaret',width:12},{header:'Plana Uygun',key:'uygun',width:15},{header:'Plan Dışı',key:'disi',width:12}];Object.keys(fm).sort().forEach(function(k){fs.addRow(fm[k]);});fs.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};fs.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};
+    return wb;
+  }
+  function downloadR(buf,name){var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
+  window.generateWeeklyReport=async function(){try{var r=rangeR(),d=reportDataR(r.start,r.end);if(!d.total){UI.toast('Seçilen tarih aralığında tamamlanmış ziyaret yok.','warning');return;}UI.toast('Profesyonel Excel hazırlanıyor...','info');var wb=await workbookR(d),buf=await wb.xlsx.writeBuffer();downloadR(buf,'Teknik_Servis_Haftalik_Rapor_'+r.start+'_'+r.end+'.xlsx');UI.toast('Excel raporu indirildi.','success');}catch(e){console.error(e);UI.toast(e.message||'Excel oluşturulamadı.','error');}};
+  function b64R(buffer){var bytes=new Uint8Array(buffer),binary='',chunk=0x8000;for(var i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(binary);}
+  window.mailWeeklyReport=async function(){try{var r=rangeR(),d=reportDataR(r.start,r.end);if(!d.total){UI.toast('Mail için rapor kaydı yok.','warning');return;}var cfg=SD.config||{},mc=typeof getMailToCc==='function'?getMailToCc():{to:['barkin.kayaci@dramamakine.com'],cc:[]};UI.toast('Excel eki hazırlanıyor...','info');var wb=await workbookR(d),buf=await wb.xlsx.writeBuffer(),filename='Teknik_Servis_Haftalik_Rapor_'+r.start+'_'+r.end+'.xlsx';var html='<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto;color:#12223f"><div style="background:#0b3a78;color:#fff;padding:24px"><h2 style="margin:0">Teknik Servis Haftalık Raporu</h2><p style="margin:8px 0 0">'+trR(d.start)+' - '+trR(d.end)+'</p></div><div style="padding:24px;border:1px solid #dce4ef"><p>Merhaba,</p><p>Teknik servis haftalık raporu ekte sunulmuştur.</p><table style="width:100%;border-collapse:collapse"><tr><td style="padding:10px;border-bottom:1px solid #ddd">Toplam Ziyaret</td><td style="padding:10px;border-bottom:1px solid #ddd;font-weight:bold">'+d.total+'</td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Ziyaret Edilen Firma</td><td style="padding:10px;border-bottom:1px solid #ddd;font-weight:bold">'+d.unique+'</td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Plana Uygun</td><td style="padding:10px;border-bottom:1px solid #ddd;font-weight:bold;color:#16834d">'+d.uygun+'</td></tr><tr><td style="padding:10px">Plan Dışı</td><td style="padding:10px;font-weight:bold;color:#d96b00">'+d.disi+'</td></tr></table><p style="margin-top:24px">Rapor Sahibi: <strong>Barkın Kayacı</strong></p></div></div>';
+      var res=await fetch('/api/send-test-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:mc.to,cc:mc.cc,subject:'Teknik Servis Haftalık Raporu | '+trR(d.start)+' - '+trR(d.end),html:html,smtpHost:cfg.smtpHost,smtpPort:cfg.smtpPort,smtpUser:cfg.smtpUser,smtpPass:cfg.smtpPass,from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||cfg.smtpUser||'kimyaservis@dramamakine.com')+'>',attachments:[{filename:filename,contentBase64:b64R(buf),contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}]})});var out=await res.json();if(!res.ok)throw new Error(out.details||out.error||'Mail gönderilemedi');UI.toast('Haftalık rapor Excel ekiyle gönderildi.','success');
+    }catch(e){console.error(e);UI.toast(e.message||'Mail gönderilemedi.','error');}}
+})();
