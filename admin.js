@@ -14,6 +14,16 @@ var A = {
 
 function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
 
+/* ═══ YETKİ: sadece Barkın Kayacı ═══ */
+function currentUsername(){
+  try{
+    var sess=sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist');
+    var s=JSON.parse(sess);
+    return String((s&&s.userData&&s.userData.username)||'').toLowerCase();
+  }catch(e){return '';}
+}
+function isSuperAdmin(){return currentUsername()==='barkin.kayaci';}
+
 /* ═══ MOBILE DETECTION & RESPONSIVE ═══ */
 function setupResponsive(){
   if(A.isMobile()){
@@ -378,6 +388,8 @@ function renderFirmaFilterOptions(){
   });
 }
 function renderFirma(){
+  var admOnly=isSuperAdmin();
+  ['indirBtn','yukleBtn'].forEach(function(bid){var b=document.getElementById(bid);if(b)b.classList.toggle('hidden',!admOnly);});
   renderFirmaFilterOptions();
   var cos=SD.companies,ts=SD.technicians,tm={};
   ts.forEach(function(t){tm[t.id]=t;});
@@ -416,7 +428,8 @@ function renderFirma(){
     var toggleIcon=isPasif
       ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>'
       :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6" stroke-linecap="round"/></svg>';
-    var acts='<div class="co-acts"><button class="btn-icon" title="'+toggleTitle+'" onclick="toggleFirmaAktif(\''+co.id+'\')">'+toggleIcon+'</button><button class="btn-icon" title="Düzenle" onclick="openFirmaModal(\''+co.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="btn-icon red" onclick="deleteFirma(\''+co.id+'\')" title="Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg></button></div>';
+    var toggleBtn=isSuperAdmin()?('<button class="btn-icon" title="'+toggleTitle+'" onclick="toggleFirmaAktif(\''+co.id+'\')">'+toggleIcon+'</button>'):'';
+    var acts='<div class="co-acts">'+toggleBtn+'<button class="btn-icon" title="Düzenle" onclick="openFirmaModal(\''+co.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="btn-icon red" onclick="deleteFirma(\''+co.id+'\')" title="Sil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg></button></div>';
     card.innerHTML=icon+body+acts;
     card.addEventListener('click',function(e){if(!e.target.closest('.co-acts'))openFirmaModal(co.id);});
     card.addEventListener('dblclick',function(e){if(co.aktif!==false){var idx=SD.companies.indexOf(co);if(idx>0){SD.companies.splice(idx,1);SD.companies.unshift(co);SD.save('sd_co',SD.companies);renderFirma();UI.toast('Firma en üste alındı.','success');}}});
@@ -425,6 +438,7 @@ function renderFirma(){
 }
 window.deleteFirma=function(id){UI.confirm('Firma silinecek?',function(){SD.companies=SD.companies.filter(function(c){return c.id!==id;});SD.save('sd_co',SD.companies);renderFirma();renderVisit();UI.toast('Firma silindi.','success');});};
 window.toggleFirmaAktif=function(id){
+  if(!isSuperAdmin()){UI.toast('Bu işlem için yetkiniz yok.','error');return;}
   var cos=SD.companies,co=cos.find(function(c){return c.id===id;});if(!co)return;
   co.aktif=co.aktif===false;
   SD.companies=cos;SD.save('sd_co',SD.companies);renderFirma();renderVisit();
@@ -458,6 +472,8 @@ function openFirmaModal(id){
     ['fAdi','fBolge','fEmail','fKonumNot','fKurulumStart','fKurulumStartTime','fKurulumEnd','fKurulumEndTime'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('fTruck').checked=false;document.getElementById('fPasif').checked=false;A.selWeeks=[1,2,3,4];
   }
+  var pasifChk=document.getElementById('fPasif');
+  if(pasifChk){pasifChk.disabled=!isSuperAdmin();var pasifRow=pasifChk.closest('.fbox');if(pasifRow)pasifRow.style.display=isSuperAdmin()?'':'none';}
   renderWeekToggles();renderAMails();UI.openModal('firmaModal');
 }
 function renderWeekToggles(){document.querySelectorAll('.week-tog').forEach(function(b){b.classList.toggle('on',A.selWeeks.indexOf(parseInt(b.dataset.w))>=0);});}
@@ -473,14 +489,16 @@ function renderAMails(){
 function addAMail(){var inp=document.getElementById('fAMail'),v=inp.value.trim();if(!v)return;A.aMails.push(v);inp.value='';renderAMails();}
 function saveFirma(){
   var name=document.getElementById('fAdi').value.trim();if(!name){UI.toast('Firma adı gerekli.','error');return;}
-  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,aktif:!document.getElementById('fPasif').checked,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:document.getElementById('fKurulumStart').value,kurulumStartTime:document.getElementById('fKurulumStartTime').value,kurulumEnd:document.getElementById('fKurulumEnd').value,kurulumEndTime:document.getElementById('fKurulumEndTime').value,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]};
+  var existingCo=A.editId?SD.companies.find(function(c){return c.id===A.editId;}):null;
+  var aktifVal=isSuperAdmin()?!document.getElementById('fPasif').checked:(existingCo?existingCo.aktif!==false:true);
+  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,aktif:aktifVal,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:document.getElementById('fKurulumStart').value,kurulumStartTime:document.getElementById('fKurulumStartTime').value,kurulumEnd:document.getElementById('fKurulumEnd').value,kurulumEndTime:document.getElementById('fKurulumEndTime').value,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4]};
   var cos=SD.companies;
   if(A.editId){cos=cos.map(function(c){return c.id===A.editId?Object.assign({},c,payload):c;});}
   else{cos.push(Object.assign({id:'c'+Date.now()},payload));}
   SD.companies=cos;SD.save('sd_co',SD.companies);UI.closeModal('firmaModal');renderFirma();renderVisit();renderSetupBanner();UI.toast('Firma kaydedildi.','success');
 }
-function exportFirmalar(){var d=JSON.stringify({firmalar:SD.companies,teknisyenler:SD.technicians},null,2);var a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(d);a.download='firmalar.json';a.click();UI.toast('İndirildi.','success');}
-function importFirmalar(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.firmalar){SD.companies=d.firmalar;SD.save('sd_co',SD.companies);}renderFirma();renderVisit();UI.toast('Yüklendi!','success');}catch(err){UI.toast('Dosya okunamadı.','error');}};r.readAsText(f);e.target.value='';}
+function exportFirmalar(){if(!isSuperAdmin()){UI.toast('Bu işlem için yetkiniz yok.','error');return;}var d=JSON.stringify({firmalar:SD.companies,teknisyenler:SD.technicians},null,2);var a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(d);a.download='firmalar.json';a.click();UI.toast('İndirildi.','success');}
+function importFirmalar(e){if(!isSuperAdmin()){UI.toast('Bu işlem için yetkiniz yok.','error');e.target.value='';return;}var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.firmalar){SD.companies=d.firmalar;SD.save('sd_co',SD.companies);}renderFirma();renderVisit();UI.toast('Yüklendi!','success');}catch(err){UI.toast('Dosya okunamadı.','error');}};r.readAsText(f);e.target.value='';}
 
 /* ═══ AUTOCOMPLETE YARDIMCISI ═══ */
 function initAutocomplete(inputId,listId,onSelect){

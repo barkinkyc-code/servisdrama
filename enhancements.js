@@ -108,22 +108,55 @@
 
   window.exportOperationalExcel=function(){if(!SD_isOwner())return;var s=document.getElementById('exportStart').value,e=document.getElementById('exportEnd').value,sd=s?new Date(s+'T00:00:00'):null,ed=e?new Date(e+'T23:59:59'):null;function inRange(d){var x=parseDate(d);return x&&(!sd||x>=sd)&&(!ed||x<=ed);}var rows=[['Tür','Firma','Teknisyen','Başlangıç Tarihi','Başlangıç Saati','Bitiş Tarihi','Bitiş Saati','Durum','Not/Numune','Periyot']];var companies=SD.companies||[],techs=SD.technicians||[];Object.keys(SD.visits||{}).forEach(function(k){var cid=k.split('_')[0],co=companies.find(function(c){return c.id===cid;})||{},rec=SD.visits[k],entries=rec&&rec.entries?Object.keys(rec.entries).map(function(x){return rec.entries[x];}):[rec];entries.forEach(function(v){if(!v||!inRange(v.endDate||v.startDate||v.date))return;var t=techs.find(function(x){return x.code===v.tc;})||{};rows.push(['Ziyaret',co.name||cid,t.name||v.tc,v.startDate||v.date||'',v.startTime||v.saat||'',v.endDate||'',v.endTime||'',v.status==='done'?'Tamamlandı':'Devam Ediyor',v.extraNot||'',(co.weeks||[]).join(',')]);});});(SD.samples||[]).forEach(function(n){var d=n.date||n.tarih||n.createdAt;if(!inRange(d))return;rows.push(['Numune',n.firma||n.company||n.firmaAdi||'',n.tech||n.teknisyen||'',d||'',n.saat||'','','',n.result?'Sonuçlandı':'Bekliyor',n.urun||n.product||n.not||'', '']);});var html='<html><head><meta charset="UTF-8"></head><body><table border="1">'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('')+'</tr>';}).join('')+'</table></body></html>';var blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ServisDrama_Veriler_'+(s||'baslangic')+'_'+(e||'bugun')+'.xls';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);};
 
-  /* Program dışı ziyaretler: ilk açılışta bugünün tarihi seçili ve yalnızca o gün görünür */
+  /* Program dışı ziyaretler: ilk açılışta bugünün tarihi seçili ve yalnızca o gün görünür.
+     Veri kaydı bulunan günler özel takvimde siyah gösterilir (native <input type=date>
+     popup'ı günlere göre stillendirilemediği için kendi mini takvimimizi kullanıyoruz). */
   var oldExtra=window.renderExtraVisits;
   if(typeof oldExtra==='function')window.renderExtraVisits=function(){
     oldExtra.apply(this,arguments);
     setTimeout(function(){
       var section=document.getElementById('extraVisitList');if(!section)return;
       var ctl=document.getElementById('extraHistoryControl');
-      if(!ctl){
+      var isNew=!ctl;
+      if(isNew){
         ctl=document.createElement('div');ctl.id='extraHistoryControl';ctl.className='extra-history-control';
-        ctl.innerHTML='<button type="button" id="extraCollapseBtn">Program Dışı Ziyaretler <span>▾</span></button><label title="Geçmiş tarihe bak">📅 <input type="date" id="extraHistoryDate"></label>';
+        ctl.innerHTML='<button type="button" id="extraCollapseBtn">Program Dışı Ziyaretler <span>▾</span></button>'
+          +'<div class="edc-wrap"><button type="button" id="extraDateBtn" title="Geçmiş tarihe bak">📅 <span id="extraDateLbl"></span></button>'
+          +'<input type="date" id="extraHistoryDate" style="display:none">'
+          +'<div id="extraDateCal" class="edc-pop hidden"></div></div>';
         section.parentNode.insertBefore(ctl,section);
-        ctl.querySelector('button').onclick=function(){section.classList.toggle('collapsed');this.querySelector('span').textContent=section.classList.contains('collapsed')?'▸':'▾';};
+        ctl.querySelector('#extraCollapseBtn').onclick=function(){section.classList.toggle('collapsed');this.querySelector('span').textContent=section.classList.contains('collapsed')?'▸':'▾';};
       }
-      var date=ctl.querySelector('input'),now=new Date(),todayISO=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      var date=document.getElementById('extraHistoryDate'),now=new Date(),todayISO=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
       if(!date.value)date.value=todayISO;
+      var lbl=document.getElementById('extraDateLbl');
+      function fmtDisp(iso){var p=iso.split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:iso;}
+      if(lbl)lbl.textContent=fmtDisp(date.value);
       function filter(){var wanted=date.value?date.value.split('-').reverse().join('.'):DT.ddmmyyyy(new Date());var any=false;Array.from(section.children).forEach(function(card){var show=card.textContent.indexOf(wanted)>=0||card.textContent.indexOf(wanted.slice(0,5))>=0;card.style.display=show?'':'none';if(show)any=true;});var empty=document.getElementById('extraEmpty');if(empty){empty.style.display=any?'none':'block';empty.textContent='Seçilen tarihte program dışı ziyaret bulunmuyor.';}}
+      /* Verilen ay/yıl içinde program dışı ziyaret kaydı olan gün numaralarını topla */
+      function extrasDaySet(y,m){var set={};(SD.extras||[]).forEach(function(x){var p=String(x.date||'').split('.');if(p.length===3&&parseInt(p[2],10)===y&&(parseInt(p[1],10)-1)===m)set[parseInt(p[0],10)]=true;});return set;}
+      var mNames=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+      function renderCal(){
+        var cal=document.getElementById('extraDateCal');if(!cal)return;
+        var p=date.value.split('-'),vy=cal._vy!=null?cal._vy:parseInt(p[0],10),vm=cal._vm!=null?cal._vm:parseInt(p[1],10)-1;
+        var first=new Date(vy,vm,1),startDow=(first.getDay()+6)%7,daysInMonth=new Date(vy,vm+1,0).getDate();
+        var dataDays=extrasDaySet(vy,vm);
+        var selDay=(parseInt(p[0],10)===vy&&(parseInt(p[1],10)-1)===vm)?parseInt(p[2],10):null;
+        var html='<div class="edc-hd"><button type="button" class="edc-nav" data-dir="-1">‹</button><span>'+mNames[vm]+' '+vy+'</span><button type="button" class="edc-nav" data-dir="1">›</button></div>';
+        html+='<div class="edc-dow">'+['Pt','Sa','Ça','Pe','Cu','Ct','Pz'].map(function(d){return '<span>'+d+'</span>';}).join('')+'</div>';
+        html+='<div class="edc-days">';
+        for(var i=0;i<startDow;i++)html+='<span></span>';
+        for(var d=1;d<=daysInMonth;d++){var cls='edc-day'+(dataDays[d]?' has-data':'')+(d===selDay?' sel':'');html+='<span class="'+cls+'" data-d="'+d+'">'+d+'</span>';}
+        html+='</div>';
+        cal.innerHTML=html;cal._vy=vy;cal._vm=vm;
+        cal.querySelectorAll('.edc-nav').forEach(function(b){b.onclick=function(e){e.stopPropagation();var dir=parseInt(b.dataset.dir,10);var nv=cal._vm+dir,ny=cal._vy;if(nv<0){nv=11;ny--;}if(nv>11){nv=0;ny++;}cal._vy=ny;cal._vm=nv;renderCal();};});
+        cal.querySelectorAll('.edc-day[data-d]').forEach(function(s){s.onclick=function(){var dd=parseInt(s.dataset.d,10);var iso=cal._vy+'-'+String(cal._vm+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');date.value=iso;cal.classList.add('hidden');if(lbl)lbl.textContent=fmtDisp(iso);filter();};});
+      }
+      var btn=document.getElementById('extraDateBtn');
+      if(isNew){
+        btn.onclick=function(e){e.stopPropagation();var cal=document.getElementById('extraDateCal');var opening=cal.classList.contains('hidden');if(opening){cal._vy=null;cal._vm=null;}cal.classList.toggle('hidden');if(!cal.classList.contains('hidden'))renderCal();};
+        document.addEventListener('click',function(e){var cal=document.getElementById('extraDateCal');if(cal&&!cal.classList.contains('hidden')&&!cal.contains(e.target)&&e.target!==btn)cal.classList.add('hidden');});
+      }
       date.onchange=filter;filter();
     },0);
   };
