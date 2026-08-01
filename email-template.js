@@ -107,7 +107,8 @@
       });
       if(list.length)people.push({code:tech.code,name:tech.name,color:BL.avatarColor(tech.name),visits:list});
     });
-    var installations=companies.filter(function(c){return c.kurulumStart||c.kurulumEnd;}).map(function(c){
+    var todayYmd=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    var installations=companies.filter(function(c){return (c.kurulumStart||c.kurulumEnd)&&(!c.kurulumEnd||c.kurulumEnd>=todayYmd);}).map(function(c){
       return {name:c.name,start:c.kurulumStart,end:c.kurulumEnd,startTime:c.kurulumStartTime||'',endTime:c.kurulumEndTime||''};
     });
     return {today:today,people:people,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0)};
