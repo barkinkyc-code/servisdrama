@@ -170,7 +170,7 @@
 
   /* Logo her zaman Ziyaret Takibi'ne döner; DK Portal mobilde yalnızca bu sayfada adın solunda görünür */
   function syncMobilePortal(){var p=(window.A&&A.page)||'ziyaret',el=document.getElementById('mobileVisitPortal');if(el)el.style.display=(p==='ziyaret'&&window.innerWidth<=768)?'inline-flex':'none';}
-  document.addEventListener('DOMContentLoaded',function(){var logo=document.getElementById('topbarLogo');if(logo){logo.addEventListener('click',function(){goto('ziyaret');});logo.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();goto('ziyaret');}});}syncMobilePortal();});
+  document.addEventListener('DOMContentLoaded',function(){var logo=document.getElementById('topbarLogo');if(logo){logo.addEventListener('click',function(){goto('ziyaret');if(typeof closeMobileMenu==='function')closeMobileMenu();});logo.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();goto('ziyaret');if(typeof closeMobileMenu==='function')closeMobileMenu();}});}syncMobilePortal();});
   window.addEventListener('resize',syncMobilePortal);
   var _gotoPortalSync=window.goto;if(typeof _gotoPortalSync==='function')window.goto=function(){var r=_gotoPortalSync.apply(this,arguments);setTimeout(syncMobilePortal,0);return r;};
 

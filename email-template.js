@@ -78,10 +78,11 @@
       +'</tr></table></td></tr>'+rows+'</table></td></tr>';
   }
 
-  function collectData(){
-    var today=new Date(),companies=SD.companies||[],visits=SD.visits||{},techs=SD.technicians||[],extras=SD.extras||[];
-    var todayDDmm=DT.ddmm(today),weekKey=DT.wkey(today),weeks=DT.monthWeeks(today.getFullYear(),today.getMonth());
-    var weekIndex=weeks.findIndex(function(m){return m.getTime()===DT.monday(today).getTime();})+1;
+  function collectData(ctx){
+    var _SD=(ctx&&ctx.SD)||SD,_DT=(ctx&&ctx.DT)||DT,_BL=(ctx&&ctx.BL)||BL;
+    var today=(ctx&&ctx.today)||new Date(),companies=_SD.companies||[],visits=_SD.visits||{},techs=_SD.technicians||[],extras=_SD.extras||[];
+    var todayDDmm=_DT.ddmm(today),weekKey=_DT.wkey(today),weeks=_DT.monthWeeks(today.getFullYear(),today.getMonth());
+    var weekIndex=weeks.findIndex(function(m){return m.getTime()===_DT.monday(today).getTime();})+1;
     if(weekIndex<1)weekIndex=1;
     var people=[];
     /* Ziyaret, firmanın sahibine göre değil FİİLEN GİDEN teknisyene göre listelenir.
@@ -91,21 +92,21 @@
     techs.forEach(function(tech){
       var list=[];
       companies.forEach(function(company){
-        if(!BL.scheduled(company,weekIndex))return;
-        var v=SD.visitEntryFor(visits[company.id+'_'+weekKey],tech.code);
+        if(!_BL.scheduled(company,weekIndex))return;
+        var v=_SD.visitEntryFor(visits[company.id+'_'+weekKey],tech.code);
         if(!v||v.status!=='done')return;
         if(v.marked===false)return;
         if(v.date!==todayDDmm)return;
         var previous=previousVisit(company.id,visits,weekKey,today);
         list.push({name:company.name,previousDate:previous.date,daysElapsed:previous.days,time:v.saat||'',isExtra:false});
       });
-      extras.filter(function(e){return e.techId===tech.id&&e.date===DT.ddmm(today);}).forEach(function(e){
+      extras.filter(function(e){return e.techId===tech.id&&e.date===todayDDmm;}).forEach(function(e){
         var extraCompany=companies.find(function(c){return c.id===e.firmaId;});
         var extraName=extraCompany?extraCompany.name:e.firmAdi;
         var extraPrevious=extraCompany?previousVisit(extraCompany.id,visits,weekKey,today):{date:'Kayıt yok',days:''};
         list.push({name:extraName,previousDate:extraPrevious.date,daysElapsed:extraPrevious.days,time:e.saat||'',isExtra:true,note:e.not||''});
       });
-      if(list.length)people.push({code:tech.code,name:tech.name,color:BL.avatarColor(tech.name),visits:list});
+      if(list.length)people.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:list});
     });
     var todayYmd=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
     var installations=companies.filter(function(c){return (c.kurulumStart||c.kurulumEnd)&&(!c.kurulumEnd||c.kurulumEnd>=todayYmd);}).map(function(c){
@@ -114,8 +115,9 @@
     return {today:today,people:people,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0)};
   }
 
-  function buildOutlookRaporHTML(){
-    var data=collectData(),today=data.today,reportDate=trDate(today),week=DT.isoWeek(today)+'. Hafta';
+  function buildOutlookRaporHTML(ctx){
+    var _DT=(ctx&&ctx.DT)||DT;
+    var data=collectData(ctx),today=data.today,reportDate=trDate(today),week=_DT.isoWeek(today)+'. Hafta';
     var installationRows='';
     data.installations.forEach(function(inst){
       var startText=formatSetupDate(inst.start)+(inst.startTime?' · '+esc(inst.startTime):'');
@@ -144,4 +146,5 @@
   }
 
   global.buildOutlookRaporHTML=buildOutlookRaporHTML;
-})(window);
+  if(typeof module!=='undefined'&&module.exports)module.exports={buildOutlookRaporHTML:buildOutlookRaporHTML};
+})(typeof window!=='undefined'?window:global);
