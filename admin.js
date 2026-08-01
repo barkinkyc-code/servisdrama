@@ -350,7 +350,8 @@ function renderTechBtns(){
 function renderSetupBanner(){
   var banner=document.getElementById('setupBanner');if(!banner)return;
   var cos=SD.companies;
-  var setup=cos.filter(function(c){return !!c.kurulumStart;});
+  var t=new Date(),todayStr=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  var setup=cos.filter(function(c){return !!c.kurulumStart&&(!c.kurulumEnd||c.kurulumEnd>=todayStr);});
   if(!setup.length){banner.innerHTML='';return;}
   var html='<div class="setup-banner"><div class="setup-hd">'
     +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
