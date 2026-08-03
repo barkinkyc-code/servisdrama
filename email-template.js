@@ -130,43 +130,6 @@
         :'border:1px solid #f3d9a8;background-color:#fff7e6;color:#875000;';
       installationRows+='<tr><td class="pad" style="padding:14px 30px 10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffaf0" style="background-color:#fffaf0;border-left:5px solid #f59a00;border-top:1px solid #f3d9a8;border-right:1px solid #f3d9a8;border-bottom:1px solid #f3d9a8;"><tr><td style="padding:18px 12px 18px 18px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:12px;line-height:18px;font-weight:bold;color:#dc7900;letter-spacing:.5px;">KURULUM &amp; DEVREYE ALMA</div><div class="install-company" style="padding-top:5px;font-size:15px;line-height:21px;font-weight:bold;color:#13233f;">'+esc(inst.name)+'</div><div class="install-date" style="padding-top:5px;font-size:13px;line-height:20px;color:#65748a;white-space:nowrap;">'+dates+'</div></td><td class="install-status" width="116" align="center" valign="middle" style="width:116px;padding:18px 12px 18px 8px;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;padding:8px 9px;'+statusStyle+'font-size:12px;line-height:18px;white-space:nowrap;">'+statusText+'</span></td></tr></table></td></tr>';
     });
-
-    var missedCompanies=[];
-    var today=(ctx&&ctx.today)||new Date(),_SD=(ctx&&ctx.SD)||SD,_BL=(ctx&&ctx.BL)||BL;
-    var weeks=(_DT||DT).monthWeeks(today.getFullYear(),today.getMonth());
-    var weekIndex=weeks.findIndex(function(m){return m.getTime()===(_DT||DT).monday(today).getTime();})+1;
-    if(weekIndex>0){
-      (_SD.companies||[]).forEach(function(co){
-        if(!_BL.scheduled(co,weekIndex)||co.aktif===false)return;
-        var visited=false,lastVisit=null;
-        for(var i=0;i<=52;i++){
-          var vkey=co.id+'_'+i,vrec=(_SD.visits||{})[vkey];
-          if(vrec&&vrec.status==='done'){visited=true;
-            if(vrec.date){
-              var vparts=String(vrec.date).split('.');
-              if(vparts.length>=2){
-                var vd=new Date(Number(vparts[2]||today.getFullYear()),Number(vparts[1])-1,Number(vparts[0]));
-                if(!lastVisit||vd>lastVisit)lastVisit=vd;
-              }
-            }
-          }
-        }
-        if(!visited)missedCompanies.push({name:co.name,lastVisit:lastVisit||null});
-      });
-    }
-    missedCompanies.sort(function(a,b){
-      if(!a.lastVisit&&!b.lastVisit)return 0;
-      if(!a.lastVisit)return 1;if(!b.lastVisit)return -1;
-      return b.lastVisit-a.lastVisit;
-    });
-    var missedSection='';
-    if(missedCompanies.length){
-      var missedList=missedCompanies.map(function(m){
-        var lastTxt=m.lastVisit?String(m.lastVisit.getDate()).padStart(2,'0')+'.'+String(m.lastVisit.getMonth()+1).padStart(2,'0')+'.'+m.lastVisit.getFullYear():'Hiç ziyaret edilmemiş';
-        return esc(m.name)+' <span style="color:#666;font-size:11px;">('+ lastTxt+')</span>';
-      }).join('<br>');
-      missedSection='<tr><td class="pad" style="padding:14px 30px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fef3c7" style="background-color:#fef3c7;border-left:5px solid #f59a00;border-top:1px solid #f3d9a8;border-right:1px solid #f3d9a8;border-bottom:1px solid #f3d9a8;"><tr><td style="padding:14px 16px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:13px;line-height:19px;font-weight:bold;color:#92400e;">⚠️ Planlanmış Ama Ziyaret Edilmemiş Firmalar ('+missedCompanies.length+')</div><div style="font-size:12px;line-height:18px;color:#78350f;margin-top:8px;">'+missedList+'</div></td></tr></table></td></tr>';
-    }
     var staffRows=data.people.map(staffCard).join('');
     var emptyRows=data.people.length?'':'<tr><td class="pad" style="padding:0 30px 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#6b778a;">Bugün tamamlanan teknik ziyaret bulunmuyor.</td></tr>';
     return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>ServisDrama Günlük Ziyaret Özeti</title>'
@@ -178,7 +141,7 @@
       +'<tr><td class="pad" bgcolor="#102b50" style="padding:34px 30px;background-color:#102b50;"><table role="presentation" width="100%"><tr><td class="mobile-block" width="55%" valign="middle"><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;letter-spacing:2px;font-weight:bold;color:#42a1ff;">SERVİSDRAMA</div><h1 class="hero-title" style="margin:8px 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:40px;color:#ffffff;">Günlük Ziyaret Özeti</h1><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#d8e5f3;">Sahadaki teknik ekip faaliyetlerinin özeti.</div></td><td class="mobile-block mobile-left" width="45%" valign="middle" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td width="25" valign="middle"><img src="cid:servisdrama-calendar-white" width="18" height="18" alt="" style="display:block;width:18px;height:18px;"></td><td valign="middle" style="padding-right:14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+esc(reportDate)+'</td><td width="1" bgcolor="#70839a" style="width:1px;background-color:#70839a;font-size:1px;line-height:32px;">&nbsp;</td><td width="25" valign="middle" style="padding-left:14px;"><img src="cid:servisdrama-calendar-white" width="18" height="18" alt="" style="display:block;width:18px;height:18px;"></td><td valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#ffffff;white-space:nowrap;">'+esc(week)+'</td></tr></table></td></tr></table></td></tr>'
       +'<tr><td class="pad" style="padding:26px 30px 12px;"><table role="presentation" width="100%" style="border:1px solid #dbe3ec;"><tr><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#1565d8;">'+data.total+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Teknik Ziyaret</div></td><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#f59a00;">'+data.installations.length+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Kurulum</div></td><td width="33.33%" align="center" style="padding:20px 8px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#078578;">'+data.people.length+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Personel</div></td></tr></table></td></tr>'
       +installationRows+'<tr><td class="pad" style="padding:14px 30px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="116" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:bold;color:#13233f;white-space:nowrap;">Teknik Ekip</td><td valign="middle" style="padding-left:12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#cbd5e1" style="height:1px;background-color:#cbd5e1;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr></table></td></tr>'
-      +staffRows+emptyRows+missedSection+'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Automated Report • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
+      +staffRows+emptyRows+'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Automated Report • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
       +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
   }
 
