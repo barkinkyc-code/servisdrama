@@ -211,10 +211,25 @@ function stateToReportSD(state){
 // hem numune hatırlatma tarafından paylaşılan tek yazma noktası.
 async function persistState(state){
   const db=require('./config/database');
+  await db.ready();
   if(db.dialect==='postgres'){
-    await db.raw.query("UPDATE app_state SET payload=$1::jsonb,updated_at=NOW() WHERE state_key='main'",[JSON.stringify(state)]);
+    await db.raw.query(`INSERT INTO app_state(state_key,payload,updated_at)
+      VALUES('main',$1::jsonb,NOW())
+      ON CONFLICT(state_key) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()`,[JSON.stringify(state)]);
   }else{
-    await new Promise((resolve,reject)=>db.run("UPDATE app_state SET payload=? WHERE state_key='main'",[JSON.stringify(state)],e=>e?reject(e):resolve()));
+    await new Promise((resolve,reject)=>db.run("INSERT OR REPLACE INTO app_state(state_key,payload,updated_at) VALUES('main',?,CURRENT_TIMESTAMP)",[JSON.stringify(state)],e=>e?reject(e):resolve()));
+  }
+}
+function envMailList(name){
+  return String(process.env[name]||'').split(/[\n,;]+/).map(v=>v.trim()).filter(Boolean);
+}
+function assertSmtpConfig(cfg){
+  const host=cfg.smtpHost||process.env.SMTP_HOST;
+  const user=cfg.smtpUser||process.env.SMTP_USER;
+  const pass=cfg.smtpPass||process.env.SMTP_PASS;
+  if(!host||!user||!pass){
+    const err=new Error('SMTP ayarları eksik. Vercel Environment Variables içine SMTP_HOST, SMTP_USER ve SMTP_PASS ekleyin.');
+    err.statusCode=503;throw err;
   }
 }
 
@@ -322,10 +337,15 @@ app.all('/api/daily-summary',async(req,res)=>{
       return res.json({success:true,skipped:true,reason:'not-due',reminders:remindersChanged});
     }
 
-    const to=(cfg.dailySummaryTo||[]),cc=(cfg.dailySummaryCc||[]);
-    if(!to.length)return res.status(400).json({error:'Gün özeti TO alıcısı tanımlı değil'});
+    // Test düğmesi, veritabanı senkronizasyonunu beklemeden güncel alıcıları göndersin.
+    const bodyTo=force&&Array.isArray(req.body?.to)?req.body.to:[];
+    const bodyCc=force&&Array.isArray(req.body?.cc)?req.body.cc:[];
+    const to=(bodyTo.length?bodyTo:(cfg.dailySummaryTo||envMailList('DAILY_SUMMARY_TO'))).filter(Boolean);
+    const cc=(bodyCc.length?bodyCc:(cfg.dailySummaryCc||envMailList('DAILY_SUMMARY_CC'))).filter(Boolean);
+    if(!to.length)return res.status(400).json({error:'Gün özeti TO alıcısı tanımlı değil. Panelden alıcı ekleyin veya DAILY_SUMMARY_TO ortam değişkenini tanımlayın.'});
+    assertSmtpConfig(cfg);
     const port=parseInt(cfg.smtpPort||process.env.SMTP_PORT||587,10);
-    const transporter=nodemailer.createTransport({host:cfg.smtpHost||process.env.SMTP_HOST,port,secure:port===465,auth:{user:cfg.smtpUser||process.env.SMTP_USER,pass:cfg.smtpPass||process.env.SMTP_PASS},tls:{rejectUnauthorized:false}});
+    const transporter=nodemailer.createTransport({host:cfg.smtpHost||process.env.SMTP_HOST,port,secure:port===465,requireTLS:port!==465,auth:{user:cfg.smtpUser||process.env.SMTP_USER,pass:cfg.smtpPass||process.env.SMTP_PASS},tls:{rejectUnauthorized:false}});
     const html=buildOutlookRaporHTML({SD:stateToReportSD(state),DT:REPORT_DT,BL:REPORT_BL,today:now});
     const attachments=buildCidAttachments(['drama-makine-logo','icon-star','servisdrama-calendar-white']);
     await transporter.sendMail({from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||process.env.SMTP_FROM||cfg.smtpUser)+'>',to:to.join(','),cc:cc.join(','),subject:'ServisDrama - Günlük Ziyaret Raporu ('+String(now.getDate()).padStart(2,'0')+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+now.getFullYear()+')',html,...(attachments.length>0&&{attachments})});
@@ -333,7 +353,7 @@ app.all('/api/daily-summary',async(req,res)=>{
     await persistState(state);
     res.json({success:true,to,cc,reminders:remindersChanged});
   }catch(e){
-    res.status(500).json({error:'Gün özeti gönderilemedi',details:e.message});
+    res.status(e.statusCode||500).json({error:'Gün özeti gönderilemedi',details:e.message});
   }
 });
 
