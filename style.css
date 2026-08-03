@@ -485,6 +485,14 @@ textarea.inp{resize:vertical;line-height:1.6;}
 }
 .st-result-btn:hover{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 3px 10px rgba(5,150,105,.3);}
 .st-result-done{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--r-xl);font-size:12px;font-weight:700;background:linear-gradient(135deg,#059669,#10B981);color:#fff;box-shadow:0 2px 8px rgba(5,150,105,.25);}
+@media(max-width:768px){
+  /* Numune kartında dar ekranda "Sonuç Gir" rozeti + ikonlar firma adının
+     üzerine biniyordu — aksiyon satırı artık kendi tam genişlikte satırına düşüyor. */
+  .st-card{flex-wrap:wrap;}
+  .st-num{order:1;}
+  .st-body{order:2;}
+  .st-acts{order:3;flex:1 0 100%;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+}
 
 /* ═══ KPI ═══ */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}

@@ -392,17 +392,10 @@ function saveResult(){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
-  var se=document.getElementById('stEkleBtn');
-  if(se){
-    se.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      openStModal();
-    });
-  }
-  var ss=document.getElementById('stSaveBtn');if(ss)ss.addEventListener('click',saveNumune);
-  var sr=document.getElementById('stResultSaveBtn');if(sr)sr.addEventListener('click',saveResult);
-  var sch=document.getElementById('stSearch');if(sch)sch.addEventListener('input',renderSamples);
+  /* stEkleBtn/stSaveBtn/stResultSaveBtn/stSearch admin.js'te (on(...) çağrıları
+     ile) zaten bağlanıyor — burada tekrar bağlamak aynı tıklamada saveNumune()'un
+     birden fazla kez çalışıp mükerrer numune kaydı + mükerrer mail göndermesine
+     yol açıyordu. */
 
   /* Result modal close handlers */
   var srm=document.getElementById('stResultModal');

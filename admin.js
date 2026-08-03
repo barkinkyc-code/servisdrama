@@ -220,11 +220,6 @@ document.addEventListener('DOMContentLoaded',async function(){
     if(menu&&!menu.contains(e.target))closeDropdown();
   });
 
-  /* Numune Events */
-  on('stEkleBtn','click',function(){if(typeof openStModal==='function')openStModal();});
-  on('stSearch','input',function(){if(typeof renderSamples==='function')renderSamples();});
-  on('stSaveBtn','click',function(){if(typeof saveNumune==='function')saveNumune();});
-
   /* Mail Alıcıları Events */
   on('mailRecipientClose','click',function(){UI.closeModal('mailRecipientModal');});
   on('mailRecipientCancel','click',function(){UI.closeModal('mailRecipientModal');});
