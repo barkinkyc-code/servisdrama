@@ -10,15 +10,15 @@
 
   function applyRoleUI(){
     var owner=SD_isOwner();
-    document.querySelectorAll('[data-page="ayarlar"], .nav-dd-item[onclick*="ayarlar"]').forEach(function(el){el.style.display=owner?'':'none';});
+    document.querySelectorAll('[data-page="ayarlar"], [data-page="raporlar"], .nav-dd-item[onclick*="ayarlar"]').forEach(function(el){el.style.display=owner?'':'none';});
     document.querySelectorAll('.btn-icon.red[title="Sil"], .co-acts .red').forEach(function(el){el.style.display=owner?'':'none';});
     document.querySelectorAll('.week-tog').forEach(function(el){el.disabled=!owner;el.style.opacity=owner?'':'0.45';el.style.pointerEvents=owner?'':'none';});
-    if(!owner&&window.A&&A.page==='ayarlar'){goto('ziyaret');UI.toast('Ayarlar yalnızca Barkın Kayacı hesabına açıktır.','warning');}
+    if(!owner&&window.A&&(A.page==='ayarlar'||A.page==='raporlar')){goto('ziyaret');UI.toast('Bu bölüm yalnızca Barkın Kayacı hesabına açıktır.','warning');}
   }
   document.addEventListener('DOMContentLoaded',function(){setTimeout(applyRoleUI,200);new MutationObserver(applyRoleUI).observe(document.body,{childList:true,subtree:true});});
 
   var oldGoto=window.goto;
-  if(typeof oldGoto==='function')window.goto=function(p){if(p==='ayarlar'&&!SD_isOwner()){UI.toast('Bu bölüme erişim yetkiniz yok.','warning');return;}return oldGoto.apply(this,arguments);};
+  if(typeof oldGoto==='function')window.goto=function(p){if((p==='ayarlar'||p==='raporlar')&&!SD_isOwner()){UI.toast('Bu bölüme erişim yetkiniz yok.','warning');return;}return oldGoto.apply(this,arguments);};
   var oldDelete=window.deleteFirma;
   window.deleteFirma=function(id){if(!SD_isOwner()){UI.toast('Firma silme yetkisi yalnızca Barkın Kayacı hesabındadır.','error');return;}return oldDelete&&oldDelete(id);};
 
