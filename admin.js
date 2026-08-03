@@ -314,7 +314,6 @@ function goto(p){
   document.querySelectorAll('.pg').forEach(function(el){el.classList.toggle('hidden',el.id!=='pg-'+p);});
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
   if(p==='istatistik')renderStat();
-  if(p==='ekip')renderTechAdmin();
   if(p==='numune')renderNumune();
   if(p==='ayarlar'){renderSettingsTab('genel');}
   if(p==='raporlar'&&typeof renderDetailedReports==='function')renderDetailedReports();
@@ -1004,7 +1003,8 @@ function renderSettingsTab(tab){
     });
   }else if(tab==='teknik'){
     var tf=cfg.techFeatures||{};
-    content.innerHTML='<div class="settings-card"><div class="settings-ttl">👤 Teknisyen Ekran Yetkileri</div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Teknisyen ekranında hangi özellikler görünsün?</p><div id="techFeatRows"></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveTechCfg()">Kaydet</button></div></div>';
+    content.innerHTML='<div class="settings-card"><div class="settings-ttl" style="display:flex;align-items:center;justify-content:space-between;"><span>👥 Ekip Yönetimi</span><button class="btn btn-primary btn-sm" onclick="UI.openModal(\'addTechModal\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Teknisyen Ekle</button></div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Teknisyen bilgileri ve erişim kontrolü</p><div id="techAdminList"></div></div>'
+      +'<div class="settings-card" style="margin-top:16px;"><div class="settings-ttl">👤 Teknisyen Ekran Yetkileri</div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Teknisyen ekranında hangi özellikler görünsün?</p><div id="techFeatRows"></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveTechCfg()">Kaydet</button></div></div>';
     var tfr=document.getElementById('techFeatRows');
     TECH_FEATS.forEach(function(f){
       var row=document.createElement('div');row.className='feat-row';
@@ -1012,6 +1012,7 @@ function renderSettingsTab(tab){
         +'<label class="toggle"><input type="checkbox" id="tf-'+f.key+'"'+(tf[f.key]!==false?' checked':'')+'><span class="toggle-tr"></span></label>';
       tfr.appendChild(row);
     });
+    renderTechAdmin();
   }else if(tab==='kullanici'){
     renderKullanicilar();
   }else if(tab==='veri'){
