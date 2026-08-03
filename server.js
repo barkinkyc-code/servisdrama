@@ -180,7 +180,7 @@ function trNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Eu
 // SD/DT/BL nesnelerini okur; sunucu tarafında bunların salt-veri (state
 // tabanlı) karşılıklarını üretip enjekte ediyoruz — data.js'teki mantıkla
 // birebir aynı, saf fonksiyonlar.
-const { buildOutlookRaporHTML } = require('./email-template.js');
+const { buildOutlookRaporHTML, buildNumuneReminderMailHTML } = require('./email-template.js');
 const REPORT_DT = {
   monday(d){const x=new Date(d),n=(x.getDay()+6)%7;x.setDate(x.getDate()-n);x.setHours(0,0,0,0);return x;},
   isoWeek(d){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=(x.getUTCDay()+6)%7;x.setUTCDate(x.getUTCDate()-day+3);const t4=new Date(Date.UTC(x.getUTCFullYear(),0,4));return 1+Math.round(((x-t4)/864e5-3+((t4.getUTCDay()+6)%7))/7);},
@@ -206,7 +206,136 @@ function stateToReportSD(state){
     visitEntryFor: reportVisitEntryFor
   };
 }
-app.all('/api/daily-summary',async(req,res)=>{try{const state=await loadMainState(),cfg=state.sd_cfg||{},now=trNow(),force=req.method==='POST'&&req.body?.force===true;if(force){const jwt=require('jsonwebtoken'),token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');let decoded;try{decoded=jwt.verify(token,process.env.JWT_SECRET||'servisdrama-secret-key-change-in-production');}catch(e){return res.status(401).json({error:'Yetkisiz istek'});}if(String(decoded.username||'').toLowerCase()!=='barkin.kayaci')return res.status(403).json({error:'Bu işlem yalnızca Barkın Kayacı hesabına açıktır'});}const target=cfg.dailySummaryTime||'18:00',today=now.toISOString().slice(0,10),nowMin=now.getHours()*60+now.getMinutes(),tp=target.split(':').map(Number),targetMin=(tp[0]||0)*60+(tp[1]||0),due=nowMin>=targetMin;if(!force&&(!cfg.dailySummaryEnabled||!due||cfg.dailySummaryLastSent===today))return res.json({success:true,skipped:true,reason:'not-due'});const to=(cfg.dailySummaryTo||[]),cc=(cfg.dailySummaryCc||[]);if(!to.length)return res.status(400).json({error:'Gün özeti TO alıcısı tanımlı değil'});const port=parseInt(cfg.smtpPort||process.env.SMTP_PORT||587,10);const transporter=nodemailer.createTransport({host:cfg.smtpHost||process.env.SMTP_HOST,port,secure:port===465,auth:{user:cfg.smtpUser||process.env.SMTP_USER,pass:cfg.smtpPass||process.env.SMTP_PASS},tls:{rejectUnauthorized:false}});const html=buildOutlookRaporHTML({SD:stateToReportSD(state),DT:REPORT_DT,BL:REPORT_BL,today:now});const attachments=buildCidAttachments(['drama-makine-logo','icon-star','servisdrama-calendar-white']);await transporter.sendMail({from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||process.env.SMTP_FROM||cfg.smtpUser)+'>',to:to.join(','),cc:cc.join(','),subject:'ServisDrama - Günlük Ziyaret Raporu ('+String(now.getDate()).padStart(2,'0')+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+now.getFullYear()+')',html,...(attachments.length>0&&{attachments})});cfg.dailySummaryLastSent=today;state.sd_cfg=cfg;const db=require('./config/database');if(db.dialect==='postgres')await db.raw.query("UPDATE app_state SET payload=$1::jsonb,updated_at=NOW() WHERE state_key='main'",[JSON.stringify(state)]);res.json({success:true,to,cc});}catch(e){res.status(500).json({error:'Gün özeti gönderilemedi',details:e.message});}});
+
+// state'i kaydettiği tabloya (postgres/sqlite) geri yazar — hem gün özeti
+// hem numune hatırlatma tarafından paylaşılan tek yazma noktası.
+async function persistState(state){
+  const db=require('./config/database');
+  if(db.dialect==='postgres'){
+    await db.raw.query("UPDATE app_state SET payload=$1::jsonb,updated_at=NOW() WHERE state_key='main'",[JSON.stringify(state)]);
+  }else{
+    await new Promise((resolve,reject)=>db.run("UPDATE app_state SET payload=? WHERE state_key='main'",[JSON.stringify(state)],e=>e?reject(e):resolve()));
+  }
+}
+
+// "dd.mm.yyyy" veya native <input type=date> "yyyy-mm-dd" biçimini ayrıştırır.
+function parseSimpleDate(v){
+  if(!v)return null;
+  if(v instanceof Date)return isNaN(v.getTime())?null:new Date(v.getTime());
+  var s=String(v).trim();
+  var iso=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(iso)return new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3]));
+  var p=s.split('.');
+  if(p.length<3)return null;
+  var d=new Date(Number(p[2]),Number(p[1])-1,Number(p[0]));
+  return isNaN(d.getTime())?null:d;
+}
+// data.js'teki businessDaysBetween ile birebir aynı mantık (hafta sonu +
+// sabit resmi tatiller + ayarlardaki özel tatiller hariç tutulur).
+function businessDaysBetween(fromDate,toDate,officialHolidays){
+  var from=parseSimpleDate(fromDate),to=parseSimpleDate(toDate);
+  if(!from||!to||to<=from)return 0;
+  from.setHours(0,0,0,0);to.setHours(0,0,0,0);
+  var fixedHolidays={'01-01':true,'04-23':true,'05-01':true,'05-19':true,'07-15':true,'08-30':true,'10-29':true};
+  var configured={};
+  (officialHolidays||[]).forEach(function(value){
+    var d=parseSimpleDate(value);
+    if(d)configured[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')]=true;
+  });
+  var count=0,current=new Date(from);
+  current.setDate(current.getDate()+1);
+  while(current<=to){
+    var day=current.getDay();
+    var monthDay=String(current.getMonth()+1).padStart(2,'0')+'-'+String(current.getDate()).padStart(2,'0');
+    var fullKey=current.getFullYear()+'-'+monthDay;
+    if(day>=1&&day<=5&&!fixedHolidays[monthDay]&&!configured[fullKey])count++;
+    current.setDate(current.getDate()+1);
+  }
+  return count;
+}
+
+// Sonucu girilmemiş numuneler için: gönderim tarihinden itibaren 7 iş günü
+// geçtiyse ve daha önce hatırlatma gönderilmediyse (reminderSent), aynı
+// alıcı listesiyle (firma + analiz merkezi + ilave adres) hatırlatma maili
+// gönderir. state.sd_samples üzerinde değişiklik varsa true döner.
+async function checkNumuneReminders(state,cfg){
+  var samples=state.sd_samples||[];
+  var companies=state.sd_co||[];
+  var now=trNow();
+  var changed=false;
+  var transporter=null;
+  for(var i=0;i<samples.length;i++){
+    var s=samples[i];
+    if(!s||s.result||s.reminderSent)continue;
+    var submitted=parseSimpleDate(s.tarih);
+    if(!submitted)continue;
+    var days=businessDaysBetween(submitted,now,cfg.officialHolidays);
+    if(days<7)continue;
+    if(!transporter){
+      var port=parseInt(cfg.smtpPort||process.env.SMTP_PORT||587,10);
+      transporter=nodemailer.createTransport({host:cfg.smtpHost||process.env.SMTP_HOST,port,secure:port===465,auth:{user:cfg.smtpUser||process.env.SMTP_USER,pass:cfg.smtpPass||process.env.SMTP_PASS},tls:{rejectUnauthorized:false}});
+    }
+    var co=companies.find(function(c){return c.id===s.firmaId;});
+    var ccList=[].concat((co&&co.aMails)||[],(cfg.labMails&&cfg.labMails[s.lab])||[]);
+    if(s.extraMail)ccList.push(s.extraMail);
+    ccList=ccList.filter(function(v,idx,arr){return v&&arr.indexOf(v)===idx;});
+    var html=buildNumuneReminderMailHTML(s,days);
+    var attachments=buildCidAttachments(['drama-makine-logo']);
+    try{
+      await transporter.sendMail({
+        from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||process.env.SMTP_FROM||cfg.smtpUser)+'>',
+        to:'barkin.kayaci@dramamakine.com',
+        subject:'ServisDrama - Numune Hatırlatma ('+s.id+' | '+s.firmAdi+')',
+        html:html,
+        ...(ccList.length>0&&{cc:ccList.join(',')}),
+        ...(attachments.length>0&&{attachments})
+      });
+      s.reminderSent=true;changed=true;
+    }catch(e){
+      console.error('Numune hatırlatma maili gönderilemedi:',s.id,e.message);
+    }
+  }
+  if(changed)state.sd_samples=samples;
+  return changed;
+}
+
+app.all('/api/daily-summary',async(req,res)=>{
+  try{
+    const state=await loadMainState(),cfg=state.sd_cfg||{},now=trNow();
+    const force=req.method==='POST'&&req.body?.force===true;
+    if(force){
+      const jwt=require('jsonwebtoken'),token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
+      let decoded;
+      try{decoded=jwt.verify(token,process.env.JWT_SECRET||'servisdrama-secret-key-change-in-production');}
+      catch(e){return res.status(401).json({error:'Yetkisiz istek'});}
+      if(String(decoded.username||'').toLowerCase()!=='barkin.kayaci')return res.status(403).json({error:'Bu işlem yalnızca Barkın Kayacı hesabına açıktır'});
+    }
+
+    // Numune hatırlatmaları, günlük ziyaret raporunun saat/durum kontrolünden
+    // bağımsız olarak her cron tetiklemesinde kontrol edilir.
+    const remindersChanged=await checkNumuneReminders(state,cfg);
+
+    const target=cfg.dailySummaryTime||'18:00',today=now.toISOString().slice(0,10),nowMin=now.getHours()*60+now.getMinutes();
+    const tp=target.split(':').map(Number),targetMin=(tp[0]||0)*60+(tp[1]||0),due=nowMin>=targetMin;
+    if(!force&&(!cfg.dailySummaryEnabled||!due||cfg.dailySummaryLastSent===today)){
+      if(remindersChanged)await persistState(state);
+      return res.json({success:true,skipped:true,reason:'not-due',reminders:remindersChanged});
+    }
+
+    const to=(cfg.dailySummaryTo||[]),cc=(cfg.dailySummaryCc||[]);
+    if(!to.length)return res.status(400).json({error:'Gün özeti TO alıcısı tanımlı değil'});
+    const port=parseInt(cfg.smtpPort||process.env.SMTP_PORT||587,10);
+    const transporter=nodemailer.createTransport({host:cfg.smtpHost||process.env.SMTP_HOST,port,secure:port===465,auth:{user:cfg.smtpUser||process.env.SMTP_USER,pass:cfg.smtpPass||process.env.SMTP_PASS},tls:{rejectUnauthorized:false}});
+    const html=buildOutlookRaporHTML({SD:stateToReportSD(state),DT:REPORT_DT,BL:REPORT_BL,today:now});
+    const attachments=buildCidAttachments(['drama-makine-logo','icon-star','servisdrama-calendar-white']);
+    await transporter.sendMail({from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||process.env.SMTP_FROM||cfg.smtpUser)+'>',to:to.join(','),cc:cc.join(','),subject:'ServisDrama - Günlük Ziyaret Raporu ('+String(now.getDate()).padStart(2,'0')+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+now.getFullYear()+')',html,...(attachments.length>0&&{attachments})});
+    cfg.dailySummaryLastSent=today;state.sd_cfg=cfg;
+    await persistState(state);
+    res.json({success:true,to,cc,reminders:remindersChanged});
+  }catch(e){
+    res.status(500).json({error:'Gün özeti gönderilemedi',details:e.message});
+  }
+});
 
 // Error handling
 app.use((err, req, res, next) => {

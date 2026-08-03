@@ -638,6 +638,7 @@ textarea.inp{resize:vertical;line-height:1.6;}
   display:flex;align-items:flex-start;gap:12px;
   background:var(--red-l);border:1.5px solid var(--red-m);border-radius:var(--r-xl);
   padding:12px 16px;cursor:pointer;transition:all var(--tr);user-select:none;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .miss-item:hover{background:var(--red-m);transform:translateX(2px);}
 .miss-item.ok{background:var(--green-l);border-color:var(--green-m);}

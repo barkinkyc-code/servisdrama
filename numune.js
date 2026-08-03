@@ -3,8 +3,12 @@
    Manuel firma girişi, otomatik mail desteği
    ================================================================ */
 var ST_KEY='sd_samples';
-function stLoad(){try{return JSON.parse(localStorage.getItem(ST_KEY)||'[]');}catch(e){return[];}}
-function stSave(v){try{localStorage.setItem(ST_KEY,JSON.stringify(v));}catch(e){}}
+/* SD.save/SD.load üzerinden gider — böylece diğer tüm ortak veriler (firma,
+   ziyaret vb.) gibi sunucuya senkronize edilir. Önceden doğrudan localStorage'a
+   yazılıyordu; bu da sayfa yenilenip uzak veri çekilince yeni eklenen
+   numunelerin üzerine eski sunucu kaydının yazılıp kaybolmasına yol açıyordu. */
+function stLoad(){return SD.load(ST_KEY,[]);}
+function stSave(v){SD.save(ST_KEY,v);}
 function stGenId(){var d=new Date();return'ST-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);}
 
 /* Tag input */
@@ -48,7 +52,10 @@ function renderSamples(){
     if(!q)return true;
     return(s.firmAdi||'').toLocaleLowerCase('tr').indexOf(q)>=0||(s.lab||'').toLocaleLowerCase('tr').indexOf(q)>=0||(s.id||'').toLowerCase().indexOf(q)>=0;
   }).sort(function(a,b){return(b.ts||0)-(a.ts||0);});
-  if(empty)empty.classList.toggle('hidden',filtered.length>0);
+  if(empty){
+    empty.classList.toggle('hidden',filtered.length>0);
+    empty.textContent=(list.length>0&&filtered.length===0)?'Aramanızla eşleşen numune bulunamadı. Aramayı temizleyin.':'Numune kaydı bulunamadı.';
+  }
 
   filtered.forEach(function(s){
     var card=document.createElement('div');card.className='st-card';
@@ -73,7 +80,15 @@ function renderSamples(){
       rd.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tamamlandı';
       acts.appendChild(rd);
     }
-    var db=document.createElement('button');db.className='btn-icon red';
+    var vb=document.createElement('button');vb.className='btn-icon';vb.title='Detay';
+    vb.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    (function(sid){vb.addEventListener('click',function(){openSampleDetail(sid);});})(s.id);
+    acts.appendChild(vb);
+    var eb=document.createElement('button');eb.className='btn-icon';eb.title='Düzenle';
+    eb.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    (function(sid){eb.addEventListener('click',function(){openStModal(sid);});})(s.id);
+    acts.appendChild(eb);
+    var db=document.createElement('button');db.className='btn-icon red';db.title='Sil';
     db.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>';
     (function(sid){db.addEventListener('click',function(){if(!confirm('Numune kaydı silinecek?'))return;stSave(stLoad().filter(function(x){return x.id!==sid;}));renderSamples();if(typeof updateBadges==='function')updateBadges();UI.toast('Silindi.','success');});})(s.id);
     acts.appendChild(db);
@@ -82,19 +97,94 @@ function renderSamples(){
   });
 }
 
+/* ── Numune detay görünümü ── */
+function openSampleDetail(id){
+  var s=stLoad().find(function(x){return x.id===id;});
+  var body=document.getElementById('stDetailBody');if(!s||!body)return;
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function row(label,value){return '<div style="display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);"><div style="width:150px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--text3);">'+esc(label)+'</div><div style="font-size:13.5px;font-weight:600;color:var(--text);">'+(value||'—')+'</div></div>';}
+  var mails=[].concat((SD.companies.find(function(c){return c.id===s.firmaId;})||{}).aMails||[],labMailsFor(s.lab));
+  if(s.extraMail)mails.push(s.extraMail);
+  mails=mails.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+  body.innerHTML=''
+    +row('Takip No',esc(s.id))
+    +row('Firma',esc(s.firmAdi))
+    +row('Analiz Merkezi',esc(s.lab))
+    +row('Ekipmanlar',(s.ekipmanlar||[]).map(esc).join(', '))
+    +row('Ürün/Numuneler',(s.urunler||[]).map(esc).join(', '))
+    +row('Gönderim Tarihi',esc(s.tarih))
+    +row('Not',esc(s.not))
+    +row('Sonuç',s.result?('<span style="color:var(--green);font-weight:800;">'+esc(s.result)+'</span>'):'<span style="color:var(--muted);">Bekliyor</span>')
+    +row('Bildirim Alıcıları',mails.length?mails.map(esc).join(', '):'barkin.kayaci@dramamakine.com');
+  UI.openModal('stDetailModal');
+}
+
+/* Analiz merkezi başına kayıtlı mail adresleri — SD.config içinde saklanır (cfg.labMails) */
+function labMailsFor(lab){var cfg=SD.config;return(cfg.labMails&&cfg.labMails[lab])?cfg.labMails[lab].slice():[];}
+function saveLabMails(lab,arr){if(!lab)return;var cfg=SD.config;cfg.labMails=cfg.labMails||{};cfg.labMails[lab]=arr.slice();SD.config=cfg;}
+
+/* Analiz merkezi mail chip'leri: ekipman/ürün etiketleriyle aynı görünüm, ama
+   e-posta büyük harfe çevrilmez ve her ekleme/silmede o merkez için kaydedilir. */
+function renderLabMailChips(){
+  var chips=document.getElementById('stLabMailChips'),inp=document.getElementById('stLabMailInp');
+  if(!chips||!inp)return;
+  chips.querySelectorAll('.tag-chip').forEach(function(c){c.remove();});
+  _stLabMail.forEach(function(v,i){
+    var c=document.createElement('span');c.className='tag-chip';
+    c.appendChild(document.createTextNode(v));
+    var x=document.createElement('button');x.className='tag-chip-x';x.textContent='×';
+    x.addEventListener('click',function(){_stLabMail.splice(i,1);saveLabMails(_stLabCurrent,_stLabMail);renderLabMailChips();});
+    c.appendChild(x);chips.insertBefore(c,inp);
+  });
+}
+function initLabMailInput(){
+  var inp=document.getElementById('stLabMailInp');if(!inp)return;
+  if(inp._stLabH)inp.removeEventListener('keydown',inp._stLabH);
+  inp._stLabH=function(e){
+    if((e.key==='Enter'||e.key===',')&&inp.value.trim()){
+      e.preventDefault();var v=inp.value.trim().replace(/,$/,'');
+      if(v&&/^\S+@\S+\.\S+$/.test(v)&&_stLabMail.indexOf(v)<0){_stLabMail.push(v);saveLabMails(_stLabCurrent,_stLabMail);renderLabMailChips();inp.value='';}
+      else if(v)UI.toast('Geçerli bir e-posta adresi girin.','error');
+    }
+    if(e.key==='Backspace'&&!inp.value&&_stLabMail.length){_stLabMail.pop();saveLabMails(_stLabCurrent,_stLabMail);renderLabMailChips();}
+  };
+  inp.addEventListener('keydown',inp._stLabH);
+  renderLabMailChips();
+}
+function onLabChange(){
+  var sel=document.getElementById('stLab'),grp=document.getElementById('stLabMailGrp');
+  var lab=sel?sel.value.trim().toUpperCase():'';
+  _stLabCurrent=lab;
+  if(!grp)return;
+  if(!lab){grp.style.display='none';_stLabMail.length=0;return;}
+  grp.style.display='';
+  _stLabMail=labMailsFor(lab);
+  initLabMailInput();
+}
+
 /* ── Modal değişkenleri ── */
 var _stEk=[],_stUr=[],_stFId='',_stFAdi='';
+var _stLabMail=[],_stLabCurrent='';
 var _stEkRender,_stUrRender,_stAutoCompleteListener,_stModalOpen=false;
+var _stEditId=null;
 
-function openStModal(){
+function openStModal(editId){
   if(_stModalOpen)return;
   _stModalOpen=true;
+  _stEditId=editId||null;
+  var rec=_stEditId?stLoad().find(function(x){return x.id===_stEditId;}):null;
   UI.openModal('stModal');
+
+  var title=document.getElementById('stModalTitle');if(title)title.textContent=rec?'Numuneyi Düzenle':'Yeni Numune Ekle';
+  var lbl=document.getElementById('stSaveBtnLabel');if(lbl)lbl.textContent=rec?'Güncelle':'Kaydet & Bildir';
 
   /* Form reset'i hemen yap */
   (function(){
-    _stEk.length=0;_stUr.length=0;_stFId='';_stFAdi='';
+    _stEk.length=0;_stUr.length=0;_stFId='';_stFAdi='';_stLabMail.length=0;_stLabCurrent='';
     ['stFirmaInp','stLab','stNot','stExtraMail'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+    var labMailGrp=document.getElementById('stLabMailGrp');if(labMailGrp)labMailGrp.style.display='none';
+    var lsel=document.getElementById('stLab');
+    if(lsel){if(lsel._stLabChangeH)lsel.removeEventListener('change',lsel._stLabChangeH);lsel._stLabChangeH=onLabChange;lsel.addEventListener('change',onLabChange);}
     var td=document.getElementById('stTarih');
     if(td){var d=new Date();td.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
     var fs=document.getElementById('stFirmaSelected');if(fs)fs.textContent='—';
@@ -102,6 +192,22 @@ function openStModal(){
     /* Chips temizle */
     var ekc=document.getElementById('stEkipmanChips');if(ekc)ekc.querySelectorAll('.tag-chip').forEach(function(c){c.remove();});
     var urc=document.getElementById('stUrunChips');if(urc)urc.querySelectorAll('.tag-chip').forEach(function(c){c.remove();});
+
+    /* Düzenleme modu: mevcut kaydı forma yükle */
+    if(rec){
+      _stFId=rec.firmaId||'';_stFAdi=rec.firmAdi||'';
+      _stEk.push.apply(_stEk,rec.ekipmanlar||[]);
+      _stUr.push.apply(_stUr,rec.urunler||[]);
+      var fInp2=document.getElementById('stFirmaInp');if(fInp2)fInp2.value=rec.firmAdi||'';
+      if(fs)fs.textContent=rec.firmAdi||'—';
+      if(fsi)fsi.value=rec.firmaId||'';
+      if(lsel)lsel.value=rec.lab||'';
+      if(td&&rec.tarih)td.value=rec.tarih;
+      var ntEl=document.getElementById('stNot');if(ntEl)ntEl.value=rec.not||'';
+      var emEl=document.getElementById('stExtraMail');if(emEl)emEl.value=rec.extraMail||'';
+      onLabChange();
+    }
+
     /* Tag inputs */
     _stEkRender=initTagInput('stEkipmanChips','stEkipmanInp',_stEk);
     _stUrRender=initTagInput('stUrunChips','stUrunInp',_stUr);
@@ -164,9 +270,14 @@ function openStModal(){
 function saveNumune(){
   _stModalOpen=false;
   /* Pending tag inputs flush */
-  var ei=document.getElementById('stEkipmanInp'),ui=document.getElementById('stUrunInp');
+  var ei=document.getElementById('stEkipmanInp'),ui=document.getElementById('stUrunInp'),lmi=document.getElementById('stLabMailInp');
   if(ei&&ei.value.trim()){_stEk.push(ei.value.trim().toUpperCase());ei.value='';}
   if(ui&&ui.value.trim()){_stUr.push(ui.value.trim().toUpperCase());ui.value='';}
+  if(lmi&&lmi.value.trim()){
+    var lv=lmi.value.trim().replace(/,$/,'');
+    if(/^\S+@\S+\.\S+$/.test(lv)&&_stLabMail.indexOf(lv)<0){_stLabMail.push(lv);saveLabMails(_stLabCurrent,_stLabMail);}
+    lmi.value='';
+  }
   /* Chips güncelle */
   var ekc=document.getElementById('stEkipmanChips');
   if(ekc){
@@ -203,68 +314,64 @@ function saveNumune(){
   if(_stEk.length===0){UI.toast('En az bir ekipman girin.','error');return;}
   if(_stUr.length===0){UI.toast('En az bir ürün/numune girin.','error');return;}
 
-  var co=_stFId?SD.companies.find(function(c){return c.id===_stFId;}):null;
+  var editingId=_stEditId,existing=editingId?stLoad().find(function(x){return x.id===editingId;}):null;
   var rec={
-    id:stGenId(),firmaId:_stFId,firmAdi:_stFAdi,lab:lab.toUpperCase(),
+    id:existing?existing.id:stGenId(),firmaId:_stFId,firmAdi:_stFAdi,lab:lab.toUpperCase(),
     ekipmanlar:_stEk.slice(),urunler:_stUr.slice(),
     tarih:(document.getElementById('stTarih')||{}).value||'',
     not:(document.getElementById('stNot')||{}).value||'',
     extraMail:(document.getElementById('stExtraMail')||{}).value||'',
-    result:'',ts:Date.now()
+    result:existing?(existing.result||''):'',
+    reminderSent:existing?!!existing.reminderSent:false,
+    ts:existing?existing.ts:Date.now()
   };
-  var all=stLoad();all.unshift(rec);stSave(all);
+  var all=stLoad();
+  if(existing)all=all.map(function(x){return x.id===rec.id?rec:x;});
+  else all.unshift(rec);
+  stSave(all);
+  _stEditId=null;
 
-  /* Mail gönder */
-  var cfg=SD.config,to=(cfg.mailAlicilar||[]).join(',');
-  var coMails=co&&co.aMails?co.aMails.join(','):'';
-  if(coMails)to=to?to+','+coMails:coMails;
-  if(rec.extraMail)to=to?to+','+rec.extraMail:rec.extraMail;
-  if(!to&&cfg.reportTo)to=cfg.reportTo;
-
-  /* HTML mail oluştur ve aç */
-  var html=buildNumuneMailHTML(rec);
-  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.click();
-  setTimeout(function(){URL.revokeObjectURL(url);},15000);
-
-  if(to){
-    var NL='\n';
-    var body=['SERVİSDRAMA — YENİ NUMUNE BİLDİRİMİ','='.repeat(36),'Takip No  : '+rec.id,'Firma     : '+rec.firmAdi,'Lab       : '+rec.lab,'Ekipman   : '+rec.ekipmanlar.join(', '),'Ürün      : '+rec.urunler.join(', '),'Tarih     : '+rec.tarih].join(NL);
-    setTimeout(function(){
-      window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent('ServisDrama Numune | '+rec.id+' | '+rec.firmAdi)+'&body='+encodeURIComponent(body);
-    },800);
-  }
-
+  /* Kayıt onayı (modal kapama, liste yenileme, toast) her zaman burada
+     tamamlanır — aşağıdaki mail gönderimi başarısız olsa/hata fırlatsa bile
+     kullanıcı kaydın yapıldığını görür. */
   UI.closeModal('stModal');renderSamples();
   if(typeof updateBadges==='function')updateBadges();
-  UI.toast('Numune kaydedildi: '+rec.id,'success');
-}
+  UI.toast(existing?('Numune güncellendi: '+rec.id):('Numune kaydedildi: '+rec.id),'success');
+  if(existing)return;
 
-function buildNumuneMailHTML(rec){
-  var d=new Date();
-  return'<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Numune Bildirimi</title></head>'
-    +'<body style="margin:0;padding:0;background:#f3f6fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">'
-    +'<div style="max-width:700px;margin:24px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.12);">'
-    +'<div style="background:linear-gradient(135deg,#102B50,#1565D8);padding:32px 28px;display:flex;align-items:center;gap:16px;">'
-    +'<div style="width:50px;height:50px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src="assets/email/servisdrama/drama-makine-logo.png" style="width:40px;height:40px;object-fit:contain;"></div>'
-    +'<div style="flex:1;color:#fff;"><div style="font-size:11px;font-weight:700;letter-spacing:1.3px;opacity:.9;margin-bottom:2px;">SERVISDRAMA</div>'
-    +'<h1 style="margin:0;font-size:22px;font-weight:800;line-height:1.2;">✏️ Yeni Numune Bildirimi</h1></div>'
-    +'<div style="background:rgba(0,0,0,.15);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap;">'+rec.id+'</div>'
-    +'</div>'
-    +'<div style="padding:32px 28px;">'
-    +'<table style="width:100%;border-collapse:collapse;">'
-    +[['FİRMA',rec.firmAdi],['LABORATUVAR',rec.lab],['EKİPMAN',rec.ekipmanlar.join(', ')],['ÜRÜN/NUMUNE',rec.urunler.join(', ')],['GÖNDERİM TARİHİ',rec.tarih||DT.ddmmyyyy(d)],rec.not?['NOT',rec.not]:null]
-    .filter(Boolean).map(function(r){return'<tr><td style="padding:14px 0;font-size:13px;font-weight:700;color:#9ca3af;letter-spacing:.05em;border-bottom:1px solid #f0f0f0;width:160px;">'+r[0]+'</td>'
-    +'<td style="padding:14px 0 14px 20px;font-size:14px;font-weight:600;color:#1e293b;border-bottom:1px solid #f0f0f0;">'+r[1]+'</td></tr>';}).join('')
-    +'</table>'
-    +'<div style="background:#dbeafe;border:1.5px solid #93c5fd;border-radius:12px;padding:16px;margin-top:24px;">'
-    +'<div style="font-size:13px;font-weight:700;color:#0754b8;margin-bottom:4px;">📌 Analiz Sonucu Beklenilmektedir</div>'
-    +'<div style="font-size:13px;color:#1565d8;">Sonuç geldiğinde ServisDrama sisteminden işaretleyiniz.</div></div>'
-    +'</div>'
-    +'<div style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 28px;text-align:center;font-size:12px;color:#6b7280;">'
-    +'ServisDrama · Drama Makine ve Otomotiv · '+DT.ddmmyyyy(d)
-    +'</div></div></body></html>';
+  /* Mail gönder — otomatik (günlük rapor ile aynı sunucu/SMTP akışı ve tasarımı).
+     Alıcılar: sabit barkin.kayaci + firmanın kayıtlı analiz e-postaları (co.aMails)
+     + seçilen analiz merkezi için kayıtlı e-postalar (cfg.labMails) + varsa ilave adres. */
+  try{
+    var cfg=SD.config;
+    var co=_stFId?SD.companies.find(function(c){return c.id===_stFId;}):null;
+    var ccList=[].concat(co&&co.aMails?co.aMails:[],labMailsFor(rec.lab));
+    if(rec.extraMail)ccList.push(rec.extraMail);
+    ccList=ccList.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+    var html=buildNumuneMailHTML(rec);
+    fetch('/api/send-test-mail',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to:'barkin.kayaci@dramamakine.com',
+        cc:ccList.join(','),
+        subject:'ServisDrama - Yeni Numune Bildirimi ('+rec.id+' | '+rec.firmAdi+')',
+        html:html,
+        smtpHost:cfg.smtpHost||'',
+        smtpPort:cfg.smtpPort||'',
+        smtpUser:cfg.smtpUser||'',
+        smtpPass:cfg.smtpPass||'',
+        smtpTls:cfg.smtpTls||'tls',
+        from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||'servis@dramamakine.com')+'>',
+        attachmentNames:['drama-makine-logo']
+      })
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){if(!d.success)console.warn('Numune maili gönderilemedi:',d.error);})
+    .catch(function(e){console.error('Numune mail hatası:',e);});
+  }catch(e){
+    console.error('Numune maili hazırlanamadı:',e);
+  }
 }
 
 var _stRId='';

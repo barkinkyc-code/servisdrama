@@ -6,7 +6,7 @@
 <title>ServisDrama — Yönetici</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="style.css?v=20260731v20-hamburger">
+<link rel="stylesheet" href="style.css?v=20260803-sync-fix">
 </head>
 <body class="admin-body">
 
@@ -354,7 +354,7 @@
       <div class="st-logo"><img src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama"></div>
       <div class="st-header-text">
         <div class="st-label">SERVISDRAMA</div>
-        <h2>Yeni Numune Ekle</h2>
+        <h2 id="stModalTitle">Yeni Numune Ekle</h2>
       </div>
       <button class="modal-x" id="stModalClose" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;transition:color 0.2s;padding:4px 8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
@@ -375,6 +375,10 @@
           <option>PETROYAĞ</option><option>VISCOL</option>
         </select>
       </div>
+      <div class="form-grp" id="stLabMailGrp" style="display:none;">
+        <label class="form-lbl">Analiz Merkezi Mail Adresleri <small style="text-transform:none;font-weight:400;">(Enter ile ekle — kayıtlıysa bir sonraki seçimde otomatik gelir)</small></label>
+        <div class="tag-wrap"><div class="tag-inner" id="stLabMailChips"><input class="tag-raw" type="email" id="stLabMailInp" placeholder="mail@analizmerkezi.com — Enter"></div></div>
+      </div>
       <div class="form-grp">
         <label class="form-lbl">Ekipman Adları * <small style="text-transform:none;font-weight:400;">(Enter ile ekle)</small></label>
         <div class="tag-wrap"><div class="tag-inner" id="stEkipmanChips"><input class="tag-raw" id="stEkipmanInp" placeholder="ör: CNC 1 — Enter"></div></div>
@@ -389,7 +393,16 @@
       </div>
       <div class="form-grp"><label class="form-lbl">İlave Bildirim E-postası</label><input class="inp st-uppercase" type="email" id="stExtraMail" placeholder="ornek@firma.com"><div class="form-hint">Firma analiz e-postaları otomatik eklenir. Buraya ek adres girin.</div></div>
     </div>
-    <div class="modal-ft"><button class="btn btn-ghost" id="stModalCancel">İptal</button><button class="btn btn-primary" id="stSaveBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg>Kaydet &amp; Bildir</button></div>
+    <div class="modal-ft"><button class="btn btn-ghost" id="stModalCancel">İptal</button><button class="btn btn-primary" id="stSaveBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg><span id="stSaveBtnLabel">Kaydet &amp; Bildir</span></button></div>
+  </div>
+</div>
+
+<!-- Numune Detay -->
+<div class="overlay hidden" id="stDetailModal">
+  <div class="modal">
+    <div class="modal-hd"><h2>Numune Detayı</h2><button class="modal-x" onclick="UI.closeModal('stDetailModal')">×</button></div>
+    <div class="modal-body" id="stDetailBody"></div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('stDetailModal')">Kapat</button></div>
   </div>
 </div>
 
@@ -530,13 +543,13 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="data.js"></script>
-<script src="companies.js"></script>
-<script src="email-template.js"></script>
+<script src="data.js?v=20260803-sync-fix"></script>
+<script src="companies.js?v=20260803-sync-fix"></script>
+<script src="email-template.js?v=20260803-sync-fix"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="admin.js?v=20260802-weekly-report-v2"></script>
-<script src="numune.js"></script>
+<script src="admin.js?v=20260803-sync-fix"></script>
+<script src="numune.js?v=20260803-sync-fix"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="enhancements.js?v=20260731v19"></script>
+<script src="enhancements.js?v=20260803-sync-fix"></script>
 </body>
 </html>

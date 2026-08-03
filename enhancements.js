@@ -161,9 +161,16 @@
     },0);
   };
 
-  /* Mobil pull-to-refresh */
+  /* Mobil pull-to-refresh — açık bir modal varken (ör. Ziyaret Edilmeyenler listesi)
+     devre dışı: aksi halde modal içinde dokunurken oluşan ufak dikey hareket
+     "aşağı çekme" sanılıp sayfayı yeniden yüklüyor, modal kapanmış gibi görünüyordu. */
   var startY=0,pulling=false,indicator;
-  document.addEventListener('touchstart',function(e){if(window.scrollY===0&&e.touches.length===1){startY=e.touches[0].clientY;pulling=true;}},{passive:true});
+  function anyModalOpen(e){
+    if(document.querySelector('.overlay:not(.hidden)'))return true;
+    var t=e&&e.target;
+    return !!(t&&t.closest&&t.closest('.overlay,.modal'));
+  }
+  document.addEventListener('touchstart',function(e){if(window.scrollY===0&&e.touches.length===1&&!anyModalOpen(e)){startY=e.touches[0].clientY;pulling=true;}},{passive:true});
   document.addEventListener('touchmove',function(e){if(!pulling)return;var dy=e.touches[0].clientY-startY;if(dy>55){if(!indicator){indicator=document.createElement('div');indicator.className='pull-refresh';indicator.textContent='↓ Yenilemek için bırak';document.body.appendChild(indicator);}indicator.classList.add('show');}},{passive:true});
   document.addEventListener('touchend',function(e){if(!pulling)return;pulling=false;if(indicator&&indicator.classList.contains('show')){indicator.textContent='↻ Yenileniyor...';location.reload();}else if(indicator)indicator.remove();indicator=null;},{passive:true});
 

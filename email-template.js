@@ -145,6 +145,53 @@
       +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
   }
 
+  /* Numune bildirimi — günlük rapor ile AYNI kabuk (logo, koyu mavi başlık,
+     Outlook-safe tablo düzeni), sadece içerik numune alanlarına göre değişir. */
+  function buildNumuneMailHTML(rec){
+    var d=new Date(),reportDate=trDate(d);
+    var rows=[['FİRMA',rec.firmAdi],['LABORATUVAR',rec.lab],['EKİPMAN',(rec.ekipmanlar||[]).join(', ')],['ÜRÜN/NUMUNE',(rec.urunler||[]).join(', ')],['GÖNDERİM TARİHİ',rec.tarih||reportDate]];
+    if(rec.not)rows.push(['NOT',rec.not]);
+    var infoRows=rows.map(function(r){
+      return '<tr><td style="padding:12px 16px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#8592a6;width:170px;white-space:nowrap;">'+esc(r[0])+'</td>'
+        +'<td style="padding:12px 16px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#13233f;">'+esc(r[1]||'—')+'</td></tr>';
+    }).join('');
+    return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>ServisDrama Numune Bildirimi</title>'
+      +'<!--[if mso]><style>table,td,p,a,h1{font-family:Arial,Helvetica,sans-serif!important}</style><![endif]--><style>table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse}img{border:0;outline:none;text-decoration:none;display:block}@media only screen and (max-width:600px){.shell{width:100%!important}.pad{padding-left:18px!important;padding-right:18px!important}.hero-title{font-size:26px!important;line-height:32px!important}}</style></head>'
+      +'<body style="margin:0;padding:0;background-color:#f3f6fa;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;"><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">'+esc(rec.firmAdi)+' için yeni numune kaydı — '+esc(reportDate)+'.</div>'
+      +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fa"><tr><td align="center" style="padding:24px 10px;">'
+      +'<!--[if mso]><table role="presentation" width="680"><tr><td><![endif]--><table role="presentation" class="shell" width="680" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:680px;max-width:680px;background-color:#ffffff;border:1px solid #dbe3ec;">'
+      +'<tr><td class="pad" style="padding:18px 30px;"><table role="presentation" width="100%"><tr><td width="185" valign="middle"><img src="cid:drama-makine-logo" width="158" height="58" alt="Drama Makine" style="display:block;width:158px;height:58px;object-fit:contain;"></td><td valign="middle" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:15px;letter-spacing:1.3px;font-weight:bold;color:#13233f;border:1px solid #13233f;padding:10px 13px;white-space:nowrap;">NUMUNE BİLDİRİMİ</td></tr></table></td></tr></table></td></tr>'
+      +'<tr><td class="pad" bgcolor="#102b50" style="padding:34px 30px;background-color:#102b50;"><table role="presentation" width="100%"><tr><td valign="middle"><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;letter-spacing:2px;font-weight:bold;color:#42a1ff;">SERVİSDRAMA</div><h1 class="hero-title" style="margin:8px 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:40px;color:#ffffff;">Yeni Numune Bildirimi</h1><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#d8e5f3;">Takip No: '+esc(rec.id)+'</div></td></tr></table></td></tr>'
+      +'<tr><td class="pad" style="padding:26px 30px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dbe3ec;">'+infoRows+'</table></td></tr>'
+      +'<tr><td class="pad" style="padding:14px 30px 26px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eff6ff" style="background-color:#eff6ff;border:1px solid #bfdbfe;"><tr><td style="padding:16px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:13px;line-height:19px;font-weight:bold;color:#1565d8;">Analiz Sonucu Bekleniyor</div><div style="font-size:13px;line-height:19px;color:#3b6fa8;margin-top:3px;">Sonuç geldiğinde ServisDrama sisteminden işaretleyin.</div></td></tr></table></td></tr>'
+      +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Numune Takip • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
+      +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
+  }
+
+  /* Numune hatırlatma — aynı kabuk, turuncu/kırmızı vurgu ile "sonuç hâlâ gelmedi" uyarısı. */
+  function buildNumuneReminderMailHTML(rec,days){
+    var d=new Date(),reportDate=trDate(d);
+    var rows=[['FİRMA',rec.firmAdi],['LABORATUVAR',rec.lab],['EKİPMAN',(rec.ekipmanlar||[]).join(', ')],['ÜRÜN/NUMUNE',(rec.urunler||[]).join(', ')],['GÖNDERİM TARİHİ',rec.tarih||reportDate]];
+    if(rec.not)rows.push(['NOT',rec.not]);
+    var infoRows=rows.map(function(r){
+      return '<tr><td style="padding:12px 16px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#8592a6;width:170px;white-space:nowrap;">'+esc(r[0])+'</td>'
+        +'<td style="padding:12px 16px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#13233f;">'+esc(r[1]||'—')+'</td></tr>';
+    }).join('');
+    return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>ServisDrama Numune Hatırlatma</title>'
+      +'<!--[if mso]><style>table,td,p,a,h1{font-family:Arial,Helvetica,sans-serif!important}</style><![endif]--><style>table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse}img{border:0;outline:none;text-decoration:none;display:block}@media only screen and (max-width:600px){.shell{width:100%!important}.pad{padding-left:18px!important;padding-right:18px!important}.hero-title{font-size:26px!important;line-height:32px!important}}</style></head>'
+      +'<body style="margin:0;padding:0;background-color:#f3f6fa;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;"><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">'+esc(rec.firmAdi)+' numunesi '+days+' iş günüdür sonuçlanmadı.</div>'
+      +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fa"><tr><td align="center" style="padding:24px 10px;">'
+      +'<!--[if mso]><table role="presentation" width="680"><tr><td><![endif]--><table role="presentation" class="shell" width="680" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:680px;max-width:680px;background-color:#ffffff;border:1px solid #dbe3ec;">'
+      +'<tr><td class="pad" style="padding:18px 30px;"><table role="presentation" width="100%"><tr><td width="185" valign="middle"><img src="cid:drama-makine-logo" width="158" height="58" alt="Drama Makine" style="display:block;width:158px;height:58px;object-fit:contain;"></td><td valign="middle" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:15px;letter-spacing:1.3px;font-weight:bold;color:#8a3b00;border:1px solid #8a3b00;padding:10px 13px;white-space:nowrap;">NUMUNE HATIRLATMA</td></tr></table></td></tr></table></td></tr>'
+      +'<tr><td class="pad" bgcolor="#7a2e00" style="padding:34px 30px;background-color:#7a2e00;"><table role="presentation" width="100%"><tr><td valign="middle"><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;letter-spacing:2px;font-weight:bold;color:#ffb27a;">SERVİSDRAMA</div><h1 class="hero-title" style="margin:8px 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:40px;color:#ffffff;">Numune Sonucu Bekleniyor</h1><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#ffe3cc;">Takip No: '+esc(rec.id)+' • '+days+' iş günüdür sonuç girilmedi</div></td></tr></table></td></tr>'
+      +'<tr><td class="pad" style="padding:26px 30px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dbe3ec;">'+infoRows+'</table></td></tr>'
+      +'<tr><td class="pad" style="padding:14px 30px 26px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fff7ed" style="background-color:#fff7ed;border:1px solid #fdba74;"><tr><td style="padding:16px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:13px;line-height:19px;font-weight:bold;color:#9a3412;">Bu numune henüz sonuçlanmadı</div><div style="font-size:13px;line-height:19px;color:#b45309;margin-top:3px;">Analiz merkeziyle takip edip sonucu ServisDrama sisteminden işaretleyin.</div></td></tr></table></td></tr>'
+      +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Numune Takip • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
+      +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
+  }
+
   global.buildOutlookRaporHTML=buildOutlookRaporHTML;
-  if(typeof module!=='undefined'&&module.exports)module.exports={buildOutlookRaporHTML:buildOutlookRaporHTML};
+  global.buildNumuneMailHTML=buildNumuneMailHTML;
+  global.buildNumuneReminderMailHTML=buildNumuneReminderMailHTML;
+  if(typeof module!=='undefined'&&module.exports)module.exports={buildOutlookRaporHTML:buildOutlookRaporHTML,buildNumuneMailHTML:buildNumuneMailHTML,buildNumuneReminderMailHTML:buildNumuneReminderMailHTML};
 })(typeof window!=='undefined'?window:global);
