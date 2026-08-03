@@ -603,7 +603,7 @@ function saveExtraVisit(){
   var dateStr=DT.ddmmyyyy(new Date());
   var timeStr=DT.hhii(new Date());
   var extraCo=A.extraFirmaId?SD.companies.find(function(c){return c.id===A.extraFirmaId;}):null;
-  var ac=SD.actingTech(extraCo),n=new Date();
+  var ac=SD.actingTech(extraCo)||(SD.technicians||[])[0]||null,n=new Date();
 
   /* Girilen tarih için hafta hesapla, yoksa bugünün haftası */
   var visitDate=n;
@@ -1560,7 +1560,7 @@ function renderExtraVisits(){
 
     var info=document.createElement('div');
     info.innerHTML='<div style="font-weight:700;color:#111827;font-size:14px;">'+ex.firmAdi+'</div>'
-      +'<div style="font-size:12px;color:#6b7280;margin-top:4px;">📅 '+ex.date+(ex.saat?' 🕐 '+ex.saat:'')+' | Teknisyen: '+ex.tc+'</div>'
+      +'<div style="font-size:12px;color:#6b7280;margin-top:4px;">📅 '+ex.date+(ex.saat?' 🕐 '+ex.saat:'')+' | Teknisyen: '+(ex.techCode||'—')+'</div>'
       +(ex.not?'<div style="font-size:12px;color:#666;margin-top:6px;">💬 '+ex.not+'</div>':'');
     card.appendChild(info);
 
