@@ -644,10 +644,94 @@ function renderNumunePage(){
 
 function renderIstatistikPage(){
   var tech=SD.activeTech();
-  var myFirms=SD.companies.filter(function(c){return c.techId===tech.id;});
-  var visObjs=SD.visits||{};
-  var myVis=Object.keys(visObjs).length;
+  var cos=SD.companies,vis=SD.visits||{};
+  var myFirms=cos.filter(function(c){return c.techId===tech.id;});
+  var today=new Date();
+  var weeks=DT.monthWeeks(today.getFullYear(),today.getMonth());
+  var cwk=DT.wkey(today);
+  var cwi=weeks.findIndex(function(m){return m.getTime()===DT.monday(today).getTime();})+1;
+
+  var ttl=document.getElementById('istatTitle');
+  if(ttl) ttl.textContent='📈 İstatistiklerim — '+tech.name+' ('+tech.code+')';
+
+  /* Bu hafta tamamlanan (yalnızca bu teknisyenin firmaları) */
+  var thisWD=0;
+  myFirms.forEach(function(c){
+    if(BL.scheduled(c,cwi)&&vis[c.id+'_'+cwk]&&vis[c.id+'_'+cwk].status==='done')thisWD++;
+  });
+
+  /* Bu ay planlanan / tamamlanan (yalnızca bu teknisyenin firmaları) */
+  var totS=0,totD=0;
+  weeks.forEach(function(wm,i){
+    var wk=DT.wkey(wm);
+    myFirms.forEach(function(c){
+      if(BL.scheduled(c,i+1)){
+        totS++;
+        if(vis[c.id+'_'+wk]&&vis[c.id+'_'+wk].status==='done')totD++;
+      }
+    });
+  });
+  var pct=totS?Math.round(totD/totS*100):0;
+
+  /* Toplam ziyaret — tüm zamanlar, yalnızca bu teknisyenin firmaları */
+  var totalVisits=0;
+  myFirms.forEach(function(c){
+    Object.keys(vis).forEach(function(k){
+      if(k.indexOf(c.id+'_')===0&&vis[k]&&vis[k].status==='done')totalVisits++;
+    });
+  });
+
   var el=document.getElementById('istatContent');
-  if(!el) return;
-  el.innerHTML='<div style="background:#f8fafc;padding:20px;border-radius:10px;border:1px solid #e2e8f0;"><div style="font-size:32px;font-weight:700;color:var(--blue);">'+myVis+'</div><div style="color:var(--text2);font-size:13px;">Toplam Ziyaret</div></div>'+'<div style="background:#f8fafc;padding:20px;border-radius:10px;border:1px solid #e2e8f0;"><div style="font-size:32px;font-weight:700;color:var(--green);">'+myFirms.length+'</div><div style="color:var(--text2);font-size:13px;">Firmaların Sayısı</div></div>';
+  if(!el)return;
+
+  var kpis=[
+    {icon:'📅',lbl:'Bu Hafta',val:thisWD,sub:'tamamlanan',bg:'var(--blue-l)',c:'var(--blue)'},
+    {icon:'📈',lbl:'Aylık %',val:pct+'%',sub:totD+'/'+totS,bg:'var(--green-l)',c:'var(--green)'},
+    {icon:'✅',lbl:'Toplam Ziyaret',val:totalVisits,sub:'tüm zamanlar',bg:'var(--amber-l)',c:'var(--amber)'},
+    {icon:'🏭',lbl:'Firmalarım',val:myFirms.length,sub:'atanmış firma',bg:'var(--purple-l)',c:'var(--purple)'}
+  ];
+  var kpiHtml='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px;">'
+    +kpis.map(function(k){
+      return '<div style="background:'+k.bg+';padding:18px;border-radius:var(--r-xl);border:1px solid rgba(0,0,0,.04);">'
+        +'<div style="font-size:22px;margin-bottom:6px;">'+k.icon+'</div>'
+        +'<div style="font-size:26px;font-weight:800;color:'+k.c+';line-height:1;">'+k.val+'</div>'
+        +'<div style="font-size:12.5px;font-weight:700;color:var(--text2);margin-top:4px;">'+k.lbl+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:1px;">'+k.sub+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+
+  /* Firma bazlı liste — en uzun süredir ziyaret edilmeyen en üstte */
+  var firmalar=myFirms.map(function(c){
+    var prev=SD.getPreviousCompletedVisit(c.id,today);
+    var daysAgo=null;
+    if(prev.dateObject){
+      var d1=new Date(prev.dateObject.getFullYear(),prev.dateObject.getMonth(),prev.dateObject.getDate());
+      var d2=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+      daysAgo=Math.floor((d2-d1)/(1000*60*60*24));
+    }
+    return {name:c.name,bolge:c.bolge||'',lastVisit:prev.date,daysAgo:daysAgo,dateObject:prev.dateObject};
+  }).sort(function(a,b){
+    if(!a.dateObject&&!b.dateObject)return a.name.localeCompare(b.name);
+    if(!a.dateObject)return -1;
+    if(!b.dateObject)return 1;
+    return a.dateObject-b.dateObject;
+  });
+
+  var listHtml='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Firmalarım — Son Ziyaret Durumu</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'
+    +firmalar.map(function(f){
+      var overdue=f.daysAgo===null||f.daysAgo>14;
+      var badgeBg=overdue?'var(--red-l)':'var(--green-l)';
+      var badgeC=overdue?'var(--red)':'var(--green)';
+      var badgeTxt=f.daysAgo===null?'Kayıt yok':f.daysAgo+' gün önce';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 16px;">'
+        +'<div style="min-width:0;"><div style="font-weight:700;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+f.name+'</div>'
+        +(f.bolge?'<div style="font-size:11.5px;color:var(--text3);margin-top:2px;">'+f.bolge+'</div>':'')+'</div>'
+        +'<div style="flex-shrink:0;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:99px;background:'+badgeBg+';color:'+badgeC+';white-space:nowrap;">'+badgeTxt+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+
+  el.innerHTML=kpiHtml+listHtml;
 }
