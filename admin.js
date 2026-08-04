@@ -866,10 +866,11 @@ function renderStat(){
     var allTechCos=cos.filter(function(c){return c.techId===t.id;});
     var firmalar=allTechCos.map(function(c){
       var lastVisitDate='',lastVisitObj=null;
+      var todayNorm=new Date(today.getFullYear(),today.getMonth(),today.getDate());
       Object.keys(vis).forEach(function(k){
         if(k!==c.id+'_'+cwk && k.indexOf(c.id+'_')===0 && vis[k].date){
           var d=parseStatVisitDate(vis[k].date,k);
-          if(d&&(!lastVisitObj||d>lastVisitObj)){
+          if(d&&d<todayNorm&&(!lastVisitObj||d>lastVisitObj)){
             lastVisitObj=d;
             lastVisitDate=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
           }

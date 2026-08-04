@@ -32,18 +32,11 @@
   function previousVisit(companyId,visits,currentWeekKey,today){
     var latest=null;
     Object.keys(visits).forEach(function(key){
-      if(key.indexOf(companyId+'_')!==0)return;
+      if(key===companyId+'_'+currentWeekKey||key.indexOf(companyId+'_')!==0)return;
       var record=visits[key];
       if(!record||record.status!=='done')return;
-      /* Aynı hafta içinde 2x/3x ziyaret varsa (count>1) her tarih dates[] içinde
-         tutulur; üst seviye "date" yalnızca son girilen ziyareti gösterir. Önceki
-         (bugünden önceki) en son ziyareti bulmak için bu haftanın kendi içindeki
-         daha erken tarihleri de adaylığa dahil ediyoruz. */
-      var candidates=(record.dates&&record.dates.length)?record.dates:[record.date];
-      candidates.forEach(function(dateStr){
-        var date=parseVisitDate(dateStr,key);
-        if(date&&date<today&&(!latest||date>latest))latest=date;
-      });
+      var date=parseVisitDate(record.date,key);
+      if(date&&date<today&&(!latest||date>latest))latest=date;
     });
     if(!latest)return {date:'Kayıt yok',days:''};
     var days=Math.max(0,Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-latest)/86400000));
