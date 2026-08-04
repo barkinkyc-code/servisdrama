@@ -23,6 +23,27 @@ function currentUsername(){
   }catch(e){return '';}
 }
 function isSuperAdmin(){return currentUsername()==='barkin.kayaci';}
+function getCurrentUserId(){
+  try{
+    var sess=sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist');
+    var s=JSON.parse(sess);
+    return s&&s.userData&&s.userData.id;
+  }catch(e){return null;}
+}
+function canSendReport(){
+  if(isSuperAdmin())return true;
+  var cfg=SD.config||{};
+  var userId=getCurrentUserId();
+  if(!userId)return false;
+  var perms=cfg.sendReportPermissions||{};
+  return perms[userId]!==false;
+}
+function canSendMail(){
+  if(isSuperAdmin())return true;
+  var cfg=SD.config||{};
+  var mf=cfg.moduleFeatures||{};
+  return mf.truckMail!==false;
+}
 
 /* ═══ MOBILE DETECTION & RESPONSIVE ═══ */
 function setupResponsive(){
@@ -149,6 +170,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   on('statNext','click',function(){A.sm++;if(A.sm>11){A.sm=0;A.sy++;}renderStat();});
 
   /* Rapor — onclick handler in admin.html already attached */
+  updateRaporButtonState();
 
   /* Firma */
   on('firmaEkleBtn','click',function(){openFirmaModal(null);});
@@ -339,7 +361,16 @@ function goto(p){
   var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
 }
 
-function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();}
+function updateRaporButtonState(){
+  var btn=document.querySelector('.zt-rapor-btn');
+  if(!btn)return;
+  var canSend=canSendReport();
+  btn.disabled=!canSend;
+  btn.title=canSend?'Rapor gönder':'Rapor gönderme izni yok (barkin.kayaci tarafından verilmesi gerekli)';
+  btn.style.opacity=canSend?'1':'0.5';
+  btn.style.cursor=canSend?'pointer':'not-allowed';
+}
+function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();updateRaporButtonState();}
 
 /* ═══ TEKNİSYEN BUTONLARI ═══ */
 function renderTechBtns(){
@@ -731,11 +762,18 @@ function openRapor(){
   UI.openModal('raporModal');
 }
 function sendOutlookRapor(){
-  /* Rapor gönder (günlük rapor) */
+  if(!canSendReport()){
+    UI.toast('Bu işlem için yetkiniz yok. Rapor gönderme izni sadece barkin.kayaci yönetim panelinden verilebilir.','error');
+    return;
+  }
   sendRapor();
 }
 
 function sendTruckMailsToAll(){
+  if(!canSendMail()){
+    UI.toast('Bu işlem için yetkiniz yok. Mail gönderme izni sadece barkin.kayaci yönetim panelinden verilebilir.','error');
+    return;
+  }
   var cfg=SD.config,cos=SD.companies,vis=SD.visits,ts=SD.technicians,exs=SD.extras||[];
   var recipients=loadMailRecipients();
   var to=recipients.filter(function(v,i,a){return v&&a.indexOf(v)===i;}).join(',');
@@ -1103,6 +1141,18 @@ function renderSettingsTab(tab){
     renderTechAdmin();
   }else if(tab==='kullanici'){
     renderKullanicilar();
+  }else if(tab==='izinler'){
+    var users=SD.users||[];
+    content.innerHTML='<div class="settings-card"><div class="settings-ttl">🔐 Raporlama İzinleri</div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Hangi kullanıcılar rapor gönderebilsin? (barkin.kayaci her zaman gönderebilir)</p><div id="permissionsGrid"></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="savePermissions()">Kaydet</button></div></div>';
+    var grid=document.getElementById('permissionsGrid');
+    users.forEach(function(u){
+      var row=document.createElement('div');row.className='feat-row';
+      var canSendReportPerm=!(cfg.sendReportPermissions&&cfg.sendReportPermissions[u.id]===false);
+      row.innerHTML='<div><div class="feat-nm">'+u.name+' <span style="font-size:11px;color:var(--text3);">('+(u.username||'—')+')</span></div>'
+        +'<div class="feat-desc">'+(u.role==='admin'?'Admin · Her zaman gönderebilir':'Kullanıcı')+' · Teknik Servis'+'</div></div>'
+        +'<label class="toggle"><input type="checkbox" id="perm-'+u.id+'"'+(canSendReportPerm?' checked':'')+' '+(u.role==='admin'?' disabled':'')+' style="cursor:'+(u.role==='admin'?'not-allowed':'pointer')+';" ><span class="toggle-tr"></span></label>';
+      grid.appendChild(row);
+    });
   }else if(tab==='veri'){
     content.innerHTML='<div class="settings-card"><div class="settings-ttl">💾 Veri Yönetimi</div><div style="display:flex;flex-direction:column;gap:10px;"><button class="btn btn-outline btn-sm" onclick="exportAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke-linecap="round"/></svg>Tüm Veriyi İndir (JSON)</button><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'importAll\').click()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0l-4 4m4-4l4 4" stroke-linecap="round"/></svg>Yedekten Geri Yükle</button><input type="file" id="importAll" accept=".json" hidden onchange="importAll(event)"><button class="btn btn-danger btn-sm" onclick="if(confirm(\'Tüm ziyaret geçmişi silinecek!\'))clearVisits()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>Ziyaret Geçmişini Temizle</button></div></div>';
   }
@@ -1188,6 +1238,18 @@ function saveTechCfg(){
   var cfg=SD.config;if(!cfg.techFeatures)cfg.techFeatures={};
   TECH_FEATS.forEach(function(f){var el=document.getElementById('tf-'+f.key);if(el)cfg.techFeatures[f.key]=el.checked;});
   SD.config=cfg;UI.toast('Teknisyen yetkileri kaydedildi.','success');
+}
+function savePermissions(){
+  var cfg=SD.config;if(!cfg.sendReportPermissions)cfg.sendReportPermissions={};
+  var users=SD.users||[];
+  users.forEach(function(u){
+    if(u.role==='admin')return;
+    var chk=document.getElementById('perm-'+u.id);
+    cfg.sendReportPermissions[u.id]=chk?chk.checked:false;
+  });
+  SD.config=cfg;
+  updateRaporButtonState();
+  UI.toast('Raporlama izinleri kaydedildi.','success');
 }
 
 /* Mail alıcılar */
