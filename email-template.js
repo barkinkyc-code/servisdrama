@@ -185,7 +185,17 @@
       +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
   }
 
+  function buildOutlookRaporHTMLPreview(){
+    var html=buildOutlookRaporHTML();
+    return html.replace(/cid:drama-makine-logo/g,'assets/email/servisdrama/drama-makine-logo.png')
+      .replace(/cid:servisdrama-calendar-white/g,'assets/email/servisdrama/icon-calendar-white.png')
+      .replace(/cid:icon-star/g,'assets/email/servisdrama/icon-star.png')
+      .replace(/cid:icon-phone/g,'assets/email/servisdrama/icon-phone.png')
+      .replace(/cid:icon-mail/g,'assets/email/servisdrama/icon-mail.png');
+  }
+
   global.buildOutlookRaporHTML=buildOutlookRaporHTML;
+  global.buildOutlookRaporHTMLPreview=buildOutlookRaporHTMLPreview;
   global.buildNumuneMailHTML=buildNumuneMailHTML;
   global.buildNumuneReminderMailHTML=buildNumuneReminderMailHTML;
   if(typeof module!=='undefined'&&module.exports)module.exports={buildOutlookRaporHTML:buildOutlookRaporHTML,buildNumuneMailHTML:buildNumuneMailHTML,buildNumuneReminderMailHTML:buildNumuneReminderMailHTML};

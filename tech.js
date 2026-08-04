@@ -9,6 +9,31 @@ var T = {
   step: 0, _tt: null, _fabTimer: null
 };
 
+/* ═══ YETKİ KONTROLÜ ═══ */
+function currentUsername(){
+  try{
+    var sess=sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist');
+    var s=JSON.parse(sess);
+    return String((s&&s.userData&&s.userData.username)||'').toLowerCase();
+  }catch(e){return '';}
+}
+function getCurrentUserId(){
+  try{
+    var sess=sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist');
+    var s=JSON.parse(sess);
+    return s&&s.userData&&s.userData.id;
+  }catch(e){return null;}
+}
+function isSuperAdmin(){return currentUsername()==='barkin.kayaci';}
+function canSendReport(){
+  if(isSuperAdmin())return true;
+  var cfg=SD.config||{};
+  var userId=getCurrentUserId();
+  if(!userId)return false;
+  var perms=cfg.sendReportPermissions||{};
+  return perms[userId]===true;
+}
+
 /* ── Toast ── */
 function tToast(msg, type) {
   var el = document.getElementById('toast'); if (!el) return;
@@ -79,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async function(){
   if (wb) wb.addEventListener('click', openMissedSheet);
 
   render();
+  updateTechSendMailButtonState();
   /* Otomatik mail kontrolü */
   setTimeout(function(){ if(typeof initAutoMail==='function') initAutoMail(); }, 2000);
 
@@ -510,6 +536,10 @@ function copyRaporCode(){
 }
 
 function sendRapor(){
+  if(!canSendReport()){
+    tToast('Bu işlem için yetkiniz yok. Rapor gönderme izni sadece barkin.kayaci tarafından verilebilir.','error');
+    return;
+  }
   var cfg=SD.config,tech=SD.activeTech();
   var ta=document.getElementById('raporTa'),txt=ta?ta.value:'';
   var to=cfg.reportTo||'barkin.kayaci@dramamakine.com';
@@ -523,6 +553,16 @@ function copyRapor(){
   var ta=document.getElementById('raporTa');if(!ta)return;
   try{navigator.clipboard.writeText(ta.value);}catch(e){ta.select();document.execCommand('copy');}
   tToast('Kopyalandı!','success');
+}
+
+function updateTechSendMailButtonState(){
+  var btn=document.getElementById('techSendMailBtn');
+  if(!btn)return;
+  var canSend=canSendReport();
+  btn.disabled=!canSend;
+  btn.title=canSend?'Mail Gönder':'Rapor gönderme izni yok (barkin.kayaci tarafından verilmesi gerekli)';
+  btn.style.opacity=canSend?'1':'0.5';
+  btn.style.cursor=canSend?'pointer':'not-allowed';
 }
 
 /* ── Yardımcılar ── */

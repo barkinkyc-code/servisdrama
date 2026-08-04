@@ -36,7 +36,7 @@ function canSendReport(){
   var userId=getCurrentUserId();
   if(!userId)return false;
   var perms=cfg.sendReportPermissions||{};
-  return perms[userId]!==false;
+  return perms[userId]===true;
 }
 function canSendMail(){
   if(isSuperAdmin())return true;
@@ -758,7 +758,7 @@ function saveExtraVisit(){
 /* ═══ RAPOR ═══ */
 function openRapor(){
   var iframe=document.getElementById('raporIframe');
-  if(iframe){iframe.removeAttribute('src');iframe.srcdoc=buildOutlookRaporHTML();}
+  if(iframe){iframe.removeAttribute('src');iframe.srcdoc=buildOutlookRaporHTMLPreview();}
   UI.openModal('raporModal');
 }
 function sendOutlookRapor(){
@@ -895,7 +895,7 @@ function sendRapor(){
   });
 }
 function copyRapor(){var ta=document.getElementById('raporTa');if(!ta)return;ta.select();document.execCommand('copy');UI.toast('Kopyalandı!','success');}
-function openHtmlRapor(){var html=buildOutlookRaporHTML();var w=window.open();w.document.write(html);w.document.close();}
+function openHtmlRapor(){var html=buildOutlookRaporHTMLPreview();var w=window.open();w.document.write(html);w.document.close();}
 
 /* ═══ İSTATİSTİK ═══ */
 function parseStatVisitDate(value,weekKey){
@@ -1363,7 +1363,7 @@ function addNewUser(){
 }
 
 function buildAndPreview(){
-  var html=buildOutlookRaporHTML(),frame=document.getElementById('previewFrame');if(!frame)return;
+  var html=buildOutlookRaporHTMLPreview(),frame=document.getElementById('previewFrame');if(!frame)return;
   frame.innerHTML='';var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var iframe=document.createElement('iframe');iframe.style.cssText='width:100%;height:280px;border:none;';
   iframe.src=URL.createObjectURL(blob);frame.appendChild(iframe);
