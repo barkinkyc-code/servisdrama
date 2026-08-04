@@ -617,8 +617,24 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
-      loadData();
-      renderPage('ziyaret');
+      if (typeof SD !== 'undefined') {
+        console.log('SD initialized, seeding data...');
+        SD.seed();
+        console.log('Loading remote data...');
+        SD.remoteReady().then(() => {
+          console.log('Remote data loaded');
+          loadData();
+          renderPage('ziyaret');
+        }).catch(err => {
+          console.error('Failed to load remote data:', err);
+          loadData();
+          renderPage('ziyaret');
+        });
+      } else {
+        console.error('SD not found!');
+        loadData();
+        renderPage('ziyaret');
+      }
       setupVisibilityListener();
     });
 
@@ -636,8 +652,8 @@
     }
 
     function refreshData() {
-      if (typeof SD !== 'undefined' && SD.loadRemote) {
-        SD.loadRemote().then(() => {
+      if (typeof SD !== 'undefined' && SD.remoteReady) {
+        SD.remoteReady().then(() => {
           loadData();
           renderPage('ziyaret');
         });
@@ -652,6 +668,10 @@
         const session = JSON.parse(sessionStorage.getItem('sd_session') || '{}');
         currentUser = session.userData || {};
         techId = currentUser.techId || currentUser.id || '';
+
+        console.log('Current user:', currentUser);
+        console.log('Tech ID:', techId);
+
         document.getElementById('techName').textContent = currentUser.name || 'Teknisyen';
         document.getElementById('techFullName').textContent = currentUser.name || '-';
         document.getElementById('techCode').textContent = currentUser.code || '-';
@@ -660,11 +680,17 @@
 
         // Use real data from SD (ServisDrama data manager)
         if (typeof SD !== 'undefined') {
-          companies = (SD.companies || []).filter(c => c.techId === techId && c.aktif !== false);
+          const allCompanies = SD.companies || [];
+          companies = allCompanies.filter(c => c.techId === techId && c.aktif !== false);
           visits = SD.visits || {};
+
+          console.log('Total companies in system:', allCompanies.length);
+          console.log('Companies for techId ' + techId + ':', companies.length);
+          console.log('Filtered companies:', companies.map(c => ({id: c.id, name: c.name, techId: c.techId})));
+          console.log('Total visits records:', Object.keys(visits).length);
         } else {
           console.warn('SD not loaded, using local storage');
-          companies = JSON.parse(localStorage.getItem('companies')) || [];
+          companies = JSON.parse(localStorage.getItem('sd_co')) || [];
           visits = JSON.parse(localStorage.getItem('sd_vi')) || {};
         }
       } catch (e) {
