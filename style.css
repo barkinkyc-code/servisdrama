@@ -1224,9 +1224,11 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .mobile-visit-portal{order:0;max-width:92px}
   .nav-user-menu{order:1}
   .topbar-portal,.topbar-portal-dt{display:none!important}
-  #missedModal .modal{width:calc(100vw - 16px);max-width:none;margin:8px;max-height:calc(100dvh - 16px);border-radius:16px}
-  #missedModal .modal-body{padding:12px;overflow:auto}
-  #missedModal .miss-list{max-height:calc(100dvh - 145px);gap:7px}
+  #missedModal{align-items:flex-start}
+  #missedModal .modal{width:calc(100vw - 16px);max-width:none;margin:calc(76px + 8px) 8px 8px;max-height:calc(100dvh - 76px - 16px);height:calc(100dvh - 76px - 16px);border-radius:16px;display:flex;flex-direction:column}
+  #missedModal .modal-body{padding:12px;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
+  #missedModal .modal-body>p{flex-shrink:0}
+  #missedModal .miss-list{flex:1;min-height:0;overflow-y:auto;max-height:none;gap:7px}
   #missedModal .miss-item.enhanced{grid-template-columns:28px minmax(0,1fr);padding:10px;border-radius:12px;gap:9px}
   #missedModal .miss-num{width:26px;height:26px}
   #missedModal .miss-nm{font-size:12.5px;line-height:1.25;overflow-wrap:anywhere}
