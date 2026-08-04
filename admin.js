@@ -938,21 +938,38 @@ function renderStat(){
   var today=new Date(),cos=SD.companies,vis=SD.visits,ts=SD.technicians;
   var weeks=DT.monthWeeks(A.sy,A.sm),cwk=DT.wkey(today),todayMon=DT.monday(today);
   var cwi=weeks.findIndex(function(m){return m.getTime()===todayMon.getTime();})+1;
+
+  /* Teknisyen girişinde istatistikler yalnızca kendi firmalarına özgü olsun;
+     admin girişinde (sessTech=null) tüm teknisyenler değişmeden görünür. */
+  var sessTech=SD.sessionTech();
+  var scopedCos=sessTech?cos.filter(function(c){return c.techId===sessTech.id;}):cos;
+  var scopedTs=sessTech?[sessTech]:ts;
+
+  var titleEl=document.querySelector('#pg-istatistik .pg-title');
+  if(titleEl)titleEl.textContent=sessTech?'İstatistiklerim':'İstatistikler';
   var ml=document.getElementById('statMonth');if(ml)ml.textContent=DT.MONTHS[A.sm]+' '+A.sy;
-  var rl=document.getElementById('istatSub');if(rl)rl.textContent=DT.MONTHS[A.sm]+' '+A.sy+' · '+DT.isoWeek(today)+'. Hafta';
+  var rl=document.getElementById('istatSub');if(rl)rl.textContent=DT.MONTHS[A.sm]+' '+A.sy+' · '+DT.isoWeek(today)+'. Hafta'+(sessTech?' · '+sessTech.name+' ('+sessTech.code+')':'');
   var totS=0,totD=0;
-  weeks.forEach(function(wm,i){var wk=DT.wkey(wm);cos.forEach(function(co){if(BL.scheduled(co,i+1)){totS++;if(vis[co.id+'_'+wk]&&vis[co.id+'_'+wk].status==='done')totD++;}});});
+  weeks.forEach(function(wm,i){var wk=DT.wkey(wm);scopedCos.forEach(function(co){if(BL.scheduled(co,i+1)){totS++;if(vis[co.id+'_'+wk]&&vis[co.id+'_'+wk].status==='done')totD++;}});});
   var pct=totS?Math.round(totD/totS*100):0;
   var numuneler=typeof stLoad==='function'?stLoad():[];
-  var thisWD=0;cos.forEach(function(co){if(BL.scheduled(co,cwi)&&vis[co.id+'_'+cwk]&&vis[co.id+'_'+cwk].status==='done')thisWD++;});
+  if(sessTech){
+    var myCoIds=scopedCos.map(function(c){return c.id;});
+    numuneler=numuneler.filter(function(s){return myCoIds.indexOf(s.firmaId)!==-1;});
+  }
+  var thisWD=0;scopedCos.forEach(function(co){if(BL.scheduled(co,cwi)&&vis[co.id+'_'+cwk]&&vis[co.id+'_'+cwk].status==='done')thisWD++;});
   var kr=document.getElementById('kpiRow');if(!kr)return;kr.innerHTML='';
-  [{icon:'📅',lbl:'Bu Hafta',val:thisWD,sub:'tamamlanan',bg:'#EFF6FF',c:'#2563EB'},{icon:'📈',lbl:'Aylık %',val:pct+'%',sub:totD+'/'+totS,bg:'#DCFCE7',c:'#16A34A'},{icon:'🧪',lbl:'Bekleyen Numune',val:numuneler.filter(function(s){return!s.result;}).length,sub:'analiz bekliyor',bg:'#F5F3FF',c:'#7C3AED'},{icon:'🏭',lbl:'Toplam Firma',val:cos.length,sub:ts.length+' teknisyen',bg:'#FFFBEB',c:'#D97706'}].forEach(function(k){
+  var firmaKpi=sessTech
+    ?{icon:'🏭',lbl:'Firmalarım',val:scopedCos.length,sub:'atanmış firma',bg:'#FFFBEB',c:'#D97706'}
+    :{icon:'🏭',lbl:'Toplam Firma',val:cos.length,sub:ts.length+' teknisyen',bg:'#FFFBEB',c:'#D97706'};
+  [{icon:'📅',lbl:'Bu Hafta',val:thisWD,sub:'tamamlanan',bg:'#EFF6FF',c:'#2563EB'},{icon:'📈',lbl:'Aylık %',val:pct+'%',sub:totD+'/'+totS,bg:'#DCFCE7',c:'#16A34A'},{icon:'🧪',lbl:'Bekleyen Numune',val:numuneler.filter(function(s){return!s.result;}).length,sub:'analiz bekliyor',bg:'#F5F3FF',c:'#7C3AED'},firmaKpi].forEach(function(k){
     var c=document.createElement('div');c.className='kpi-card';
     c.innerHTML='<div class="kpi-icon" style="background:'+k.bg+';">'+k.icon+'</div><div class="kpi-val" style="color:'+k.c+';">'+k.val+'</div><div class="kpi-lbl">'+k.lbl+'</div><div class="kpi-sub">'+k.sub+'</div>';
     kr.appendChild(c);
   });
   var tg=document.getElementById('techStatGrid');if(!tg)return;tg.innerHTML='';
-  ts.forEach(function(t){
+  tg.style.gridTemplateColumns=sessTech?'1fr':'';
+  scopedTs.forEach(function(t){
     /* Tüm haftalardaki ziyaretleri kontrol et (sadece bu hafta değil) */
     var visCos=cos.filter(function(c){
       if(c.techId!==t.id)return false;
@@ -1009,7 +1026,7 @@ function renderStat(){
       return b.lastVisitObj-a.lastVisitObj;
     });
 
-    var isMob=window.matchMedia('(max-width: 768px)').matches;
+    var isMob=sessTech?false:window.matchMedia('(max-width: 768px)').matches;
     var card=document.createElement('div');
     card.className='tech-stat-card';
     card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);';
