@@ -75,6 +75,17 @@ document.addEventListener('DOMContentLoaded', async function(){
   render();
   /* Otomatik mail kontrolü */
   setTimeout(function(){ if(typeof initAutoMail==='function') initAutoMail(); }, 2000);
+
+  /* Arka planda bekleyen sekme/PWA öne geldiğinde ve her 15 dakikada bir
+     ortak veriyi sunucudan tazele — kullanıcı elle "yenile" yapmasa da
+     ekrandaki veri güncel kalsın. */
+  function autoRefreshData(){
+    SD.remoteReady().then(function(){SD.seed();render();});
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')autoRefreshData();
+  });
+  setInterval(autoRefreshData,15*60*1000);
 });
 
 /* ── Otomatik Mail Gönderimi ── */

@@ -29,7 +29,7 @@ var SD=(function(){
   function remoteReady(){
     if(!token()){remoteLoaded=true;return Promise.resolve(false);}
     var before=snapshot();
-    return fetch('/api/state',{headers:{'Authorization':'Bearer '+token()}})
+    return fetch('/api/state',{cache:'no-store',headers:{'Authorization':'Bearer '+token()}})
       .then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı');return r.json();})
       .then(function(data){
         var remote=data.state||{};

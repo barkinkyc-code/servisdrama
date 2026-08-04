@@ -271,6 +271,17 @@ document.addEventListener('DOMContentLoaded',async function(){
   var lastPage=localStorage.getItem('lastPage')||'ziyaret';
   if(lastPage==='dashboard')lastPage='ziyaret';
   goto(lastPage);
+
+  /* Arka planda bekleyen sekme/PWA öne geldiğinde ve her 15 dakikada bir
+     ortak veriyi sunucudan tazele — kullanıcı elle "yenile" yapmasa da
+     ekrandaki veri güncel kalsın. */
+  function autoRefreshData(){
+    SD.remoteReady().then(function(){SD.seed();goto(A.page||lastPage);});
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')autoRefreshData();
+  });
+  setInterval(autoRefreshData,15*60*1000);
 });
 
 /* ═══ LOGOUT ═══ */
