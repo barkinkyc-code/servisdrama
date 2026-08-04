@@ -355,8 +355,8 @@ function makeMobileCard(co, vd, prevV, cwk, feats, viewWeeks){
   if (!vd){
     /* Planla */
     var planBtn = mkBtn('va-btn va-plan','📅 Planla',function(){
-      var vi=SD.visits,ac=SD.activeTech(),n=new Date();
-      vi[co.id+'_'+cwk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};
+      var vi=SD.visits,ac=SD.actingTech(co),n=new Date(),code=ac?ac.code:'—';
+      vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});
       SD.visits=vi;tToast('Planlandı ⏳','info');render();
     });
     acts.appendChild(planBtn);
@@ -365,11 +365,11 @@ function makeMobileCard(co, vd, prevV, cwk, feats, viewWeeks){
     }
   } else if (vd.status==='pending'){
     acts.appendChild(mkBtn('va-btn va-confirm',svgCheck()+' Onayla',function(){
-      var vi=SD.visits;if(vi[co.id+'_'+cwk]){vi[co.id+'_'+cwk].status='done';vi[co.id+'_'+cwk].dates=[vi[co.id+'_'+cwk].date];vi[co.id+'_'+cwk].endDate=DT.ddmmyyyy(new Date());vi[co.id+'_'+cwk].endTime=DT.hhii(new Date());}
+      var vi=SD.visits,ac=SD.actingTech(co),code=ac?ac.code:'—',mine=SD.visitEntryFor(vi[co.id+'_'+cwk],code);if(mine){vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:mine.date,saat:mine.saat,count:mine.count||1,status:'done',dates:mine.dates&&mine.dates.length?mine.dates:[mine.date],endDate:DT.ddmmyyyy(new Date()),endTime:DT.hhii(new Date())});}
       SD.visits=vi;tToast('Ziyaret tamamlandı 🔒','success');render();
     }));
     acts.appendChild(mkBtn('va-btn va-undo','←',function(){
-      var vi=SD.visits;delete vi[co.id+'_'+cwk];SD.visits=vi;tToast('İptal edildi','warning');render();
+      var vi=SD.visits,ac=SD.actingTech(co),code=ac?ac.code:'—';vi[co.id+'_'+cwk]=SD.removeVisitEntry(vi[co.id+'_'+cwk],code);SD.visits=vi;tToast('İptal edildi','warning');render();
     }));
   } else if (vd.status==='done'){
     /* Tamamlandı */
@@ -379,15 +379,15 @@ function makeMobileCard(co, vd, prevV, cwk, feats, viewWeeks){
     doneSpan.innerHTML=svgCheck()+' Tamamlandı'+(cnt>1?' ('+cnt+'x)':'');
     acts.appendChild(doneSpan);
     acts.appendChild(mkBtn('va-btn va-add2','+2',function(){
-      var vi=SD.visits,cur=vi[co.id+'_'+cwk]||{},n=new Date();
-      var dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));var ac=SD.activeTech();
-      vi[co.id+'_'+cwk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'};
+      var vi=SD.visits,n=new Date(),ac=SD.actingTech(co),code=ac?ac.code:'—',cur=SD.visitEntryFor(vi[co.id+'_'+cwk],code)||{};
+      var dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));
+      vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:DT.ddmm(n),count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'});
       SD.visits=vi;tToast((cur.count||1)+1+'. ziyaret eklendi!','success');render();
     }));
     acts.appendChild(mkBtn('va-btn va-undo','←',function(){
-      var vi=SD.visits;
-      if((vi[co.id+'_'+cwk]||{}).count>1){vi[co.id+'_'+cwk].count--;if(vi[co.id+'_'+cwk].dates)vi[co.id+'_'+cwk].dates.pop();}
-      else if(vi[co.id+'_'+cwk]){vi[co.id+'_'+cwk].status='pending';}
+      var vi=SD.visits,ac=SD.actingTech(co),code=ac?ac.code:'—',mine=SD.visitEntryFor(vi[co.id+'_'+cwk],code);
+      if(mine&&((mine.count||1)>1)){var dates=(mine.dates||[]).slice();dates.pop();vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:mine.date,saat:mine.saat,count:(mine.count||1)-1,dates:dates,status:'done'});}
+      else if(mine){vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:mine.date,saat:mine.saat,count:1,dates:mine.dates||[],status:'pending'});}
       SD.visits=vi;tToast('Geri alındı','warning');render();
     }));
   }
@@ -442,8 +442,8 @@ function openMissedSheet(){
       clicks++;clearTimeout(clickTimer);
       if(clicks>=2){
         clicks=0;row.style.background='var(--green-l)';row.style.borderColor='var(--green-m)';num.style.background='var(--green)';
-        var vi=SD.visits,ac=SD.activeTech(),n=new Date();
-        vi[co.id+'_'+cwk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};
+        var vi=SD.visits,ac=SD.actingTech(co),n=new Date(),code=ac?ac.code:'—';
+        vi[co.id+'_'+cwk]=SD.putVisitEntry(vi[co.id+'_'+cwk],code,{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});
         SD.visits=vi;tToast('Planlandı: '+co.name,'success');
         setTimeout(openMissedSheet,400);
       } else {

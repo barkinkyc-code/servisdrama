@@ -1,15 +1,11 @@
-DM final(8) - Ziyaret senkronizasyonu işlevsel düzeltmeleri
-
-Mevcut proje klasörünün köküne çıkarın ve dosyaların üzerine yazın.
-Klasör yapısını değiştirmeyin.
-
 Değişen dosyalar:
 - data.js
-- tech.js
-- admin.js
 - tech.html
 - tech-mobile.html
-- routes/state.js
+- admin.html
 
-GitHub/Vercel yapılandırma dosyalarına, package.json'a, vercel.json'a,
-giriş sistemine ve mail sistemine dokunulmadı.
+Düzeltmeler:
+- Tek ziyaret işlemindeki çift sd_vi kaydı kaldırıldı.
+- Seed ziyaretleri doğrudan teknisyen bazlı by yapısında oluşturuluyor.
+- Mevcut eski ziyaret kayıtlarını bir kez by yapısına çeviren migration eklendi.
+- data.js cache sürümü v6 olarak yükseltildi.

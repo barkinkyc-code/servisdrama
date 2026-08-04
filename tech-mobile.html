@@ -581,268 +581,302 @@
 
   <!-- BOTTOM NAVIGATION -->
   <div class="tech-nav">
-    <button class="tech-nav-item active" onclick="switchPage('ziyaret')">
+    <button class="tech-nav-item active" onclick="switchPage(\'ziyaret\', event)">
       <div class="tech-nav-item-icon">📅</div>
       <div>Ziyaret</div>
     </button>
-    <button class="tech-nav-item" onclick="switchPage('firmalar')">
+    <button class="tech-nav-item" onclick="switchPage(\'firmalar\', event)">
       <div class="tech-nav-item-icon">📍</div>
       <div>Firmalar</div>
     </button>
-    <button class="tech-nav-item" onclick="switchPage('numune')">
+    <button class="tech-nav-item" onclick="switchPage(\'numune\', event)">
       <div class="tech-nav-item-icon">🧪</div>
       <div>Numune</div>
     </button>
-    <button class="tech-nav-item" onclick="switchPage('istatistik')">
+    <button class="tech-nav-item" onclick="switchPage(\'istatistik\', event)">
       <div class="tech-nav-item-icon">📊</div>
       <div>İstatistik</div>
     </button>
-    <button class="tech-nav-item" onclick="switchPage('ayarlar')">
+    <button class="tech-nav-item" onclick="switchPage(\'ayarlar\', event)">
       <div class="tech-nav-item-icon">⚙️</div>
       <div>Ayarlar</div>
     </button>
   </div>
 
-  <script src="data.js?v=20260804-sync-v3"></script>
+  <script src="data.js?v=20260804-sync-v6"></script>
   <script>
-    // Session check
-    if (!localStorage.getItem('token')) {
-      window.location.href = 'index.html';
-    }
+    'use strict';
+
+    if (!localStorage.getItem('token')) window.location.replace('index.html');
 
     let companies = [];
     let visits = {};
     let currentUser = {};
+    let currentTech = null;
     let techId = '';
+    let techCode = '';
+    let activePage = 'ziyaret';
+    let refreshPromise = null;
+    let refreshTimer = null;
+    let visitActionBusy = false;
+    let lastRefreshAt = 0;
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-      if (typeof SD !== 'undefined') {
-        console.log('SD initialized, seeding data...');
-        SD.seed();
-        console.log('Loading remote data...');
-        SD.remoteReady().then(() => {
-          console.log('Remote data loaded');
-          loadData();
-          renderPage('ziyaret');
-        }).catch(err => {
-          console.error('Failed to load remote data:', err);
-          loadData();
-          renderPage('ziyaret');
-        });
-      } else {
-        console.error('SD not found!');
-        loadData();
-        renderPage('ziyaret');
-      }
-      setupVisibilityListener();
-    });
+    const $ = id => document.getElementById(id);
+    const escHtml = value => String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-    function setupVisibilityListener() {
-      document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-          console.log('Page became visible, refreshing data...');
-          refreshData();
-        }
-      });
-      window.addEventListener('focus', function() {
-        console.log('Window focused, refreshing data...');
-        refreshData();
-      });
+    function currentWeekKey() {
+      const now = new Date();
+      const monday = typeof DT !== 'undefined' && DT.monday ? DT.monday(now) : now;
+      return typeof DT !== 'undefined' && DT.wkey ? DT.wkey(monday) : '';
     }
 
-    function refreshData() {
-      if (typeof SD !== 'undefined' && SD.remoteReady) {
-        SD.remoteReady().then(() => {
-          loadData();
-          renderPage('ziyaret');
-        });
-      } else {
-        loadData();
-        renderPage('ziyaret');
-      }
+    function resolveSession() {
+      currentUser = (typeof SD !== 'undefined' && SD.sessionUser && SD.sessionUser()) || {};
+      currentTech = (typeof SD !== 'undefined' && SD.sessionTech && SD.sessionTech()) || null;
+      techId = currentTech ? String(currentTech.id || '') : '';
+      techCode = currentTech ? String(currentTech.code || '') : '';
+      return !!(currentUser && currentUser.username && currentTech && techCode);
+    }
+
+    function showMessage(message, type) {
+      if (typeof UI !== 'undefined' && UI.toast) UI.toast(message, type || 'info');
+      else console[type === 'error' ? 'error' : 'log'](message);
+    }
+
+    function ownVisit(companyId, weekKey) {
+      const rec = visits[String(companyId) + '_' + weekKey];
+      return typeof SD !== 'undefined' && SD.visitEntryFor
+        ? SD.visitEntryFor(rec, techCode)
+        : (rec && String(rec.tc || '') === techCode ? rec : null);
+    }
+
+    function completedCount() {
+      const weekKey = currentWeekKey();
+      return companies.reduce((count, company) => {
+        const entry = ownVisit(company.id, weekKey);
+        return count + (entry && entry.status === 'done' ? 1 : 0);
+      }, 0);
+    }
+
+    function updateProfile() {
+      $('techName').textContent = currentTech?.name || currentUser.name || 'Teknisyen';
+      $('techFullName').textContent = currentTech?.name || currentUser.name || '-';
+      $('techCode').textContent = techCode || '-';
+      $('techEmail').textContent = currentTech?.email || currentUser.email || '-';
+      $('techPhone').textContent = currentTech?.phone || '-';
     }
 
     function loadData() {
+      if (!resolveSession()) {
+        showMessage('Teknisyen hesabı eşleştirilemedi. Yeniden giriş yapın.', 'error');
+        return false;
+      }
+      const allCompanies = typeof SD !== 'undefined' ? (SD.companies || []) : [];
+      companies = allCompanies.filter(company => String(company.techId || '') === techId && company.aktif !== false);
+      visits = typeof SD !== 'undefined' ? (SD.visits || {}) : {};
+      updateProfile();
+      return true;
+    }
+
+    async function initialize() {
       try {
-        const session = JSON.parse(sessionStorage.getItem('sd_session') || '{}');
-        currentUser = session.userData || {};
-        techId = currentUser.techId || currentUser.id || '';
-
-        console.log('Current user:', currentUser);
-        console.log('Tech ID:', techId);
-
-        document.getElementById('techName').textContent = currentUser.name || 'Teknisyen';
-        document.getElementById('techFullName').textContent = currentUser.name || '-';
-        document.getElementById('techCode').textContent = currentUser.code || '-';
-        document.getElementById('techEmail').textContent = currentUser.email || '-';
-        document.getElementById('techPhone').textContent = currentUser.phone || '-';
-
-        // Use real data from SD (ServisDrama data manager)
-        if (typeof SD !== 'undefined') {
-          const allCompanies = SD.companies || [];
-          companies = allCompanies.filter(c => c.techId === techId && c.aktif !== false);
-          visits = SD.visits || {};
-
-          console.log('Total companies in system:', allCompanies.length);
-          console.log('Companies for techId ' + techId + ':', companies.length);
-          console.log('Filtered companies:', companies.map(c => ({id: c.id, name: c.name, techId: c.techId})));
-          console.log('Total visits records:', Object.keys(visits).length);
-        } else {
-          console.warn('SD not loaded, using local storage');
-          companies = JSON.parse(localStorage.getItem('sd_co')) || [];
-          visits = JSON.parse(localStorage.getItem('sd_vi')) || {};
-        }
-      } catch (e) {
-        console.error('Data loading error:', e);
+        if (typeof SD === 'undefined') throw new Error('Ortak veri katmanı yüklenemedi');
+        SD.seed();
+        await SD.remoteReady();
+        if (!loadData()) return;
+        renderPage(activePage);
+        setupRefreshListeners();
+        startPolling();
+      } catch (error) {
+        console.error(error);
+        loadData();
+        renderPage(activePage);
+        showMessage('Sunucu verisi alınamadı; cihazdaki kayıtlar gösteriliyor.', 'warning');
       }
     }
 
-    function goToVisitPage() {
-      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tech-nav-item').forEach(el => el.classList.remove('active'));
-      const visitPage = document.getElementById('page-ziyaret');
-      if (visitPage) {
-        visitPage.classList.add('active');
-        const firstNavBtn = document.querySelector('.tech-nav-item');
-        if (firstNavBtn) firstNavBtn.classList.add('active');
-      }
-      renderPage('ziyaret');
+    function setupRefreshListeners() {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshData(false);
+      });
+      window.addEventListener('focus', () => refreshData(false));
+      window.addEventListener('online', () => refreshData(true));
+      window.addEventListener('offline', () => showMessage('İnternet bağlantısı kesildi. Kayıtlar cihazda bekletilecek.', 'warning'));
     }
 
-    function switchPage(page) {
+    function startPolling() {
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') refreshData(false);
+      }, 15000);
+    }
+
+    async function refreshData(force) {
+      if (refreshPromise) return refreshPromise;
+      if (!force && Date.now() - lastRefreshAt < 2500) return false;
+      if (typeof SD === 'undefined' || !SD.remoteReady) return false;
+      if (!force && SD.syncBusy && SD.syncBusy()) return false;
+
+      refreshPromise = SD.remoteReady()
+        .then(ok => {
+          lastRefreshAt = Date.now();
+          if (ok !== false && loadData()) renderPage(activePage);
+          return ok;
+        })
+        .catch(error => {
+          console.error(error);
+          return false;
+        })
+        .finally(() => { refreshPromise = null; });
+      return refreshPromise;
+    }
+
+    function goToVisitPage() { switchPage('ziyaret'); }
+
+    function switchPage(page, sourceEvent) {
+      activePage = page;
       document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tech-nav-item').forEach(el => el.classList.remove('active'));
-
-      document.getElementById('page-' + page).classList.add('active');
-      if (event && event.target) {
-        const navItem = event.target.closest('.tech-nav-item');
-        if (navItem) navItem.classList.add('active');
-      }
-
+      const pageEl = $('page-' + page);
+      if (pageEl) pageEl.classList.add('active');
+      const clicked = sourceEvent?.target?.closest?.('.tech-nav-item');
+      const fallback = Array.from(document.querySelectorAll('.tech-nav-item')).find(btn => (btn.getAttribute('onclick') || '').includes("'" + page + "'"));
+      (clicked || fallback)?.classList.add('active');
       renderPage(page);
     }
 
     function renderPage(page) {
-      if (page === 'ziyaret') {
-        renderZiyaretPage();
-      } else if (page === 'firmalar') {
-        renderFirmalarPage();
-      } else if (page === 'istatistik') {
-        renderIstatistikPage();
-      }
+      if (page === 'ziyaret') renderZiyaretPage();
+      else if (page === 'firmalar') renderFirmalarPage();
+      else if (page === 'istatistik') renderIstatistikPage();
     }
 
     function renderZiyaretPage() {
-      const list = document.getElementById('techCompanyList');
-      const empty = document.getElementById('techEmpty');
-      const search = document.getElementById('techSearchInput').value.toLowerCase();
-
-      const filtered = companies.filter(c => c.name.toLowerCase().includes(search));
+      const list = $('techCompanyList');
+      const empty = $('techEmpty');
+      if (!list || !empty) return;
+      const search = String($('techSearchInput')?.value || '').trim().toLocaleLowerCase('tr-TR');
+      const filtered = companies.filter(company => String(company.name || '').toLocaleLowerCase('tr-TR').includes(search));
+      const weekKey = currentWeekKey();
 
       if (!filtered.length) {
         list.innerHTML = '';
         empty.style.display = 'block';
+        updateSummary();
         return;
       }
 
       empty.style.display = 'none';
-      const today = new Date();
-      const todayMon = typeof DT !== 'undefined' && DT.monday ? DT.monday(today) : new Date(today);
-      const cwk = typeof DT !== 'undefined' && DT.wkey ? DT.wkey(todayMon) : '';
-
       list.innerHTML = filtered.map(company => {
-        let isVisited = false;
-        if (cwk && visits[company.id + '_' + cwk]) {
-          const rec = visits[company.id + '_' + cwk];
-          isVisited = rec && rec.status === 'done';
-        }
+        const entry = ownVisit(company.id, weekKey);
+        const isDone = !!entry && entry.status === 'done';
+        const isPending = !!entry && entry.status === 'pending';
+        const stateText = isDone ? '✅ Ziyaret edildi' : (isPending ? '🕒 Başlatıldı' : '⏳ Beklemede');
+        const buttonText = isDone ? 'Geri Al' : (isPending ? 'Tamamla' : 'Ziyaret Et');
         return `
-          <div class="tech-company-item">
+          <div class="tech-company-item" data-company-id="${escHtml(company.id)}">
             <div class="tech-company-info">
-              <div class="tech-company-name">${company.name}</div>
-              <div class="tech-company-status">${isVisited ? '✅ Ziyaret edildi' : '⏳ Beklemede'}</div>
+              <div class="tech-company-name">${escHtml(company.name)}</div>
+              <div class="tech-company-status">${stateText}</div>
             </div>
-            <button class="tech-company-btn ${isVisited ? 'done' : ''}" onclick="markVisit('${company.id}', '${company.name}')">
-              ${isVisited ? '✓ Yapıldı' : 'Ziyaret Et'}
+            <button type="button" class="tech-company-btn ${isDone ? 'done' : ''}" data-visit-company="${escHtml(company.id)}">
+              ${buttonText}
             </button>
-          </div>
-        `;
+          </div>`;
       }).join('');
-
+      list.querySelectorAll('[data-visit-company]').forEach(button => {
+        button.addEventListener('click', () => toggleVisit(button.dataset.visitCompany));
+      });
       updateSummary();
     }
 
     function renderFirmalarPage() {
-      const list = document.getElementById('allCompaniesList');
-      list.innerHTML = companies.map(c => `
-        <div class="tech-list-item">
-          <div class="tech-list-item-title">${c.name}</div>
-          <div class="tech-list-item-desc">${c.status === 'done' ? '✅ Ziyaret edildi' : '⏳ Beklemede'}</div>
-        </div>
-      `).join('');
+      const list = $('allCompaniesList');
+      if (!list) return;
+      const weekKey = currentWeekKey();
+      list.innerHTML = companies.map(company => {
+        const entry = ownVisit(company.id, weekKey);
+        const text = entry?.status === 'done' ? '✅ Ziyaret edildi' : (entry?.status === 'pending' ? '🕒 Başlatıldı' : '⏳ Beklemede');
+        return `<div class="tech-list-item"><div class="tech-list-item-title">${escHtml(company.name)}</div><div class="tech-list-item-desc">${text}</div></div>`;
+      }).join('');
     }
 
     function renderIstatistikPage() {
       const total = companies.length;
-      const completed = Object.keys(visits).length;
-      document.getElementById('totalVisits').textContent = total;
-      document.getElementById('completedVisits').textContent = completed;
-      document.getElementById('avgVisits').textContent = (total > 0 ? (completed / total * 4).toFixed(1) : 0);
-      document.getElementById('successRate').textContent = (total > 0 ? Math.round((completed / total) * 100) : 0) + '%';
+      const completed = completedCount();
+      $('totalVisits').textContent = total;
+      $('completedVisits').textContent = completed;
+      $('avgVisits').textContent = total ? Math.min(4, completed / total * 4).toFixed(1) : '0';
+      $('successRate').textContent = (total ? Math.min(100, Math.round(completed / total * 100)) : 0) + '%';
     }
 
     function updateSummary() {
       const total = companies.length;
-      const completed = Object.keys(visits).length;
-      document.getElementById('techPlanned').textContent = total;
-      document.getElementById('techCompleted').textContent = completed;
-      document.getElementById('techProgress').textContent = (total > 0 ? Math.round((completed / total) * 100) : 0) + '%';
+      const completed = completedCount();
+      $('techPlanned').textContent = total;
+      $('techCompleted').textContent = completed;
+      $('techProgress').textContent = (total ? Math.min(100, Math.round(completed / total * 100)) : 0) + '%';
     }
 
-    function markVisit(companyId, companyName) {
-      if (confirm(companyName + ' için ziyaretı tamamlandı olarak işaretle?')) {
-        const today = new Date();
-        const todayMon = typeof DT !== 'undefined' && DT.monday ? DT.monday(today) : new Date(today);
-        const cwk = typeof DT !== 'undefined' && DT.wkey ? DT.wkey(todayMon) : '';
+    async function toggleVisit(companyId) {
+      if (visitActionBusy) return;
+      const company = companies.find(item => String(item.id) === String(companyId));
+      if (!company || !techCode || typeof SD === 'undefined') return;
+      const weekKey = currentWeekKey();
+      if (!weekKey) return showMessage('Hafta bilgisi hesaplanamadı.', 'error');
+      const key = company.id + '_' + weekKey;
+      const existing = ownVisit(company.id, weekKey);
+      const removing = existing?.status === 'done';
+      const question = removing
+        ? company.name + ' ziyaretini geri almak istiyor musunuz?'
+        : company.name + ' ziyaretini tamamlandı olarak işaretlemek istiyor musunuz?';
+      if (!window.confirm(question)) return;
 
-        if (typeof SD !== 'undefined' && SD.putVisitEntry) {
-          const key = companyId + '_' + cwk;
-          const dateStr = String(today.getDate()).padStart(2,'0') + '.' + String(today.getMonth()+1).padStart(2,'0');
-          const timeStr = String(today.getHours()).padStart(2,'0') + ':' + String(today.getMinutes()).padStart(2,'0');
-
-          visits[key] = SD.putVisitEntry(visits[key], currentUser.code || '1016', {
-            date: dateStr,
-            count: 1,
-            status: 'done',
-            saat: timeStr,
-            startDate: dateStr,
-            startTime: timeStr,
-            endDate: dateStr,
-            endTime: timeStr
+      visitActionBusy = true;
+      try {
+        const now = new Date();
+        if (removing) visits[key] = SD.removeVisitEntry(visits[key], techCode);
+        else {
+          const date = typeof DT !== 'undefined' && DT.ddmmyyyy ? DT.ddmmyyyy(now) : now.toLocaleDateString('tr-TR');
+          const time = typeof DT !== 'undefined' && DT.hhii ? DT.hhii(now) : now.toTimeString().slice(0, 5);
+          visits[key] = SD.putVisitEntry(visits[key], techCode, {
+            date, count: 1, status: 'done', saat: time,
+            startDate: existing?.startDate || date,
+            startTime: existing?.startTime || time,
+            endDate: date, endTime: time
           });
-
-          SD.save('sd_vi', visits);
-          SD.pushRemote();
-        } else {
-          visits['company_' + companyId] = new Date().toISOString();
-          localStorage.setItem('sd_vi', JSON.stringify(visits));
         }
-
-        renderZiyaretPage();
+        SD.visits = visits;
+        renderPage(activePage);
+        const saved = await SD.pushRemote({ force: true });
+        if (!saved) showMessage('Kayıt cihazda bekliyor; bağlantı gelince yeniden gönderilecek.', 'warning');
+        else showMessage(removing ? 'Ziyaret geri alındı.' : 'Ziyaret sunucuya kaydedildi.', 'success');
+      } catch (error) {
+        console.error(error);
+        showMessage('Ziyaret işlemi tamamlanamadı.', 'error');
+      } finally {
+        visitActionBusy = false;
+        visits = SD.visits || visits;
+        renderPage(activePage);
       }
     }
 
-    function doLogout() {
-      if (confirm('Çıkmak istediğine emin misin?')) {
-        localStorage.removeItem('token');
-        sessionStorage.removeItem('sd_session');
-        window.location.href = 'index.html';
+    async function doLogout() {
+      if (!window.confirm('Çıkmak istediğinize emin misiniz?')) return;
+      if (typeof SD !== 'undefined' && SD.syncBusy && SD.syncBusy()) {
+        const saved = await SD.pushRemote({ force: true });
+        if (!saved && !window.confirm('Bekleyen kayıt sunucuya gönderilemedi. Yine de çıkış yapılsın mı?')) return;
       }
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('sd_session');
+      localStorage.removeItem('sd_session_persist');
+      window.location.replace('index.html');
     }
 
-    // Search
-    document.getElementById('techSearchInput')?.addEventListener('input', () => renderZiyaretPage());
+    $('techSearchInput')?.addEventListener('input', () => renderZiyaretPage());
+    document.addEventListener('DOMContentLoaded', initialize);
   </script>
 </body>
 </html>

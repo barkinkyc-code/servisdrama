@@ -276,8 +276,14 @@ document.addEventListener('DOMContentLoaded',async function(){
   /* Arka planda bekleyen sekme/PWA öne geldiğinde ve her 15 dakikada bir
      ortak veriyi sunucudan tazele — kullanıcı elle "yenile" yapmasa da
      ekrandaki veri güncel kalsın. */
+  function adminEditingInProgress(){
+    var modal=document.querySelector('.overlay:not(.hidden)');
+    var ae=document.activeElement,tag=ae&&ae.tagName;
+    return !!modal || tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT' || (ae&&ae.isContentEditable);
+  }
   function autoRefreshData(){
-    SD.remoteReady().then(function(){SD.seed();goto(A.page||lastPage);});
+    if(SD.syncBusy()||adminEditingInProgress())return;
+    SD.remoteReady().then(function(){if(!adminEditingInProgress()){SD.seed();goto(A.page||lastPage);}});
   }
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible')autoRefreshData();
@@ -1270,8 +1276,8 @@ function exportAll(){
   var d=JSON.stringify({firmalar:SD.companies,teknisyenler:SD.technicians,ziyaretler:SD.visits,extras:SD.extras,ayarlar:SD.config,kullanicilar:SD.users},null,2);
   var a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(d);a.download='servisdrama_yedek_'+new Date().toISOString().slice(0,10)+'.json';a.click();UI.toast('Yedek indirildi.','success');
 }
-function importAll(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.firmalar)SD.companies=d.firmalar;if(d.teknisyenler)SD.technicians=d.teknisyenler;if(d.ziyaretler)SD.visits=d.ziyaretler;if(d.extras)SD.extras=d.extras;if(d.kullanicilar)SD.users=d.kullanicilar;renderAll();UI.toast('Veri yüklendi!','success');}catch(err){UI.toast('Dosya okunamadı.','error');}};r.readAsText(f);e.target.value='';}
-function clearVisits(){SD.visits={};renderVisit();UI.toast('Ziyaret geçmişi temizlendi.','success');}
+function importAll(e){var f=e.target.files[0];if(!f)return;if(!confirm('İçe aktarma mevcut verilerin üzerine yazabilir. Devam edilsin mi?')){e.target.value='';return;}var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);localStorage.setItem('sd_import_backup_'+Date.now(),JSON.stringify({firmalar:SD.companies,teknisyenler:SD.technicians,ziyaretler:SD.visits,extras:SD.extras,ayarlar:SD.config,kullanicilar:SD.users}));if(d.firmalar)SD.companies=d.firmalar;if(d.teknisyenler)SD.technicians=d.teknisyenler;if(d.ziyaretler)SD.visits=d.ziyaretler;if(d.extras)SD.extras=d.extras;if(d.kullanicilar)SD.users=d.kullanicilar;renderAll();UI.toast('Veri yüklendi! Önceki durum tarayıcıda yedeklendi.','success');}catch(err){UI.toast('Dosya okunamadı.','error');}};r.readAsText(f);e.target.value='';}
+function clearVisits(){if(!confirm('Tüm ziyaret geçmişi silinecek. Devam edilsin mi?'))return;localStorage.setItem('sd_visit_backup_'+Date.now(),JSON.stringify(SD.visits));SD.visits={};renderVisit();UI.toast('Ziyaret geçmişi temizlendi. Önceki kayıtlar tarayıcıda yedeklendi.','success');}
 
 /* ═══ TAKVİM WidGET ═══ */
 var dpTempYear=null, dpTempMonth=null;

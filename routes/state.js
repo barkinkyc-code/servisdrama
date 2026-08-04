@@ -130,6 +130,7 @@ router.put('/', auth, async (req, res) => {
     if (db.dialect === 'postgres') {
       client = await db.raw.connect();
       await client.query('BEGIN');
+      await client.query("INSERT INTO app_state(state_key,payload,updated_at) VALUES('main','{}'::jsonb,NOW()) ON CONFLICT(state_key) DO NOTHING");
       const locked = await client.query("SELECT payload FROM app_state WHERE state_key='main' FOR UPDATE");
       const current = locked.rows[0]?.payload || {};
 
@@ -151,20 +152,29 @@ router.put('/', auth, async (req, res) => {
       );
       await client.query('COMMIT');
     } else {
-      const current = (await readState()).state || {};
-      if (!isOwner) {
-        const code = technicianCodeForUser(current, req.user);
-        if (!code) return res.status(403).json({ error: 'Teknisyen kodu bulunamadı' });
-        const safeState = clone(current, {}) || {};
-        safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, incomingState.sd_vi || {}, code);
-        safeState.sd_ex = mergeTechnicianArray(current.sd_ex, incomingState.sd_ex, code);
-        safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
-        state = safeState;
+      await new Promise((resolve, reject) => db.run('BEGIN IMMEDIATE', e => e ? reject(e) : resolve()));
+      try {
+        const row = await new Promise((resolve, reject) => db.get("SELECT payload FROM app_state WHERE state_key='main'", [], (e, r) => e ? reject(e) : resolve(r)));
+        const current = row?.payload ? clone(JSON.parse(row.payload), {}) : {};
+        if (!isOwner) {
+          const code = technicianCodeForUser(current, req.user);
+          if (!code) throw Object.assign(new Error('Teknisyen kodu bulunamadı'), { statusCode: 403 });
+          const safeState = clone(current, {}) || {};
+          safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, incomingState.sd_vi || {}, code);
+          safeState.sd_ex = mergeTechnicianArray(current.sd_ex, incomingState.sd_ex, code);
+          safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
+          state = safeState;
+        }
+        await new Promise((resolve, reject) => db.run(
+          "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
+          [JSON.stringify(state), req.user.id], e => e ? reject(e) : resolve()
+        ));
+        await new Promise((resolve, reject) => db.run('COMMIT', e => e ? reject(e) : resolve()));
+      } catch (e) {
+        try { await new Promise(resolve => db.run('ROLLBACK', () => resolve())); } catch (_) {}
+        if (e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        throw e;
       }
-      await new Promise((resolve, reject) => db.run(
-        "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
-        [JSON.stringify(state), req.user.id], e => e ? reject(e) : resolve()
-      ));
     }
 
     res.json({ success: true, updatedAt: new Date().toISOString(), ownerWrite: isOwner, technicianWrite: !isOwner });

@@ -9,12 +9,22 @@ var SD=(function(){
      arayüz tercihi, ortak iş verisi değil. Paylaşılırsa bir teknisyenin ALL seçimi
      diğerinin ekranını da değiştirir. */
   var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples'];
-  var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false;
+  var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false, remoteReadInFlight=null;
   var DIRTY_KEY='sd_sync_dirty_v2';
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}
   function dirtyMap(){return load(DIRTY_KEY,{});}
   function markDirty(k){var d=dirtyMap();d[k]=Date.now();store.setItem(DIRTY_KEY,JSON.stringify(d));emitSync('pending');}
   function clearDirty(){store.removeItem(DIRTY_KEY);}
+  function clearDirtySnapshot(sent){
+    var now=dirtyMap(),changed=false;
+    Object.keys(sent||{}).forEach(function(k){if(now[k]===sent[k]){delete now[k];changed=true;}});
+    if(changed){if(Object.keys(now).length)store.setItem(DIRTY_KEY,JSON.stringify(now));else clearDirty();}
+  }
+  function cleanupVisitTombstones(){
+    var vi=load('sd_vi',{}),changed=false;
+    Object.keys(vi).forEach(function(k){var r=vi[k];if(r&&r._tombstone===true){delete vi[k];changed=true;}});
+    if(changed)store.setItem('sd_vi',JSON.stringify(vi));
+  }
   function hasDirty(){return Object.keys(dirtyMap()).length>0;}
   function emitSync(status,message){
     try{
@@ -37,10 +47,11 @@ var SD=(function(){
     if(syncInFlight){syncPending=true;return Promise.resolve(false);}
     if(!hasDirty()&&!options.force)return Promise.resolve(true);
     if(syncTimer){clearTimeout(syncTimer);syncTimer=null;}
+    var sentDirty=dirtyMap();
     syncInFlight=true;emitSync('saving');
     return fetch('/api/state',{method:'PUT',cache:'no-store',keepalive:!!options.keepalive,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({state:snapshot()})})
-      .then(function(r){if(!r.ok)throw new Error('Ortak veri kaydedilemedi ('+r.status+')');return r.json();})
-      .then(function(){clearDirty();store.setItem('sd_last_sync',new Date().toISOString());emitSync('saved');return true;})
+      .then(function(r){if(r.status===401){try{localStorage.removeItem('token');}catch(_){} throw new Error('Oturum süresi doldu');}if(!r.ok)throw new Error('Ortak veri kaydedilemedi ('+r.status+')');return r.json();})
+      .then(function(){clearDirtySnapshot(sentDirty);cleanupVisitTombstones();store.setItem('sd_last_sync',new Date().toISOString());emitSync('saved');return true;})
       .catch(function(e){console.error(e);emitSync('error',e.message);return false;})
       .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;pushRemote({force:true});}});
   }
@@ -50,9 +61,10 @@ var SD=(function(){
   function remoteReady(options){
     options=options||{};
     if(!token()){remoteLoaded=true;return Promise.resolve(false);}
+    if(remoteReadInFlight&&!options.force)return remoteReadInFlight;
     var before=snapshot(),dirty=dirtyMap();
-    return fetch('/api/state',{cache:'no-store',headers:{'Authorization':'Bearer '+token()}})
-      .then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı ('+r.status+')');return r.json();})
+    remoteReadInFlight=fetch('/api/state',{cache:'no-store',headers:{'Authorization':'Bearer '+token()}})
+      .then(function(r){if(r.status===401){try{localStorage.removeItem('token');}catch(_){} throw new Error('Oturum süresi doldu');}if(!r.ok)throw new Error('Ortak veri okunamadı ('+r.status+')');return r.json();})
       .then(function(data){
         var remote=data.state||{};
         var remoteHasData=Object.keys(remote).length>0&&((remote.sd_co&&remote.sd_co.length)||(remote.sd_te&&remote.sd_te.length)||Object.keys(remote.sd_vi||{}).length);
@@ -70,7 +82,9 @@ var SD=(function(){
         if(localHasData){SHARED_KEYS.forEach(function(k){if(before[k]!==undefined)markDirty(k);});return pushRemote({force:true}).then(function(){return true;});}
         return true;
       })
-      .catch(function(e){console.error(e);remoteLoaded=true;emitSync('error',e.message);return false;});
+      .catch(function(e){console.error(e);remoteLoaded=true;emitSync('error',e.message);return false;})
+      .finally(function(){remoteReadInFlight=null;});
+    return remoteReadInFlight;
   }
   function flushRemote(){return pushRemote({force:true});}
   function syncBusy(){return syncInFlight||hasDirty();}
@@ -110,6 +124,7 @@ var SD=(function(){
     patchVisitWeekMigration();
     patchHistoricalCompanies();
     patchLastVisits();
+    patchVisitByMigration();
     patchExtraVisits();
   }
 
@@ -336,7 +351,7 @@ var SD=(function(){
       var visitDate=parseVisitDate(lv.date);
       if(!co||!visitDate)return;
       var wk=DT.wkey(visitDate);
-      vi[co.id+'_'+wk]={
+      var seededEntry={
         date:lv.date,
         tc:lv.tc,
         status:'done',
@@ -346,9 +361,38 @@ var SD=(function(){
         weekday:['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][visitDate.getDay()],
         historySeed:true
       };
+      vi[co.id+'_'+wk]=putVisitEntry(vi[co.id+'_'+wk],lv.tc,seededEntry);
     });
     save('sd_vi',vi);
     store.setItem('sd_last_visits_v2','1');
+  }
+
+  /* Eski üst-seviye ziyaret kayıtlarını teknisyen bazlı `by` yapısına geçirir.
+     Yeni sürüm anahtarı sayesinde mevcut cihazlarda bir kez çalışır. */
+  function patchVisitByMigration(){
+    if(store.getItem('sd_visit_by_migration_v1'))return;
+    var vi=load('sd_vi',{}),changed=false;
+    Object.keys(vi).forEach(function(key){
+      var rec=vi[key];
+      if(!rec||typeof rec!=='object'||rec.__delete)return;
+      var entries=visitEntries(rec);
+      var normalized={by:{}};
+      Object.keys(entries).forEach(function(code){
+        if(!entries[code])return;
+        normalized.by[String(code)]=Object.assign({},entries[code],{tc:String(code)});
+      });
+      var codes=Object.keys(normalized.by);
+      if(!codes.length)return;
+      var preferredCode=rec.tc&&normalized.by[String(rec.tc)]?String(rec.tc):codes[codes.length-1];
+      var latest=normalized.by[preferredCode]||normalized.by[codes[0]];
+      Object.assign(normalized,latest||{});
+      if(JSON.stringify(rec)!==JSON.stringify(normalized)){
+        vi[key]=normalized;
+        changed=true;
+      }
+    });
+    if(changed)save('sd_vi',vi);
+    store.setItem('sd_visit_by_migration_v1','1');
   }
 
   /* Program dışı ziyaret verilerini seed et */
@@ -413,7 +457,7 @@ var SD=(function(){
   function removeVisitEntry(rec,code){
     var prev=visitEntries(rec),es={},left=[];
     for(var k in prev){if(k!==code){es[k]=prev[k];left.push(k);}}
-    if(!left.length)return null;
+    if(!left.length)return {by:{},_tombstone:true,deletedCode:code,ts:Date.now()};
     var last=es[left[left.length-1]],out={};
     for(var f in last)out[f]=last[f];
     out.by=es;return out;
@@ -736,7 +780,7 @@ function _buildCell(co,col,vd,vk,opts){
             /* Firmayı en alta taşı */
             var allCompanies=SD.companies;var idx=-1;for(var i=0;i<allCompanies.length;i++){if(allCompanies[i].id===co.id){idx=i;break;}}if(idx>0){var item=allCompanies[idx];allCompanies.splice(idx,1);allCompanies.unshift(item);SD.save('sd_co',allCompanies);}
           }
-          SD.visits=vi;SD.save('sd_vi',vi);var needsFirmaRender=_clickCount>=2;_clickCount=0;if(needsFirmaRender&&opts.onUpdate)opts.onUpdate(needsFirmaRender);
+          SD.visits=vi;var needsFirmaRender=_clickCount>=2;_clickCount=0;if(needsFirmaRender&&opts.onUpdate)opts.onUpdate(needsFirmaRender);
         },500);
       });
       /* Long press silme (4 saniye) */
