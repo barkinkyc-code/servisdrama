@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255),
-  role ENUM('admin', 'tech') DEFAULT 'tech',
+  role ENUM('admin', 'tech', 'sales') DEFAULT 'tech',
   status ENUM('active', 'inactive') DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -70,11 +70,17 @@ CREATE TABLE IF NOT EXISTS backup_history (
   INDEX idx_created_at (created_at)
 );
 
+-- NOT: Bildirimler ayrı bir tabloda tutulmaz. Uygulama verisi (firmalar,
+-- ziyaretler, satışçılar, bildirimler) app_state tablosundaki tek JSON
+-- payload içinde saklanır — bkz. config/database.js ve routes/state.js.
+
 -- Insert Default Users
 INSERT INTO users (username, password, name, email, role) VALUES
 ('barkin.kayaci', '$2a$10$P5q2cF1I1r8zC0Z0C0Z0C.9LkJ2E5M5M5M5M5M5M5M5M5M5M5M5M', 'Barkın Kayacı', 'barkin@dramagroup.com', 'admin'),
 ('semih.aglan', '$2a$10$P5q2cF1I1r8zC0Z0C0Z0C.9LkJ2E5M5M5M5M5M5M5M5M5M5M5M5M', 'Semih Ağlan', 'semih@dramagroup.com', 'tech'),
-('suleyman', '$2a$10$P5q2cF1I1r8zC0Z0C0Z0C.9LkJ2E5M5M5M5M5M5M5M5M5M5M5M5M', 'Süleyman Küçük', 'suleyman@dramagroup.com', 'tech');
+('suleyman', '$2a$10$P5q2cF1I1r8zC0Z0C0Z0C.9LkJ2E5M5M5M5M5M5M5M5M5M5M5M5M', 'Süleyman Küçük', 'suleyman@dramagroup.com', 'tech'),
+('ayse.yilmaz', '$2a$10$P5q2cF1I1r8zC0Z0C0Z0C.9LkJ2E5M5M5M5M5M5M5M5M5M5M5M5M', 'Ayşe Yılmaz', 'ayse@dramagroup.com', 'sales'),
+('mehmet.ozdemir', '$2a$10$P5q2cF1I1r8zC0Z0C0Z0C.9LkJ2E5M5M5M5M5M5M5M5M5M5M5M5M', 'Mehmet Özdemir', 'mehmet@dramagroup.com', 'sales');
 
 -- Sample Data
 INSERT INTO device_data (user_id, device_id, device_name, attack_type, severity, location, ip_address, port, status) VALUES

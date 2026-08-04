@@ -155,12 +155,114 @@ function mergeTechnicianVisits(currentVisits, incomingVisits, code) {
   return merged;
 }
 
+// Giriş yapan satışçının state içindeki sd_st kaydını bulur.
+// JWT yalnızca {id,username,role} taşır; satışçı kimliği state'ten çözülür.
+function salesRepIdentityForUser(current, user) {
+  const username = String(user?.username || '').toLowerCase();
+  const reps = Array.isArray(current?.sd_st) ? current.sd_st : [];
+  const users = Array.isArray(current?.sd_users) ? current.sd_users : [];
+
+  // 1) sd_st içinde doğrudan username/email eşleşmesi
+  let rep = reps.find(s => String(s?.username || '').toLowerCase() === username)
+         || reps.find(s => String(s?.email || '').split('@')[0].toLowerCase() === username);
+
+  // 2) sd_users üzerinden id/salesRepId köprüsü
+  if (!rep) {
+    const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
+    if (appUser) {
+      const wanted = String(appUser.salesRepId || appUser.id || '');
+      rep = reps.find(s => String(s?.id || '') === wanted);
+    }
+  }
+
+  return rep || null;
+}
+
+// Satışçı kullanıcısı için state filtrelemesi: yalnızca atanmış firmaları döner.
+// Kimlik çözülemezse boş state döner (fail-closed).
+function filterStateForSalesRep(state, salesRep) {
+  if (!state || typeof state !== 'object' || !salesRep || !salesRep.id) return {};
+  const salesRepId = String(salesRep.id);
+  const filtered = clone(state, {});
+
+  // Satışçıya atanmış firmaları bul
+  const assignedCompanies = (filtered.sd_co || []).filter(c => String(c.salesRepId || '') === salesRepId);
+  const assignedCoIds = new Set(assignedCompanies.map(c => String(c.id)));
+
+  // Sadece atanmış firmaları sakla
+  filtered.sd_co = assignedCompanies;
+
+  // Ziyaretleri filtrele (sadece atanmış firmaların ziyaretleri).
+  // Anahtar biçimi hem 'firmaId|hafta' hem 'firmaId_hafta' olabilir.
+  if (filtered.sd_vi && typeof filtered.sd_vi === 'object') {
+    const filteredVisits = {};
+    Object.entries(filtered.sd_vi).forEach(([key, record]) => {
+      const firmaId = String(key).split(/[|_]/)[0];
+      if (assignedCoIds.has(firmaId)) filteredVisits[key] = record;
+    });
+    filtered.sd_vi = filteredVisits;
+  }
+
+  // Program dışı ziyaretleri filtrele
+  if (Array.isArray(filtered.sd_ex)) {
+    filtered.sd_ex = filtered.sd_ex.filter(x => assignedCoIds.has(String(x.firmaId || x.companyId || '')));
+  }
+
+  // Yola çıkış kayıtları satışçıyı ilgilendirmez
+  filtered.sd_dp = [];
+
+  // Numuneleri filtrele
+  if (Array.isArray(filtered.sd_samples)) {
+    filtered.sd_samples = filtered.sd_samples.filter(s => assignedCoIds.has(String(s.firmaId || '')));
+  }
+
+  // Bildirim ve aksiyonlar: yalnızca kendisine ait olanlar
+  if (Array.isArray(filtered.sd_notifications)) {
+    filtered.sd_notifications = filtered.sd_notifications.filter(
+      n => String(n?.recipientUserId || '') === salesRepId
+    );
+  }
+  if (Array.isArray(filtered.sd_actions)) {
+    filtered.sd_actions = filtered.sd_actions.filter(
+      a => String(a?.salesRepId || a?.createdByUserId || '') === salesRepId
+    );
+  }
+
+  // Diğer satışçıların kayıtları gizli — yalnızca kendi profili kalır
+  filtered.sd_st = [salesRep];
+
+  // Kullanıcı listesi (parola hash'leri dahil) ve risk olayları satışçıya kapalı
+  delete filtered.sd_users;
+  delete filtered.sd_risk_events;
+
+  // SMTP parolası gibi sırlar içeren yapılandırma satışçıya kapalı
+  delete filtered.sd_cfg;
+
+  return filtered;
+}
+
 router.get('/', auth, async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   try {
     const r = await readState();
+    const isAdmin = String(req.user.username || '').toLowerCase() === 'barkin.kayaci';
+    const isSalesRep = String(req.user.role || '').toLowerCase() === 'sales';
+
+    // Satışçı: sadece kendi firmalarının verisi. Kimlik çözülemezse boş state (fail-closed).
+    if (isSalesRep && !isAdmin) {
+      const salesRep = salesRepIdentityForUser(r.state, req.user);
+      r.state = filterStateForSalesRep(r.state, salesRep);
+    }
+    // Tech user: satışçı veri anahtarları gizli
+    else if (!isAdmin && String(req.user.role || '').toLowerCase() === 'tech') {
+      const hiddenForTech = ['sd_st', 'sd_notifications', 'sd_actions', 'sd_risk_events'];
+      hiddenForTech.forEach(k => {
+        if (r.state && k in r.state) delete r.state[k];
+      });
+    }
+
     res.json({ success: true, ...r });
   } catch (err) {
     res.status(500).json({ error: 'State read failed', details: err.message });
@@ -189,6 +291,11 @@ router.put('/', auth, async (req, res) => {
       const current = locked.rows[0]?.payload || {};
 
       if (!isOwner) {
+        const isSalesRep = String(req.user.role || '').toLowerCase() === 'sales';
+        if (isSalesRep) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: 'Satışçı kullanıcıları state yazamaz' });
+        }
         const identity = technicianIdentityForUser(current, req.user);
         const code = identity.code || technicianCodeForUser(current, req.user);
         if (!code || !identity.techId) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'Teknisyen eşlemesi bulunamadı' }); }
@@ -213,6 +320,8 @@ router.put('/', auth, async (req, res) => {
         const row = await new Promise((resolve, reject) => db.get("SELECT payload FROM app_state WHERE state_key='main'", [], (e, r) => e ? reject(e) : resolve(r)));
         const current = row?.payload ? clone(JSON.parse(row.payload), {}) : {};
         if (!isOwner) {
+          const isSalesRep = String(req.user.role || '').toLowerCase() === 'sales';
+          if (isSalesRep) throw Object.assign(new Error('Satışçı kullanıcıları state yazamaz'), { statusCode: 403 });
           const identity = technicianIdentityForUser(current, req.user);
           const code = identity.code || technicianCodeForUser(current, req.user);
           if (!code || !identity.techId) throw Object.assign(new Error('Teknisyen eşlemesi bulunamadı'), { statusCode: 403 });

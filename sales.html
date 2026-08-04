@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ServisDrama — Satışçı Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css?v=20260804-sales-v1">
+<link rel="stylesheet" href="sales.css?v=20260804-sales-v2">
+
+<meta name="theme-color" content="#1D4ED8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ServisDrama">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<link rel="manifest" href="/manifest.webmanifest?v=20260804-pwa-v1">
+</head>
+<body class="sales-body">
+
+<script>
+  // Token kontrol
+  if (!localStorage.getItem('token')) {
+    window.location.href = 'index.html';
+  }
+</script>
+
+<!-- ═══ ÜST PANEL (tüm ekran genişliklerinde) ═══ -->
+<header class="topbar" id="topbar">
+  <img class="topbar-logo" id="topbarLogo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine" role="button" tabindex="0" title="Dashboard'a Git">
+
+  <!-- Ana menü: masaüstünde satır içi, mobilde hamburger ile açılan panel -->
+  <nav class="topbar-nav" id="navTabs">
+    <button class="nav-tab" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-tab" data-page="firmalar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      Firmalarım
+    </button>
+    <button class="nav-tab" data-page="ziyaretler">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
+      Ziyaret Geçmişi
+    </button>
+    <button class="nav-tab" data-page="numuneler">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
+      Numuneler
+    </button>
+    <button class="nav-tab" data-page="aksiyonlar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+      Aksiyonlarım
+    </button>
+    <button class="nav-tab" data-page="bildirimler">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      Bildirimler
+    </button>
+  </nav>
+
+  <div class="topbar-right">
+    <div class="nav-user-menu" id="navUserMenu">
+      <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
+        <div class="nav-avatar-img" id="navAvatarImg"></div>
+        <span class="topbar-username" id="navUserLabel"></span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="nav-dropdown hidden" id="navDropdown">
+        <div class="nav-dd-header">
+          <div class="nav-dd-avatar" id="navDdAvatar"></div>
+          <div>
+            <div class="nav-dd-name" id="navDdName"></div>
+            <div class="nav-dd-role">Satışçı · Sales</div>
+          </div>
+        </div>
+        <div class="nav-dd-divider"></div>
+        <button class="nav-dd-item red" onclick="doLogout()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Çıkış Yap
+        </button>
+      </div>
+    </div>
+    <button class="mobile-hamburger" id="mobileMenuBtn" type="button" aria-label="Menüyü aç" aria-controls="navTabs" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</header>
+<div class="overlay-mobile" id="mobileOverlay"></div>
+
+<!-- ═══ ANA İÇERİK ═══ -->
+<main class="content" id="mainContent">
+  <!-- Dashboard Sekmesi -->
+  <section id="dashboardContent" class="page hidden">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <p>Kendi firmalarınızın özeti ve durumu</p>
+    </div>
+    <div class="content-body">
+      <div id="dashboardStats" class="stats-grid"></div>
+    </div>
+  </section>
+
+  <!-- Firmalarım Sekmesi -->
+  <section id="firmalarContent" class="page hidden">
+    <div class="page-header">
+      <h1>Firmalarım</h1>
+      <p>Size atanmış müşteriler</p>
+    </div>
+    <div class="content-body">
+      <div id="companiesList" class="companies-list"></div>
+    </div>
+  </section>
+
+  <!-- Ziyaret Geçmişi Sekmesi -->
+  <section id="ziyaretlerContent" class="page hidden">
+    <div class="page-header">
+      <h1>Ziyaret Geçmişi</h1>
+      <p>Firmalarıma yapılan tüm ziyaretler</p>
+    </div>
+    <div class="content-body">
+      <div id="visitHistory" class="visit-history"></div>
+    </div>
+  </section>
+
+  <!-- Numuneler Sekmesi -->
+  <section id="numunelerContent" class="page hidden">
+    <div class="page-header">
+      <h1>Numuneler</h1>
+      <p>Numune takip sistemi</p>
+    </div>
+    <div class="content-body">
+      <div id="samplesList" class="samples-list"></div>
+    </div>
+  </section>
+
+  <!-- Aksiyonlar Sekmesi -->
+  <section id="aksiyonlarContent" class="page hidden">
+    <div class="page-header">
+      <h1>Aksiyonlarım</h1>
+      <p>Açık aksiyonlar ve görevlerim</p>
+    </div>
+    <div class="content-body">
+      <form id="actionForm" class="action-form">
+        <input type="text" id="actionTitle" class="action-inp" placeholder="Yeni aksiyon (örn: NSK fiyat teklifi gönder)" maxlength="300" required>
+        <select id="actionCompany" class="action-inp action-sel"><option value="">Firma (opsiyonel)</option></select>
+        <input type="date" id="actionDue" class="action-inp action-date">
+        <button type="submit" class="btn-small">Ekle</button>
+      </form>
+      <div id="actionsList" class="actions-list"></div>
+    </div>
+  </section>
+
+  <!-- Bildirimler Sekmesi -->
+  <section id="bildirimlerContent" class="page hidden">
+    <div class="page-header">
+      <h1>Bildirimler</h1>
+      <p>Size gönderilen bildirimler</p>
+    </div>
+    <div class="content-body">
+      <div id="notificationsList" class="notifications-list"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ═══ Modal: Firma Detayı ═══ -->
+<div id="companyDetailModal" class="sales-modal hidden">
+  <div class="sales-modal-box">
+    <div class="sales-modal-hd">
+      <h2 id="companyDetailTitle"></h2>
+      <button class="sales-modal-x" onclick="closeCompanyDetail()" aria-label="Kapat">×</button>
+    </div>
+    <div class="sales-modal-body" id="companyDetailBody"></div>
+  </div>
+</div>
+
+<!-- ═══ Hata/Bilgi Mesajları ═══ -->
+<div id="notifications" class="notifications-container"></div>
+
+<!-- ═══ Scripts ═══ -->
+<script src="data.js?v=20260804-sales-v1"></script>
+<script src="sales.js?v=20260804-sales-v1"></script>
+<script src="pwa-update.js?v=20260804-pwa-v1"></script>
+</body>
+</html>

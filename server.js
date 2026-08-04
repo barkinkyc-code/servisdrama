@@ -33,6 +33,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/data', require('./routes/data'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/state', require('./routes/state'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/actions', require('./routes/actions'));
 
 // ═══ MAIL SYSTEM ═══
 // Rapor e-postalarındaki cid: görsellerin ortak kaynağı (manuel "Rapor Gönder" ve
@@ -373,11 +375,17 @@ const PORT = process.env.PORT || 3000;
 // Local development: open a TCP port only when this file is executed directly.
 // Vercel imports and invokes the exported Express app as a serverless function.
 if (require.main === module) {
+  // Start notification service
+  const notificationService = require('./services/notificationService');
+  const db = require('./config/database');
+  notificationService.initNotificationService(db);
+
   app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════╗
 ║   ServisDrama System Started         ║
 ║   Server: http://localhost:${PORT}   ║
+║   Notification Service: Active       ║
 ╚══════════════════════════════════════╝
     `);
   });

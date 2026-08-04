@@ -11,6 +11,7 @@ var SD_COMPANIES = [
     "name": "NSK OTOMOTİV SANAYİ VE TİCARET ANONİM ŞİRKETİ",
     "bolge": "KARACABEY",
     "techId": "t1",
+    "salesRepId": "u3",
     "email": "",
     "truck": false,
     "weeks": [
@@ -29,6 +30,7 @@ var SD_COMPANIES = [
     "name": "TEKNOFORM MAKİNA İNŞ.SAN.TİC.LTD.ŞTİ.",
     "bolge": "NOSAB",
     "techId": "t1",
+    "salesRepId": "u3",
     "email": "",
     "truck": false,
     "weeks": [
@@ -47,6 +49,7 @@ var SD_COMPANIES = [
     "name": "EJS ESKİŞEHİR JANT VE MAKİNA SAN. TİC. A.Ş.",
     "bolge": "ESKİŞEHİR",
     "techId": "t2",
+    "salesRepId": "u4",
     "email": "",
     "truck": false,
     "weeks": [

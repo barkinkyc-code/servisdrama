@@ -190,6 +190,7 @@
   <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="firmaSearch" placeholder="Firma ara..."></div>
   <div class="firma-filters" id="firmaFilters">
     <select class="inp inp-sm" id="fFilterTech"><option value="">Tüm Teknisyenler</option></select>
+    <select class="inp inp-sm" id="fFilterSalesRep"><option value="">Tüm Satışçılar</option></select>
     <select class="inp inp-sm" id="fFilterFreq">
       <option value="">Tüm Sıklıklar</option>
       <option value="4">Her hafta gidilecekler</option>
@@ -247,6 +248,7 @@
     <button class="stab" data-stab="mailAlicilar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Mail Alıcıları</button>
     <button class="stab" data-stab="modul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Modüller</button>
     <button class="stab" data-stab="teknik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M17 11h4m-2-2v4"/></svg>Teknisyen Yetkileri</button>
+    <button class="stab" data-stab="satisci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11V7m-2 2h4"/></svg>Satışçılar</button>
     <button class="stab" data-stab="izinler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Raporlama İzinleri</button>
     <button class="stab" data-stab="kullanici"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Kullanıcılar</button>
     <button class="stab" data-stab="veri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3m0-7v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Veri</button>
@@ -306,6 +308,9 @@
       </div>
       <div class="form-row2">
         <div class="form-grp"><label class="form-lbl">Sorumlu Teknisyen</label><select class="inp" id="fTech"></select></div>
+        <div class="form-grp"><label class="form-lbl">Satışçı</label><select class="inp" id="fSalesRep"><option value="">Atanmamış</option></select></div>
+      </div>
+      <div class="form-row2">
         <div class="form-grp"><label class="form-lbl">Firma E-postası</label><input class="inp" type="email" id="fEmail" placeholder="firma@ornek.com"></div>
         <div class="form-grp">
           <label class="form-lbl">Ek E-posta Alıcıları</label>
@@ -451,6 +456,27 @@
       </div>
     </div>
     <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('addTechModal')">İptal</button><button class="btn btn-primary" id="saveTechBtn">Ekle</button></div>
+  </div>
+</div>
+
+<!-- Satışçı Ekle -->
+<div class="overlay hidden" id="addSalesModal">
+  <div class="modal"><div class="modal-hd"><h2>Satışçı Ekle</h2><button class="modal-x" onclick="UI.closeModal('addSalesModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Kod *</label><input class="inp" id="newSalesCode" placeholder="S04"></div>
+        <div class="form-grp"><label class="form-lbl">Ad Soyad *</label><input class="inp" id="newSalesName" placeholder="Ad Soyad"></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Telefon</label><input class="inp" id="newSalesPhone" placeholder="+90 5xx xxx xx xx"></div>
+        <div class="form-grp"><label class="form-lbl">E-posta</label><input class="inp" type="email" id="newSalesEmail" placeholder="ad@dramamakine.com"></div>
+      </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Kullanıcı Adı *</label><input class="inp" id="newSalesUsername" placeholder="ad.soyad"></div>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px;">Giriş şifresi sunucuda tanımlanır. Kullanıcı adı, sunucudaki hesapla birebir aynı olmalıdır.</p>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('addSalesModal')">İptal</button><button class="btn btn-primary" id="saveSalesBtn">Ekle</button></div>
   </div>
 </div>
 

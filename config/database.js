@@ -31,7 +31,10 @@ async function seedUsersPg(pool) {
   const users = [
     { username: 'barkin.kayaci', password: process.env.ADMIN_PASSWORD || '1452580000', name: 'Barkın Kayacı', email: 'barkin.kayaci@dramamakine.com', role: 'admin' },
     { username: 'semih.aglan', password: '1015', name: 'Semih Ağlan', email: 'semih.aglan@dramamakine.com', role: 'tech' },
-    { username: 'suleyman.kucuk', password: '1016', name: 'Süleyman Küçük', email: 'suleyman.kucuk@dramamakine.com', role: 'tech' }
+    { username: 'suleyman.kucuk', password: '1016', name: 'Süleyman Küçük', email: 'suleyman.kucuk@dramamakine.com', role: 'tech' },
+    { username: 'esra.onur', password: process.env.SALES1_PASSWORD || '1019', name: 'Esra Onur', email: 'esra.onur@dramamakine.com', role: 'sales' },
+    { username: 'ersin.ertugen', password: process.env.SALES2_PASSWORD || '1014', name: 'Ersin Ertügen', email: 'ersin.ertugen@dramamakine.com', role: 'sales' },
+    { username: 'yagiz.erel', password: process.env.SALES3_PASSWORD || '1004', name: 'Yağız Erel', email: 'yagiz.erel@dramamakine.com', role: 'sales' }
   ];
   for (const user of users) {
     const hash = await bcrypt.hash(user.password, 10);
@@ -169,7 +172,10 @@ if (usePostgres) {
         const users = [
           ['barkin.kayaci', process.env.ADMIN_PASSWORD || '1452580000', 'Barkın Kayacı', 'barkin.kayaci@dramamakine.com', 'admin'],
           ['semih.aglan', '1015', 'Semih Ağlan', 'semih.aglan@dramamakine.com', 'tech'],
-          ['suleyman.kucuk', '1016', 'Süleyman Küçük', 'suleyman.kucuk@dramamakine.com', 'tech']
+          ['suleyman.kucuk', '1016', 'Süleyman Küçük', 'suleyman.kucuk@dramamakine.com', 'tech'],
+          ['esra.onur', process.env.SALES1_PASSWORD || '1019', 'Esra Onur', 'esra.onur@dramamakine.com', 'sales'],
+          ['ersin.ertugen', process.env.SALES2_PASSWORD || '1014', 'Ersin Ertügen', 'ersin.ertugen@dramamakine.com', 'sales'],
+          ['yagiz.erel', process.env.SALES3_PASSWORD || '1004', 'Yağız Erel', 'yagiz.erel@dramamakine.com', 'sales']
         ];
         for (const u of users) {
           const hash = await bcrypt.hash(u[1], 10);

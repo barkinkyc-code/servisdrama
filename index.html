@@ -372,6 +372,18 @@
         const data = await res.json();
 
         if (data.success) {
+          // Farklı bir kullanıcı giriş yapıyorsa öncekinin ortak iş verisini sil.
+          // Aksi halde yeni kullanıcı, sunucudan kendi (yetkisine göre kısıtlanmış)
+          // verisi gelene kadar öncekinin verisini görür.
+          const SHARED_KEYS = ['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples','sd_st','sd_notifications','sd_actions'];
+          if (localStorage.getItem('sd_last_user') !== user) {
+            SHARED_KEYS.forEach(k => localStorage.removeItem(k));
+            localStorage.removeItem('sd_sync_dirty_v2');
+            localStorage.removeItem('sd_last_sync');
+            localStorage.removeItem('sd_ac');
+          }
+          localStorage.setItem('sd_last_user', user);
+
           const sessionPayload = JSON.stringify({
             token: data.token,
             user: user,
@@ -396,7 +408,14 @@
 
           showMessage('✅ Başarılı! Yönlendiriliyor...', 'success');
           setTimeout(() => {
-            window.location.href = '/admin.html';
+            const role = (data.user?.role || 'admin').toLowerCase();
+            if (role === 'tech') {
+              window.location.href = '/tech.html';
+            } else if (role === 'sales') {
+              window.location.href = '/sales.html';
+            } else {
+              window.location.href = '/admin.html';
+            }
           }, 800);
         } else {
           showMessage('❌ ' + (data.error || 'Giriş başarısız'), 'error');

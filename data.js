@@ -8,7 +8,7 @@ var SD=(function(){
   /* sd_ac (seçili teknisyen/ALL kapsamı) bilinçli olarak listede DEĞİL: bu bir kullanıcı
      arayüz tercihi, ortak iş verisi değil. Paylaşılırsa bir teknisyenin ALL seçimi
      diğerinin ekranını da değiştirir. */
-  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples'];
+  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples','sd_st','sd_notifications','sd_actions'];
   var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false, remoteReadInFlight=null;
   var DIRTY_KEY='sd_sync_dirty_v2';
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}
@@ -88,6 +88,15 @@ var SD=(function(){
   }
   function flushRemote(){return pushRemote({force:true});}
   function syncBusy(){return syncInFlight||hasDirty();}
+  /* Oturum kapanışında / kullanıcı değişiminde ortak iş verisini tarayıcıdan siler.
+     Aksi halde farklı yetkideki bir sonraki kullanıcı, sunucudan kendi (kısıtlı)
+     verisi gelene kadar öncekinin verisini görür; dirty bayrağı varsa kalıcı olarak. */
+  function clearSharedData(){
+    SHARED_KEYS.forEach(function(k){try{store.removeItem(k);}catch(e){}});
+    clearDirty();
+    try{store.removeItem('sd_last_sync');store.removeItem('sd_ac');}catch(e){}
+    remoteLoaded=false;
+  }
   if(typeof window!=='undefined'){
     window.addEventListener('online',function(){if(remoteLoaded&&hasDirty())pushRemote({force:true});});
     window.addEventListener('pagehide',function(){if(remoteLoaded&&hasDirty())pushRemote({force:true,keepalive:true});});
@@ -109,7 +118,10 @@ var SD=(function(){
     if(!store.getItem('sd_users'))save('sd_users',[
       {id:'u0',username:'barkin.kayaci',name:'Barkın Kayacı',role:'admin',password:'1452580000',avatar:'',email:'barkin.kayaci@dramamakine.com'},
       {id:'u1',username:'semih.aglan',name:'Semih Ağlan',role:'tech',password:'1015',avatar:'',email:'semih.aglan@dramamakine.com',techId:'t1'},
-      {id:'u2',username:'suleyman.kucuk',name:'Süleyman Küçük',role:'tech',password:'1016',avatar:'',email:'suleyman.kucuk@dramamakine.com',techId:'t2'}
+      {id:'u2',username:'suleyman.kucuk',name:'Süleyman Küçük',role:'tech',password:'1016',avatar:'',email:'suleyman.kucuk@dramamakine.com',techId:'t2'},
+      {id:'u3',username:'esra.onur',name:'Esra Onur',role:'sales',avatar:'',email:'esra.onur@dramamakine.com',salesRepId:'s1'},
+      {id:'u4',username:'ersin.ertugen',name:'Ersin Ertügen',role:'sales',avatar:'',email:'ersin.ertugen@dramamakine.com',salesRepId:'s2'},
+      {id:'u5',username:'yagiz.erel',name:'Yağız Erel',role:'sales',avatar:'',email:'yagiz.erel@dramamakine.com',salesRepId:'s3'}
     ]);
     if(!store.getItem('sd_cfg'))save('sd_cfg',{
       senderName:'Drama Makine Teknik Servis',senderEmail:'',
@@ -119,6 +131,15 @@ var SD=(function(){
       techFeatures:{showStats:true,showAllFirms:false,showMap:true,canSendReport:true,showHistory:true}
     });
     if(!store.getItem('sd_ac')){var ts=load('sd_te',[]);save('sd_ac',ts.length?ts[0].id:null);}
+    /* Satışçı kayıtları — id/username/email sunucudaki users tablosuyla
+       eşleşmeli, aksi halde sessionSalesRep() profili bulamaz. */
+    if(!store.getItem('sd_st'))save('sd_st',[
+      {id:'s1',code:'S01',username:'esra.onur',name:'Esra Onur',phone:'',email:'esra.onur@dramamakine.com'},
+      {id:'s2',code:'S02',username:'ersin.ertugen',name:'Ersin Ertügen',phone:'',email:'ersin.ertugen@dramamakine.com'},
+      {id:'s3',code:'S03',username:'yagiz.erel',name:'Yağız Erel',phone:'',email:'yagiz.erel@dramamakine.com'}
+    ]);
+    if(!store.getItem('sd_notifications'))save('sd_notifications',[]);
+    if(!store.getItem('sd_actions'))save('sd_actions',[]);
     patchVisitFrequencies();
     patchExactWeeks();
     patchVisitWeekMigration();
@@ -126,6 +147,7 @@ var SD=(function(){
     patchLastVisits();
     patchVisitByMigration();
     patchExtraVisits();
+    patchSalesRepFields();
   }
 
   /* Tek seferlik düzeltme: gerçek ziyaret sıklığı/bölge listesiyle mevcut firmaları
@@ -407,9 +429,28 @@ var SD=(function(){
       {id:'ex3',firmaId:'c80',firmAdi:'ODOKSAN MAKİNA SAN. VE TİC. LTD. ŞTİ.',techId:'t1',techCode:'1015',date:'22.07',saat:'16:00',not:'ODOKSAN bakım hizmeti'}
     ];
 
-    extras.push.apply(extras,extraData);
-    save('sd_ex',extras);
+    /* Bayrak yalnızca bu tarayıcıda tutulur; yeni bir cihazdan girildiğinde seed
+       yeniden çalışır. Bu yüzden id bazlı kontrol şart — aksi halde sunucudaki
+       kayıtlar her yeni tarayıcıda bir kez daha çoğalır. */
+    var mevcut={};extras.forEach(function(x){if(x&&x.id)mevcut[x.id]=true;});
+    var eklenecek=extraData.filter(function(x){return !mevcut[x.id];});
+    if(eklenecek.length){extras.push.apply(extras,eklenecek);save('sd_ex',extras);}
     store.setItem('sd_extra_visits_v1','1');
+  }
+
+  function patchSalesRepFields(){
+    if(store.getItem('sd_sales_rep_fields_v1'))return;
+    var cos=load('sd_co',[]),changed=false;
+    cos.forEach(function(co){
+      if(!co.salesRepId){
+        co.salesRepId=null;
+        co.salesRepCode=null;
+        co.salesRepName=null;
+        changed=true;
+      }
+    });
+    if(changed)save('sd_co',cos);
+    store.setItem('sd_sales_rep_fields_v1','1');
   }
 
   /* ── ZİYARET KAYDI: TEKNİSYEN BAZLI ───────────────────────────────
@@ -532,9 +573,58 @@ var SD=(function(){
     return null;
   }
 
+  /* Giriş yapan kullanıcının satışçı kaydı. Satışçı değilse null. */
+  function sessionSalesRep(){
+    var u=sessionUser();if(!u)return null;
+    if(String(u.role||'').toLowerCase()!=='sales')return null;
+    var sts=load('sd_st',[]);if(!sts.length)return null;
+    var uid=String(u.id||'').toLowerCase(),uname=String(u.username||'').toLowerCase(),email=String(u.email||'').toLowerCase();
+    return sts.find(function(s){
+      return String(s.id||'').toLowerCase()===uid||String(s.username||'').toLowerCase()===uname||String(s.email||'').toLowerCase()===email;
+    })||null;
+  }
+
+  /* Bildirim Oluştur: Gecikme, Aksiyon, Ziyaret bazlı */
+  function generateNotifications(){
+    var today=new Date();var notifs=load('sd_notifications',[]);var changed=false;
+    var cos=load('sd_co',[]),sts=load('sd_st',[]),vi=load('sd_vi',{}),ex=load('sd_ex',[]);
+    var stMap={};sts.forEach(function(s){stMap[s.id]=s;});
+
+    /* Gecikmiş ziyaretler */
+    cos.forEach(function(c){
+      if(!c.salesRepId)return;var lastVisit=null;var lastTs=0;
+      Object.entries(vi).forEach(function(entry){
+        var key=entry[0],rec=entry[1];if(!rec.by)return;
+        var coId=key.split('|')[0];if(coId!==c.id)return;
+        Object.values(rec.by).forEach(function(v){
+          if((v.ts||0)>lastTs){lastTs=v.ts||0;lastVisit=v;}
+        });
+      });
+      if(Array.isArray(ex)){
+        ex.forEach(function(e){
+          if(e.firmaId!==c.id)return;if((e.ts||0)>lastTs){lastTs=e.ts||0;lastVisit=e;}
+        });
+      }
+      var daysSince=lastVisit?Math.floor((today-new Date(lastVisit.date||'2000-01-01'))/(24*60*60*1000)):999;
+      var expectedDays=(c.weeks&&c.weeks.length)?Math.min.apply(null,c.weeks.map(function(w){return w*7;})):30;
+      if(daysSince>expectedDays){
+        var notifId='delay_'+c.id+'_'+today.toISOString().split('T')[0];
+        if(!notifs.find(function(n){return n.id===notifId;})){
+          notifs.push({
+            id:notifId,type:'delay',title:'Gecikmiş Ziyaret',
+            message:c.name+' firmasına '+daysSince+' gün ziyaret yok',
+            recipientUserId:c.salesRepId,createdAt:today.toISOString(),read:false
+          });changed=true;
+        }
+      }
+    });
+
+    if(changed)save('sd_notifications',notifs);
+  }
+
   return{
-    load:load,save:save,remove:remove,seed:seed,remoteReady:remoteReady,pushRemote:pushRemote,flushRemote:flushRemote,syncBusy:syncBusy,DT:DT,
-    ALL_TECH:ALL_TECH,sessionUser:sessionUser,sessionTech:sessionTech,actingTech:actingTech,
+    load:load,save:save,remove:remove,seed:seed,remoteReady:remoteReady,pushRemote:pushRemote,flushRemote:flushRemote,syncBusy:syncBusy,clearSharedData:clearSharedData,DT:DT,
+    ALL_TECH:ALL_TECH,sessionUser:sessionUser,sessionTech:sessionTech,sessionSalesRep:sessionSalesRep,actingTech:actingTech,generateNotifications:generateNotifications,
     visitEntryFor:visitEntryFor,visitEntries:visitEntries,visitAggregate:visitAggregate,
     putVisitEntry:putVisitEntry,removeVisitEntry:removeVisitEntry,
     get companies(){return load('sd_co',[]);},
