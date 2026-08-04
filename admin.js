@@ -1117,69 +1117,29 @@ function saveTech(){
    username, sunucudaki users tablosundaki hesapla aynı olmalıdır — oturum
    eşlemesi (sessionSalesRep / routes/state.js) bu alan üzerinden yapılır. */
 function salesEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
-function renderSalesAdmin(){
-  var sts=SD.load('sd_st',[]),list=document.getElementById('salesAdminList');if(!list)return;
-  list.innerHTML='';
-  if(!sts.length){list.innerHTML='<p style="font-size:13px;color:var(--text3);">Henüz satışçı eklenmemiş.</p>';return;}
-  var cos=SD.companies;
-  sts.forEach(function(s){
-    var atanan=cos.filter(function(c){return String(c.salesRepId||'')===String(s.id);}).length;
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);padding:14px 16px;margin-bottom:8px;box-shadow:var(--sh-xs);';
-    var av=document.createElement('div');
-    av.style.cssText='width:42px;height:42px;border-radius:50%;background:'+BL.avatarColor(s.name)+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;';
-    av.textContent=BL.getInitials(s.name);
-    var info=document.createElement('div');info.style.cssText='flex:1;min-width:0;';
-    info.innerHTML='<div style="font-weight:700;font-size:14px;color:var(--text);">'+salesEsc(s.name)+' <span style="background:var(--purple-l);color:var(--purple);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;">'+salesEsc(s.code||'—')+'</span></div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+salesEsc(s.username||'kullanıcı adı yok')+' · '+salesEsc(s.email||'e-posta yok')+'</div>'
-      +'<div style="font-size:12px;color:var(--text3);margin-top:3px;">'+atanan+' firma atanmış</div>';
-    var fields=document.createElement('div');fields.style.cssText='display:flex;flex-direction:column;gap:5px;min-width:220px;';
-    [['name','Ad Soyad'],['username','Kullanıcı Adı'],['phone','Telefon'],['email','E-posta']].forEach(function(f){
-      var inp=document.createElement('input');
-      inp.style.cssText='padding:7px 10px;font-size:12.5px;border:1.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit;transition:border-color .15s;';
-      inp.value=s[f[0]]||'';inp.placeholder=f[1];
-      inp.addEventListener('focus',function(){inp.style.borderColor='#2563EB';});
-      inp.addEventListener('blur',function(){inp.style.borderColor='';});
-      inp.addEventListener('change',function(){
-        var arr=SD.load('sd_st',[]),rec=arr.find(function(x){return x.id===s.id;});
-        if(rec){rec[f[0]]=inp.value.trim();SD.save('sd_st',arr);UI.toast('Güncellendi.','success');renderSalesAdmin();}
-      });
-      fields.appendChild(inp);
-    });
-    var db=document.createElement('button');db.className='btn-icon red';db.title='Sil';
-    db.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>';
-    db.addEventListener('click',function(){
-      var msg=atanan>0?('Bu satışçıya '+atanan+' firma atanmış. Silinirse bu firmaların satışçı ataması kaldırılacak. Devam edilsin mi?'):'Satışçıyı sil?';
-      UI.confirm(msg,function(){
-        SD.save('sd_st',SD.load('sd_st',[]).filter(function(x){return x.id!==s.id;}));
-        /* Atamaları temizle: aksi halde firma var olmayan bir satışçıya bağlı kalır */
-        var arr=SD.companies,changed=false;
-        arr.forEach(function(c){if(String(c.salesRepId||'')===String(s.id)){delete c.salesRepId;changed=true;}});
-        if(changed)SD.companies=arr;
-        renderSalesAdmin();UI.toast('Satışçı silindi.','success');
-      });
-    });
-    row.appendChild(av);row.appendChild(info);row.appendChild(fields);row.appendChild(db);
-    list.appendChild(row);
-  });
+function salesApiHeaders(){return {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||sessionStorage.getItem('token')||'')};}
+async function renderSalesAdmin(){
+  var list=document.getElementById('salesAdminList');if(!list)return;
+  list.innerHTML='<div style="padding:14px;color:var(--text3)">Satışçılar yükleniyor…</div>';
+  try{
+    var r=await fetch('/api/sales',{headers:salesApiHeaders(),cache:'no-store'}),j=await r.json();if(!r.ok)throw new Error(j.error||'Satışçılar alınamadı');
+    var sts=j.sales||[],cos=SD.companies||[];try{localStorage.setItem('sd_st',JSON.stringify(sts));}catch(_){}
+    if(!sts.length){list.innerHTML='<div style="padding:18px;color:var(--text3)">Henüz satışçı yok.</div>';return;}
+    list.innerHTML=sts.map(function(s){var count=cos.filter(function(c){return String(c.salesRepId||'')===String(s.id)||String(c.salesRepUserId||'')===String(s.userId||'');}).length;return '<div class="settings-row" style="align-items:flex-start;gap:12px"><div style="flex:1"><div style="font-weight:700">'+salesEsc(s.name)+' <span class="badge">'+salesEsc(s.code||'—')+'</span></div><div style="font-size:12px;color:var(--text3);margin-top:3px">'+salesEsc(s.username)+' · '+salesEsc(s.email||'e-posta yok')+' · '+count+' firma · '+(s.status==='inactive'?'Pasif':'Aktif')+'</div></div><button class="btn btn-ghost btn-sm" onclick="editSalesPrompt(\''+salesEsc(s.id)+'\')">Düzenle</button><button class="btn btn-ghost btn-sm" onclick="deactivateSales(\''+salesEsc(s.id)+'\')">Pasif Yap</button></div>';}).join('');
+    renderFirmaFilterOptions();
+  }catch(e){list.innerHTML='<div style="padding:14px;color:var(--danger)">'+salesEsc(e.message)+'</div>';}
 }
-function saveSales(){
-  var code=(document.getElementById('newSalesCode')||{}).value.trim();
-  var name=(document.getElementById('newSalesName')||{}).value.trim();
-  var un=(document.getElementById('newSalesUsername')||{}).value.trim();
-  if(!code||!name||!un){UI.toast('Kod, ad ve kullanıcı adı zorunlu.','warning');return;}
-  var arr=SD.load('sd_st',[]);
-  if(arr.some(function(x){return String(x.code||'').toLowerCase()===code.toLowerCase();})){UI.toast('Bu kod zaten kullanılıyor.','warning');return;}
-  if(arr.some(function(x){return String(x.username||'').toLowerCase()===un.toLowerCase();})){UI.toast('Bu kullanıcı adı zaten kullanılıyor.','warning');return;}
-  arr.push({id:'s'+Date.now(),code:code,name:name,username:un,
-    phone:(document.getElementById('newSalesPhone')||{}).value.trim(),
-    email:(document.getElementById('newSalesEmail')||{}).value.trim()});
-  SD.save('sd_st',arr);
-  ['newSalesCode','newSalesName','newSalesPhone','newSalesEmail','newSalesUsername'].forEach(function(i){var el=document.getElementById(i);if(el)el.value='';});
-  UI.closeModal('addSalesModal');renderSalesAdmin();renderFirmaFilterOptions();
-  UI.toast('Satışçı eklendi. Giriş yapabilmesi için sunucuda aynı kullanıcı adıyla hesap tanımlı olmalı.','success');
+async function saveSales(){
+  var payload={code:(document.getElementById('newSalesCode')||{}).value.trim(),name:(document.getElementById('newSalesName')||{}).value.trim(),phone:(document.getElementById('newSalesPhone')||{}).value.trim(),email:(document.getElementById('newSalesEmail')||{}).value.trim(),username:(document.getElementById('newSalesUsername')||{}).value.trim(),password:(document.getElementById('newSalesPassword')||{}).value};
+  if(!payload.code||!payload.name||!payload.username||!payload.password){UI.toast('Kod, ad, kullanıcı adı ve şifre zorunlu.','warning');return;}
+  try{var r=await fetch('/api/sales',{method:'POST',headers:salesApiHeaders(),body:JSON.stringify(payload)}),j=await r.json();if(!r.ok)throw new Error(j.error||j.details||'Satışçı oluşturulamadı');['newSalesCode','newSalesName','newSalesPhone','newSalesEmail','newSalesUsername','newSalesPassword'].forEach(function(i){var e=document.getElementById(i);if(e)e.value='';});UI.closeModal('addSalesModal');await SD.remoteReady({force:true});await renderSalesAdmin();UI.toast('Satışçı hesabı ve giriş şifresi oluşturuldu.','success');}catch(e){UI.toast(e.message,'error');}
 }
-
+async function editSalesPrompt(id){
+  var arr=SD.load('sd_st',[]),s=arr.find(function(x){return String(x.id)===String(id);});if(!s)return;
+  var name=prompt('Ad Soyad',s.name||'');if(name===null)return;var email=prompt('E-posta',s.email||'');if(email===null)return;var phone=prompt('Telefon',s.phone||'');if(phone===null)return;var password=prompt('Yeni şifre (değişmeyecekse boş bırakın)','');
+  try{var r=await fetch('/api/sales/'+encodeURIComponent(id),{method:'PUT',headers:salesApiHeaders(),body:JSON.stringify({name:name,email:email,phone:phone,code:s.code,username:s.username,password:password,status:s.status||'active'})}),j=await r.json();if(!r.ok)throw new Error(j.error||j.details);await SD.remoteReady({force:true});await renderSalesAdmin();UI.toast('Satışçı güncellendi.','success');}catch(e){UI.toast(e.message,'error');}
+}
+async function deactivateSales(id){if(!confirm('Satışçı hesabı pasif yapılacak. Firma atamaları korunacak. Devam edilsin mi?'))return;try{var r=await fetch('/api/sales/'+encodeURIComponent(id),{method:'DELETE',headers:salesApiHeaders()}),j=await r.json();if(!r.ok)throw new Error(j.error||j.details);await SD.remoteReady({force:true});await renderSalesAdmin();UI.toast('Satışçı pasif yapıldı.','success');}catch(e){UI.toast(e.message,'error');}}
 /* ═══ AYARLAR ═══ */
 var MODULE_FEATS=[
   {key:'numuneAktif',nm:'Numune Takip Modülü',desc:'Numune takip sekmesini göster'},

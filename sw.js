@@ -1,5 +1,5 @@
 /* ServisDrama update-safe service worker */
-const BUILD_ID = '20260804-pwa-v1';
+const BUILD_ID = '20260805-sales-v2';
 const CACHE_NAME = `servisdrama-${BUILD_ID}`;
 const OFFLINE_FILES = [
   '/',
@@ -7,6 +7,9 @@ const OFFLINE_FILES = [
   '/admin.html',
   '/tech.html',
   '/tech-mobile.html',
+  '/sales.html',
+  '/sales.js',
+  '/sales.css',
   '/manifest.webmanifest'
 ];
 

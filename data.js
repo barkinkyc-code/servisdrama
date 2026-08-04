@@ -580,7 +580,7 @@ var SD=(function(){
     var sts=load('sd_st',[]);if(!sts.length)return null;
     var uid=String(u.id||'').toLowerCase(),uname=String(u.username||'').toLowerCase(),email=String(u.email||'').toLowerCase();
     return sts.find(function(s){
-      return String(s.id||'').toLowerCase()===uid||String(s.username||'').toLowerCase()===uname||String(s.email||'').toLowerCase()===email;
+      return String(s.userId||'').toLowerCase()===uid||String(s.id||'').toLowerCase()===uid||String(s.username||'').toLowerCase()===uname||String(s.email||'').toLowerCase()===email;
     })||null;
   }
 

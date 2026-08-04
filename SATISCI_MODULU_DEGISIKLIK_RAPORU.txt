@@ -1,0 +1,35 @@
+DM final(13) SATIŞÇI MODÜLÜ TAMAMLAMA RAPORU
+
+Uygulanan ana düzeltmeler:
+1. Admin satışçı profilini ve gerçek giriş hesabını tek işlemde oluşturur.
+2. Satışçı şifresi admin formundan belirlenir; en az 6 karakter kontrolü vardır.
+3. Satışçı güncelleme, şifre değiştirme ve pasif yapma gerçek users kaydıyla senkron çalışır.
+4. Eski u3/u4 ve yeni s1/s2 kimlik formatları geriye dönük desteklenir.
+5. Satışçı yalnızca kendisine atanan firmaların state verisini backend filtresiyle alır.
+6. Teknik servis yeni satışçı, bildirim, aksiyon ve risk verilerini alamaz.
+7. Satışçı ortak state yazamaz; yalnızca ayrı aksiyon endpoint'ini kullanır.
+8. Aksiyon ve bildirim kayıtları transaction/kilit ile yazılır; eşzamanlı ziyaret kaydını ezmez.
+9. Satışçı ziyaret geçmişinde normal ve program dışı kayıtlar birleşir.
+10. Ziyareti gerçekleştiren gerçek teknisyen kodu ve adı çözülür.
+11. Ziyaret kaydındaki mevcut teknik alanlar salt-okunur detay olarak gösterilir.
+12. Numuneler firmaId veya companyId ile filtrelenir ve mevcut tüm düz alanları gösterilir.
+13. Dashboard; planlı, ziyaret edilen, geciken, kritik, açık numune ve risk göstergeleri içerir.
+14. Firma hizmet sağlık skoru ve açıklanabilir nedenleri satışçı panelinde hesaplanır.
+15. Bildirim e-postaları varsayılan kapalıdır; uygulama içi bildirim kullanılır.
+16. Vercel üzerinde güvenilmez setInterval kaldırılmış, cron endpoint'i eklenmiştir.
+17. Kullanıcı kayıt endpoint'i yalnızca admin erişimine kapatılmıştır.
+18. Pasif satışçı giriş yapamaz.
+19. Service Worker sürümü yenilenmiş ve satışçı dosyaları offline listeye eklenmiştir.
+20. Gereksiz .git, node_modules, .env, sqlite ve eski v22 dosyaları için temizleme betiği eklenmiştir.
+
+Korunan sistemler:
+- Admin panelinin mevcut ziyaret, firma, mail, rapor ve ayar işleyişi değiştirilmedi.
+- Teknik servis ziyaret, program dışı ziyaret, konum ve numune kayıt akışı değiştirilmedi.
+- Neon app_state yapısı ve mevcut Vercel deployment korunmuştur.
+- Mevcut günlük/haftalık mail endpoint'lerine dokunulmamıştır.
+
+Doğrulamalar:
+- Tüm değişen JavaScript dosyaları node --check ile doğrulandı.
+- Mevcut visit-history testi başarılı.
+- Yeni satışçı modülü statik kontrol testi başarılı.
+- Yerel tam HTTP entegrasyon testi, paketteki sqlite3 native modülünün çalışma ortamındaki Node sürümüyle uyumsuz olması nedeniyle çalıştırılamadı. Vercel/Neon üzerinde deploy sonrası gerçek login testi yapılmalıdır.

@@ -35,6 +35,7 @@ app.use('/api/backup', require('./routes/backup'));
 app.use('/api/state', require('./routes/state'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/actions', require('./routes/actions'));
+app.use('/api/sales', require('./routes/sales'));
 
 // ═══ MAIL SYSTEM ═══
 // Rapor e-postalarındaki cid: görsellerin ortak kaynağı (manuel "Rapor Gönder" ve
@@ -166,6 +167,18 @@ app.get('/admin', (req, res) => {
 // Health check for Vercel and uptime tests
 app.get('/api/health', (req, res) => {
   res.json({ success: true, service: 'servisdrama', runtime: process.env.VERCEL ? 'vercel' : 'local' });
+});
+
+app.get('/api/cron/sales-notifications', async (req, res) => {
+  try {
+    const expected = process.env.CRON_SECRET;
+    const supplied = req.headers.authorization === `Bearer ${expected}` || req.query.secret === expected;
+    if (expected && !supplied) return res.status(401).json({ error: 'Unauthorized' });
+    const notificationService = require('./services/notificationService');
+    const db = require('./config/database');
+    const result = await notificationService.checkAndNotify(db, { sendEmails: false });
+    res.json({ success: true, ...result });
+  } catch (err) { res.status(500).json({ error: 'Bildirim kontrolü başarısız', details: err.message }); }
 });
 
 
@@ -378,7 +391,7 @@ if (require.main === module) {
   // Start notification service
   const notificationService = require('./services/notificationService');
   const db = require('./config/database');
-  notificationService.initNotificationService(db);
+  // Vercel/serverless ortamında setInterval güvenilir değildir; bildirimler cron endpoint'iyle üretilir.
 
   app.listen(PORT, () => {
     console.log(`

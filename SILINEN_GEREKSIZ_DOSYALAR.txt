@@ -1,0 +1,18 @@
+Bu teslim paketi yalnızca değişen dosyaları içerir.
+Mevcut proje klasöründe aşağıdakiler varsa PROJE_TEMIZLE.bat ile kaldırılır:
+- .git/
+- node_modules/
+- .env
+- servisdrama.db
+- admin.js.bak
+- admin-v22.js
+- tech-v22.js
+- data-v22.js
+- email-template-v22.js
+- companies-v22.js
+- numune-v22.js
+- enhancements-v22.js
+- style-v22.css
+
+ÖNEMLİ: .env içindeki gerçek değerleri Vercel Environment Variables içinde tutun.
+.env.example silinmez.

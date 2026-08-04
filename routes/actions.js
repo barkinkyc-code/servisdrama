@@ -1,149 +1,19 @@
-/* Aksiyonlar — satışçının kendi takip görevleri.
-   app_state içindeki sd_actions dizisinde tutulur; satışçılar state'e
-   doğrudan yazamadığı (403) için CRUD bu route üzerinden yapılır.
-   Kayıt: {id, salesRepId, companyId, title, dueDate, status:'open'|'done', createdAt} */
-
 const express = require('express');
-const db = require('../config/database');
 const auth = require('../middleware/auth');
+const { readState, mutateState } = require('../utils/stateStore');
 const router = express.Router();
+const isAdmin = u => String(u?.role || '').toLowerCase() === 'admin';
+const isSales = u => String(u?.role || '').toLowerCase() === 'sales';
 
-async function readState() {
-  await db.ready();
-  if (db.dialect === 'postgres') {
-    const r = await db.raw.query("SELECT payload FROM app_state WHERE state_key='main'");
-    return r.rows[0]?.payload || {};
-  }
-  return await new Promise((resolve, reject) => db.get(
-    "SELECT payload FROM app_state WHERE state_key='main'", [],
-    (e, row) => e ? reject(e) : resolve(row ? JSON.parse(row.payload || '{}') : {})
-  ));
+function repFor(state, user) {
+  const reps = Array.isArray(state.sd_st) ? state.sd_st : [];
+  return reps.find(r => String(r.userId || '') === String(user.id)) || reps.find(r => String(r.username || '').toLowerCase() === String(user.username || '').toLowerCase()) || null;
 }
-
-async function writeState(state, userId) {
-  if (db.dialect === 'postgres') {
-    await db.raw.query(
-      `INSERT INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',$1::jsonb,$2,NOW())
-       ON CONFLICT(state_key) DO UPDATE SET payload=EXCLUDED.payload,updated_by=EXCLUDED.updated_by,updated_at=NOW()`,
-      [JSON.stringify(state), userId]
-    );
-    return;
-  }
-  await new Promise((resolve, reject) => db.run(
-    "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
-    [JSON.stringify(state), userId], e => e ? reject(e) : resolve()
-  ));
-}
-
-// Giriş yapan kullanıcının satışçı kimliği (sd_st.id) — notifications.js ile aynı sözleşme
-function salesRepIdFor(state, user) {
-  const username = String(user?.username || '').toLowerCase();
-  const reps = Array.isArray(state?.sd_st) ? state.sd_st : [];
-  let rep = reps.find(s => String(s?.username || '').toLowerCase() === username)
-         || reps.find(s => String(s?.email || '').split('@')[0].toLowerCase() === username);
-  if (!rep) {
-    const users = Array.isArray(state?.sd_users) ? state.sd_users : [];
-    const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
-    if (appUser) rep = reps.find(s => String(s?.id || '') === String(appUser.salesRepId || appUser.id || ''));
-  }
-  return rep ? String(rep.id) : null;
-}
-
-function isAdmin(user) { return String(user?.username || '').toLowerCase() === 'barkin.kayaci'; }
-
-// Kullanıcının görebildiği aksiyonlar (admin: hepsi)
-function visibleActions(state, user) {
-  const all = Array.isArray(state?.sd_actions) ? state.sd_actions : [];
-  if (isAdmin(user)) return all;
-  const rid = salesRepIdFor(state, user);
-  if (!rid) return [];
-  return all.filter(a => String(a?.salesRepId || '') === rid);
-}
-
-// Listele
-router.get('/', auth, async (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  try {
-    const state = await readState();
-    const mine = visibleActions(state, req.user)
-      .slice()
-      .sort((a, b) => String(a?.status || '').localeCompare(String(b?.status || '')) // open önce
-        || String(a?.dueDate || '9999').localeCompare(String(b?.dueDate || '9999')));
-    res.json({ success: true, actions: mine });
-  } catch (err) {
-    res.status(500).json({ error: 'Aksiyonlar okunamadı', details: err.message });
-  }
-});
-
-// Ekle
-router.post('/', auth, async (req, res) => {
-  try {
-    const state = await readState();
-    const rid = salesRepIdFor(state, req.user);
-    if (!rid && !isAdmin(req.user)) return res.status(403).json({ error: 'Satışçı profili bulunamadı' });
-
-    const title = String(req.body?.title || '').trim().slice(0, 300);
-    if (!title) return res.status(400).json({ error: 'Aksiyon açıklaması gerekli' });
-
-    const companyId = String(req.body?.companyId || '').trim();
-    if (companyId && rid) {
-      // Satışçı yalnızca kendi firmasına aksiyon bağlayabilir
-      const own = (state.sd_co || []).some(c => String(c.id) === companyId && String(c.salesRepId || '') === rid);
-      if (!own) return res.status(403).json({ error: 'Bu firma size atanmamış' });
-    }
-
-    const action = {
-      id: 'act_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      salesRepId: rid || String(req.body?.salesRepId || ''),
-      companyId: companyId || '',
-      title,
-      dueDate: String(req.body?.dueDate || '').slice(0, 10),
-      status: 'open',
-      createdAt: new Date().toISOString()
-    };
-
-    state.sd_actions = Array.isArray(state.sd_actions) ? state.sd_actions : [];
-    state.sd_actions.push(action);
-    await writeState(state, req.user.id);
-    res.json({ success: true, action });
-  } catch (err) {
-    res.status(500).json({ error: 'Aksiyon eklenemedi', details: err.message });
-  }
-});
-
-// Durum güncelle (open <-> done)
-router.put('/:id', auth, async (req, res) => {
-  try {
-    const state = await readState();
-    const mine = new Set(visibleActions(state, req.user).map(a => String(a.id)));
-    if (!mine.has(String(req.params.id))) return res.status(404).json({ error: 'Aksiyon bulunamadı' });
-
-    const status = req.body?.status === 'done' ? 'done' : 'open';
-    state.sd_actions = (state.sd_actions || []).map(a =>
-      String(a?.id) === String(req.params.id)
-        ? { ...a, status, completedAt: status === 'done' ? new Date().toISOString() : undefined }
-        : a
-    );
-    await writeState(state, req.user.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Güncellenemedi', details: err.message });
-  }
-});
-
-// Sil
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    const state = await readState();
-    const mine = new Set(visibleActions(state, req.user).map(a => String(a.id)));
-    if (!mine.has(String(req.params.id))) return res.status(404).json({ error: 'Aksiyon bulunamadı' });
-
-    state.sd_actions = (state.sd_actions || []).filter(a => String(a?.id) !== String(req.params.id));
-    await writeState(state, req.user.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Silinemedi', details: err.message });
-  }
-});
-
-module.exports = router;
+function visible(state,user){ const all=Array.isArray(state.sd_actions)?state.sd_actions:[]; if(isAdmin(user))return all; const rep=repFor(state,user); return rep?all.filter(a=>String(a.salesRepId)===String(rep.id)):[]; }
+router.use(auth);
+router.use((req,res,next)=> (isAdmin(req.user)||isSales(req.user)) ? next() : res.status(403).json({error:'Bu modüle erişim yetkiniz yok'}));
+router.get('/',async(req,res)=>{try{const {state}=await readState();res.json({success:true,actions:visible(state,req.user).sort((a,b)=>String(a.status).localeCompare(String(b.status))||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')))});}catch(e){res.status(500).json({error:'Aksiyonlar okunamadı',details:e.message});}});
+router.post('/',async(req,res)=>{try{let action;await mutateState(state=>{const rep=repFor(state,req.user);if(!rep&&!isAdmin(req.user))throw Object.assign(new Error('Satışçı profili bulunamadı'),{statusCode:403});const companyId=String(req.body?.companyId||'');if(rep&&!((state.sd_co||[]).some(c=>String(c.id)===companyId&&([c.salesRepId,c.salesRepUserId].filter(Boolean).map(String).some(id=>[String(rep.id||''),String(rep.userId||''),String(rep.legacyUserId||'')].includes(id))))))throw Object.assign(new Error('Bu firma size atanmamış'),{statusCode:403});const description=String(req.body?.description||req.body?.title||'').trim().slice(0,1000);if(!description)throw Object.assign(new Error('Aksiyon açıklaması gerekli'),{statusCode:400});action={id:'act_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),companyId,salesRepId:rep?.id||String(req.body?.salesRepId||''),createdByUserId:req.user.id,createdByRole:req.user.role,assignedToUserId:rep?.userId||req.user.id,actionType:String(req.body?.actionType||'follow_up').slice(0,60),description,title:description.slice(0,300),dueDate:String(req.body?.dueDate||'').slice(0,10),status:'open',priority:['low','high','critical'].includes(req.body?.priority)?req.body.priority:'normal',relatedVisitId:String(req.body?.relatedVisitId||''),relatedSampleId:String(req.body?.relatedSampleId||''),createdAt:new Date().toISOString()};state.sd_actions=Array.isArray(state.sd_actions)?state.sd_actions:[];state.sd_actions.push(action);},req.user.id);res.status(201).json({success:true,action});}catch(e){res.status(e.statusCode||500).json({error:e.message||'Aksiyon eklenemedi'});}});
+router.put('/:id',async(req,res)=>{try{await mutateState(state=>{const ids=new Set(visible(state,req.user).map(a=>String(a.id)));if(!ids.has(String(req.params.id)))throw Object.assign(new Error('Aksiyon bulunamadı'),{statusCode:404});state.sd_actions=(state.sd_actions||[]).map(a=>String(a.id)===String(req.params.id)?{...a,status:req.body?.status==='done'?'done':'open',completedAt:req.body?.status==='done'?new Date().toISOString():null,completedByUserId:req.body?.status==='done'?req.user.id:null}:a);},req.user.id);res.json({success:true});}catch(e){res.status(e.statusCode||500).json({error:e.message||'Güncellenemedi'});}});
+router.delete('/:id',async(req,res)=>{try{await mutateState(state=>{const ids=new Set(visible(state,req.user).map(a=>String(a.id)));if(!ids.has(String(req.params.id)))throw Object.assign(new Error('Aksiyon bulunamadı'),{statusCode:404});state.sd_actions=(state.sd_actions||[]).filter(a=>String(a.id)!==String(req.params.id));},req.user.id);res.json({success:true});}catch(e){res.status(e.statusCode||500).json({error:e.message||'Silinemedi'});}});
+module.exports=router;

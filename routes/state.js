@@ -162,8 +162,9 @@ function salesRepIdentityForUser(current, user) {
   const reps = Array.isArray(current?.sd_st) ? current.sd_st : [];
   const users = Array.isArray(current?.sd_users) ? current.sd_users : [];
 
-  // 1) sd_st içinde doğrudan username/email eşleşmesi
-  let rep = reps.find(s => String(s?.username || '').toLowerCase() === username)
+  // 1) veritabanı userId veya doğrudan username/email eşleşmesi
+  let rep = reps.find(s => String(s?.userId || '') === String(user?.id || ''))
+         || reps.find(s => String(s?.username || '').toLowerCase() === username)
          || reps.find(s => String(s?.email || '').split('@')[0].toLowerCase() === username);
 
   // 2) sd_users üzerinden id/salesRepId köprüsü
@@ -175,7 +176,9 @@ function salesRepIdentityForUser(current, user) {
     }
   }
 
-  return rep || null;
+  if (!rep) return null;
+  const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
+  return { ...rep, userId: rep.userId || user?.id || '', legacyUserId: rep.legacyUserId || appUser?.id || '' };
 }
 
 // Satışçı kullanıcısı için state filtrelemesi: yalnızca atanmış firmaları döner.
@@ -186,7 +189,12 @@ function filterStateForSalesRep(state, salesRep) {
   const filtered = clone(state, {});
 
   // Satışçıya atanmış firmaları bul
-  const assignedCompanies = (filtered.sd_co || []).filter(c => String(c.salesRepId || '') === salesRepId);
+  const salesUserId = String(salesRep.userId || '');
+  const legacyUserId = String(salesRep.legacyUserId || '');
+  const assignedCompanies = (filtered.sd_co || []).filter(c => {
+    const ids = [c.salesRepId, c.salesRepUserId].filter(Boolean).map(String);
+    return ids.includes(salesRepId) || (salesUserId && ids.includes(salesUserId)) || (legacyUserId && ids.includes(legacyUserId));
+  });
   const assignedCoIds = new Set(assignedCompanies.map(c => String(c.id)));
 
   // Sadece atanmış firmaları sakla
@@ -213,7 +221,7 @@ function filterStateForSalesRep(state, salesRep) {
 
   // Numuneleri filtrele
   if (Array.isArray(filtered.sd_samples)) {
-    filtered.sd_samples = filtered.sd_samples.filter(s => assignedCoIds.has(String(s.firmaId || '')));
+    filtered.sd_samples = filtered.sd_samples.filter(s => assignedCoIds.has(String(s.firmaId || s.companyId || '')));
   }
 
   // Bildirim ve aksiyonlar: yalnızca kendisine ait olanlar
@@ -224,7 +232,7 @@ function filterStateForSalesRep(state, salesRep) {
   }
   if (Array.isArray(filtered.sd_actions)) {
     filtered.sd_actions = filtered.sd_actions.filter(
-      a => String(a?.salesRepId || a?.createdByUserId || '') === salesRepId
+      a => String(a?.salesRepId || '') === salesRepId
     );
   }
 
@@ -247,7 +255,7 @@ router.get('/', auth, async (req, res) => {
   res.set('Expires', '0');
   try {
     const r = await readState();
-    const isAdmin = String(req.user.username || '').toLowerCase() === 'barkin.kayaci';
+    const isAdmin = String(req.user.role || '').toLowerCase() === 'admin';
     const isSalesRep = String(req.user.role || '').toLowerCase() === 'sales';
 
     // Satışçı: sadece kendi firmalarının verisi. Kimlik çözülemezse boş state (fail-closed).
@@ -280,7 +288,7 @@ router.put('/', auth, async (req, res) => {
     const payloadBytes = Buffer.byteLength(JSON.stringify(incomingState), 'utf8');
     if (payloadBytes > 5 * 1024 * 1024) return res.status(413).json({ error: 'State boyutu çok büyük' });
 
-    const isOwner = String(req.user.username || '').toLowerCase() === 'barkin.kayaci';
+    const isOwner = String(req.user.role || '').toLowerCase() === 'admin';
     let state = incomingState;
 
     if (db.dialect === 'postgres') {
