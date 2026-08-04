@@ -362,13 +362,7 @@ function goto(p){
 }
 
 function updateRaporButtonState(){
-  var btn=document.querySelector('.zt-rapor-btn');
-  if(!btn)return;
-  var canSend=canSendReport();
-  btn.disabled=!canSend;
-  btn.title=canSend?'Rapor gönder':'Rapor gönderme izni yok (barkin.kayaci tarafından verilmesi gerekli)';
-  btn.style.opacity=canSend?'1':'0.5';
-  btn.style.cursor=canSend?'pointer':'not-allowed';
+  // Rapor gönder butonu hep açık kalır
 }
 function renderAll(){renderTechBtns();renderFirma();renderVisit();renderExtraVisits();renderSetupBanner();updateRaporButtonState();}
 
