@@ -351,10 +351,12 @@ body{
   .topbar{padding:0 14px;}
   .tb-user-info{display:none;}
   .infobar{padding:10px 14px;}
-  .sheet{max-height:60vh !important;padding:6px 14px 16px !important;overflow:hidden;display:flex;flex-direction:column;}
-  .sheet-title{margin-bottom:8px;font-size:16px;}
-  .sheet-handle{margin:2px auto 12px;}
-  #missedList{max-height:calc(60vh - 120px) !important;overflow-y:auto;flex:1;}
+  .sheet{display:flex !important;flex-direction:column !important;max-height:70vh !important;padding:4px 12px 12px !important;overflow:hidden !important;}
+  .sheet-handle{margin:2px auto 8px !important;}
+  .sheet-title{margin-bottom:6px !important;font-size:15px !important;}
+  .sheet > p{display:none !important;}
+  #missedSheet .sheet{height:70vh !important;}
+  #missedList{display:flex !important;flex-direction:column !important;gap:8px !important;flex:1 !important;overflow-y:auto !important;min-height:0 !important;max-height:none !important;}
 }
 @media(min-width:769px){
   .fab-area{
