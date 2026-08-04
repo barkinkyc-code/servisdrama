@@ -751,7 +751,24 @@ function saveExtraVisit(){
 
 /* ═══ RAPOR ═══ */
 function openRapor(){
+  var modal=document.getElementById('raporModal');
   var iframe=document.getElementById('raporIframe');
+
+  // Responsive modal boyutları ayarla
+  if(modal){
+    var modalEl=modal.querySelector('.modal');
+    if(A.isMobile()){
+      if(modalEl)modalEl.style.maxWidth='calc(100vw - 32px)';
+      if(iframe)iframe.style.height='50vh';
+    }else if(A.isTablet()){
+      if(modalEl)modalEl.style.maxWidth='calc(100vw - 64px)';
+      if(iframe)iframe.style.height='55vh';
+    }else{
+      if(modalEl)modalEl.style.maxWidth='600px';
+      if(iframe)iframe.style.height='60vh';
+    }
+  }
+
   if(iframe){iframe.removeAttribute('src');iframe.srcdoc=buildOutlookRaporHTMLPreview();}
   updateMailRaporButtonState();
   UI.openModal('raporModal');
