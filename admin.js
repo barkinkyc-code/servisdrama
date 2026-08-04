@@ -170,6 +170,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   on('yukleInput','change',importFirmalar);
   on('fAMailEkle','click',addAMail);
   on('mapPickBtn','click',openMapModal);
+  on('mapSearchBtn','click',searchMapAddress);
   on('mapSave','click',saveMap);
   on('mapCancel','click',function(){UI.closeModal('mapModal');UI.openModal('firmaModal');});
   on('mapX','click',function(){UI.closeModal('mapModal');UI.openModal('firmaModal');});
@@ -523,6 +524,8 @@ function initAutocomplete(inputId,listId,onSelect){
 /* ═══ HARİTA ═══ */
 function openMapModal(){
   UI.closeModal('firmaModal');
+  var si=document.getElementById('mapSearchInp');if(si)si.value='';
+  var sr=document.getElementById('mapSearchResults');if(sr){sr.innerHTML='';sr.style.display='none';}
   setTimeout(function(){UI.openModal('mapModal');setTimeout(function(){
     var c=document.getElementById('mapPickerContainer');if(!c)return;
     if(A._mapPicker){try{A._mapPicker.remove();}catch(e){}A._mapPicker=null;}
@@ -530,10 +533,38 @@ function openMapModal(){
     var lat=A.mapLat||40.1826,lng=A.mapLng||29.0665;
     var map=L.map(c).setView([lat,lng],A.mapLat?15:11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
-    var marker=A.mapLat?L.marker([A.mapLat,A.mapLng]).addTo(map):null;
-    map.on('click',function(ev){if(marker)map.removeLayer(marker);marker=L.marker(ev.latlng).addTo(map);A.mapLat=ev.latlng.lat;A.mapLng=ev.latlng.lng;});
+    A._mapMarker=A.mapLat?L.marker([A.mapLat,A.mapLng]).addTo(map):null;
+    map.on('click',function(ev){if(A._mapMarker)map.removeLayer(A._mapMarker);A._mapMarker=L.marker(ev.latlng).addTo(map);A.mapLat=ev.latlng.lat;A.mapLng=ev.latlng.lng;});
     A._mapPicker=map;
   },120);},60);
+}
+function setMapPosition(lat,lng,zoom){
+  A.mapLat=lat;A.mapLng=lng;
+  if(!A._mapPicker)return;
+  if(A._mapMarker){try{A._mapPicker.removeLayer(A._mapMarker);}catch(e){}}
+  A._mapMarker=L.marker([lat,lng]).addTo(A._mapPicker);
+  A._mapPicker.setView([lat,lng],zoom||16);
+}
+function searchMapAddress(){
+  var inp=document.getElementById('mapSearchInp'),results=document.getElementById('mapSearchResults');
+  if(!inp||!results)return;
+  var q=inp.value.trim();if(!q)return;
+  results.innerHTML='<div class="ac-item" style="font-style:italic;color:var(--text3);">Aranıyor...</div>';results.style.display='block';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=tr&q='+encodeURIComponent(q))
+    .then(function(r){return r.json();})
+    .then(function(list){
+      results.innerHTML='';
+      if(!list||!list.length){results.innerHTML='<div class="ac-item" style="font-style:italic;color:var(--text3);">Sonuç bulunamadı.</div>';return;}
+      list.forEach(function(item){
+        var el=document.createElement('div');el.className='ac-item';el.textContent=item.display_name;
+        el.addEventListener('click',function(){
+          setMapPosition(parseFloat(item.lat),parseFloat(item.lon),16);
+          results.style.display='none';inp.value=item.display_name;
+        });
+        results.appendChild(el);
+      });
+    })
+    .catch(function(){results.innerHTML='<div class="ac-item" style="color:var(--red);">Arama başarısız, internet bağlantısını kontrol edin.</div>';});
 }
 function saveMap(){var lbl=document.getElementById('coordsLbl');if(lbl&&A.mapLat)lbl.textContent='📍 '+A.mapLat.toFixed(5)+', '+A.mapLng.toFixed(5);UI.closeModal('mapModal');UI.openModal('firmaModal');if(A.mapLat)UI.toast('Konum kaydedildi.','success');}
 
@@ -1806,7 +1837,7 @@ function renderDashboard(){renderVisitDashboard();}
     var unique={};rows.forEach(function(r){unique[r.firmaId||r.firma]=1;});
     var tech={};rows.forEach(function(r){tech[r.teknisyen]=(tech[r.teknisyen]||0)+1;});
     var days={};rows.forEach(function(r){days[r.tarih]=(days[r.tarih]||0)+1;});
-    return{rows:rows,total:rows.length,unique:Object.keys(unique).length,tech:tech,days:days,uygun:rows.filter(function(r){return r.plan==='Plana Uygun';}).length,disi:rows.filter(function(r){return r.plan==='Plan Dışı'||r.plan==='Program Dışı';}).length,start:start,end:end};
+    return{rows:rows,total:rows.length,unique:Object.keys(unique).length,tech:tech,days:days,uygun:rows.filter(function(r){return r.plan==='Plana Uygun';}).length,disi:rows.filter(function(r){return r.plan==='Plan Dışı'||r.plan==='Program Dışı';}).length,planDisi:rows.filter(function(r){return r.plan==='Plan Dışı';}).length,programDisi:rows.filter(function(r){return r.plan==='Program Dışı';}).length,start:start,end:end};
   }
   function barsR(obj){var keys=Object.keys(obj),max=Math.max.apply(null,keys.map(function(k){return obj[k];}).concat([1]));return keys.map(function(k){return'<div class="wr-bar-row"><span>'+escR(k)+'</span><div><i style="width:'+Math.max(8,Math.round(obj[k]/max*100))+'%"></i></div><b>'+obj[k]+'</b></div>';}).join('')||'<div class="wr-empty">Kayıt yok</div>';}
   function iconR(type){
@@ -1862,23 +1893,52 @@ function renderDashboard(){renderVisitDashboard();}
     if(typeof ExcelJS==='undefined')throw new Error('ExcelJS yüklenemedi. İnternet bağlantısını kontrol edin.');
     var wb=new ExcelJS.Workbook();wb.creator='DK Portal';wb.created=new Date();
     var ws=wb.addWorksheet('Teknik Servis Raporu',{views:[{state:'frozen',ySplit:6}]});ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,paperSize:9};
-    ws.getRow(1).height=34;ws.getCell('A1').fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};
-    ws.mergeCells('B1:G1');ws.getCell('B1').value='TEKNİK SERVİS HAFTALIK RAPORU';ws.getCell('B1').font={size:22,bold:true,color:{argb:'FFFFFFFF'}};ws.getCell('B1').fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};ws.getCell('B1').alignment={vertical:'middle',horizontal:'center'};
-    ws.mergeCells('B2:G2');ws.getCell('B2').value='Dönem: '+trR(d.start)+' - '+trR(d.end);ws.getCell('B2').font={bold:true,color:{argb:'FF334155'}};ws.getCell('B2').alignment={horizontal:'center'};
+    var NAVY='FF102B50',ACCENT='FF3B82F6',MUTED='FF7A8799';
+    /* Satır 1: koyu lacivert marka şeridi — logo + rapor başlığı */
+    ws.getRow(1).height=42;['A1','B1','C1','D1','E1','F1','G1'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};});
+    ws.mergeCells('C1:G1');ws.getCell('C1').value='TEKNİK SERVİS HAFTALIK RAPORU';ws.getCell('C1').font={size:20,bold:true,color:{argb:'FFFFFFFF'}};ws.getCell('C1').alignment={vertical:'middle',horizontal:'right'};
     try{
       var logoResp=await fetch('assets/email/servisdrama/drama-makine-logo.png');
       if(logoResp.ok){
         var logoBuf=await logoResp.arrayBuffer();
         var logoImgId=wb.addImage({buffer:logoBuf,extension:'png'});
-        ws.addImage(logoImgId,{tl:{col:0.12,row:0.12},ext:{width:132,height:32}});
+        ws.addImage(logoImgId,{tl:{col:0.15,row:0.12},ext:{width:120,height:34}});
       }
     }catch(e){}
-    [['A4','Toplam Ziyaret',d.total],['B4','Ziyaret Edilen Firma',d.unique],['C4','Plana Uygun',d.uygun],['D4','Plan Dışı',d.disi]].forEach(function(x){var c=ws.getCell(x[0]);c.value=x[1]+'\n'+x[2];c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.font={bold:true,size:14,color:{argb:'FF0B3A78'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEFF6FF'}};c.border={top:{style:'thin',color:{argb:'FFCBD5E1'}},left:{style:'thin',color:{argb:'FFCBD5E1'}},bottom:{style:'thin',color:{argb:'FFCBD5E1'}},right:{style:'thin',color:{argb:'FFCBD5E1'}}};});ws.getRow(4).height=46;
-    var head=['Firma','Teknisyen (Kod)','Ziyaret Tarihi','Durum','Firma Kayıtlı Periyodu','Plan Durumu / Kurulum','Not'];ws.addRow([]);ws.addRow(head);var hr=ws.lastRow;hr.font={bold:true,color:{argb:'FFFFFFFF'}};hr.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B3A78'}};hr.alignment={horizontal:'center'};
-    var planColors={'Plana Uygun':'FFC6EFCE','Plan Dışı':'FFFCE4D6','Program Dışı':'FFE9D5FF'};
-    d.rows.forEach(function(r){var row=ws.addRow([r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,r.durum,r.periyot,r.plan+(r.setupInfo||''),r.not||'']);row.getCell(6).fill={type:'pattern',pattern:'solid',fgColor:{argb:planColors[r.plan]||'FFFFFFFF'}};});
+    /* Satır 2: eyebrow marka adı (sol) + dönem bilgisi (sağ) */
+    ws.getRow(2).height=20;
+    ws.getCell('A2').value='SERVİSDRAMA';ws.getCell('A2').font={bold:true,size:10,color:{argb:ACCENT}};ws.getCell('A2').alignment={vertical:'middle'};
+    ws.mergeCells('C2:G2');ws.getCell('C2').value='Dönem: '+trR(d.start)+' - '+trR(d.end)+'   •   Rapor Tarihi: '+trR(new Date());ws.getCell('C2').font={bold:true,size:11,color:{argb:'FF334155'}};ws.getCell('C2').alignment={vertical:'middle',horizontal:'right'};
+    /* Satır 3: ince marka rengi ayraç */
+    ws.getRow(3).height=4;['A3','B3','C3','D3','E3','F3','G3'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:ACCENT}};});
+    /* Satır 4: KPI kartları — her biri kendi anlam rengiyle */
+    var kpis=[
+      ['A4','Toplam Ziyaret',d.total,'FF1565D8','FFEFF6FF'],
+      ['B4','Ziyaret Edilen Firma',d.unique,'FF078578','FFE6F7F5'],
+      ['C4','Plana Uygun',d.uygun,'FF16A34A','FFECFDF5'],
+      ['D4','Plan Dışı',d.planDisi,'FFD97706','FFFFF7ED'],
+      ['E4','Program Dışı',d.programDisi,'FF7C3AED','FFF5F3FF']
+    ];
+    kpis.forEach(function(x){var c=ws.getCell(x[0]);c.value=x[1]+'\n'+x[2];c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.font={bold:true,size:14,color:{argb:x[3]}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:x[4]}};c.border={top:{style:'thin',color:{argb:'FFCBD5E1'}},left:{style:'thin',color:{argb:'FFCBD5E1'}},bottom:{style:'thin',color:{argb:'FFCBD5E1'}},right:{style:'thin',color:{argb:'FFCBD5E1'}}};});
+    ws.getRow(4).height=46;['F4','G4'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF7F9FC'}};});
+    ws.getRow(5).height=6;
+    var head=['Firma','Teknisyen (Kod)','Ziyaret Tarihi','Durum','Firma Kayıtlı Periyodu','Plan Durumu / Kurulum','Not'];ws.addRow(head);var hr=ws.lastRow;hr.height=22;hr.font={bold:true,color:{argb:'FFFFFFFF'}};hr.fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};hr.alignment={horizontal:'center',vertical:'middle'};
+    var planColors={'Plana Uygun':'FF16A34A','Plan Dışı':'FFD97706','Program Dışı':'FF7C3AED'};
+    d.rows.forEach(function(r,i){
+      var row=ws.addRow([r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,r.durum,r.periyot,r.plan+(r.setupInfo||''),r.not||'']);
+      var zebra=i%2?'FFF7FAFC':'FFFFFFFF';
+      row.eachCell({includeEmpty:true},function(c){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:zebra}};});
+      var planCell=row.getCell(6);planCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:planColors[r.plan]||'FF64748B'}};planCell.font={bold:true,color:{argb:'FFFFFFFF'}};planCell.alignment={horizontal:'center',vertical:'middle'};
+      var durumCell=row.getCell(4);durumCell.font={bold:true,color:{argb:'FF16A34A'}};durumCell.alignment={horizontal:'center',vertical:'middle'};
+    });
     ws.columns=[{width:42},{width:23},{width:16},{width:16},{width:25},{width:20},{width:32}];ws.autoFilter={from:'A6',to:'G6'};
-    ws.eachRow(function(row,no){if(no>=6){row.alignment={vertical:'middle'};row.eachCell(function(c){c.border={bottom:{style:'hair',color:{argb:'FFD9E2F0'}}};});}});
+    ws.eachRow(function(row,no){if(no>=6){row.alignment=row.alignment||{vertical:'middle'};row.eachCell(function(c){c.border=Object.assign({},c.border,{bottom:{style:'hair',color:{argb:'FFD9E2F0'}}});});}});
+    var lastRow=6+d.rows.length;
+    ws.getRow(lastRow+1).height=6;
+    ws.mergeCells('A'+(lastRow+2)+':G'+(lastRow+2));
+    var footCell=ws.getCell('A'+(lastRow+2));
+    footCell.value={richText:[{font:{bold:true,size:10,color:{argb:'FF1565D8'}},text:'ServisDrama'},{font:{size:10,color:{argb:MUTED}},text:' • Haftalık Rapor • Powered by BKAYACI'}]};
+    footCell.alignment={horizontal:'center',vertical:'middle'};
     return wb;
   }
   function downloadR(buf,name){var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}

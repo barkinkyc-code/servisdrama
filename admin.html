@@ -345,8 +345,15 @@
 <div class="overlay hidden" id="mapModal" style="z-index:300;">
   <div class="modal modal-lg">
     <div class="modal-hd"><h2 style="display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Konum Seç</h2><button class="modal-x" id="mapX" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;transition:color 0.2s;padding:4px 8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div style="margin:12px 22px 0;position:relative;">
+      <div style="display:flex;gap:8px;">
+        <input class="inp" id="mapSearchInp" placeholder="Adres veya firma adı ara..." autocomplete="off" onkeypress="if(event.key==='Enter'){event.preventDefault();searchMapAddress();}">
+        <button type="button" class="btn btn-outline btn-sm" id="mapSearchBtn" style="white-space:nowrap;">Ara</button>
+      </div>
+      <div id="mapSearchResults" class="autocomplete" style="display:none;"></div>
+    </div>
     <div id="mapPickerContainer" style="height:340px;margin:12px 22px;border-radius:var(--r-xl);overflow:hidden;"></div>
-    <p class="form-hint" style="margin:0 22px 12px;color:#64748b;font-size:13px;">📍 Haritaya tıklayarak konum belirleyin.</p>
+    <p class="form-hint" style="margin:0 22px 12px;color:#64748b;font-size:13px;">📍 Yukarıdan adres arayın veya haritaya tıklayarak konum belirleyin.</p>
     <div class="modal-ft"><button class="btn btn-ghost" id="mapCancel" style="background:rgba(148, 163, 184, 0.1);color:#64748b;border:1px solid rgba(148, 163, 184, 0.2);transition:all 0.2s ease;">Vazgeç</button><button class="btn btn-primary" id="mapSave" style="background:linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);transition:all 0.2s ease;">Kaydet</button></div>
   </div>
 </div>
