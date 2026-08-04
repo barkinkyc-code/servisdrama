@@ -961,6 +961,15 @@ textarea.inp{resize:vertical;line-height:1.6;}
   .modal-ft{
     padding:12px 18px;
   }
+
+  /* Overlay padding fix for centered modal */
+  .overlay{
+    padding:4px;
+  }
+  .modal{
+    margin:0 auto;
+    width:calc(100% - 8px);
+  }
 }
 
 /* ═══ EXTRA SMALL PHONES (480px altı) ═══ */
