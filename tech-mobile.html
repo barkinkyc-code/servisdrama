@@ -444,7 +444,7 @@
   <!-- HEADER -->
   <div class="tech-header">
     <div class="tech-header-left">
-      <div class="tech-header-logo">🚗</div>
+      <button class="tech-header-logo" onclick="goToVisitPage()" style="background:none;border:none;cursor:pointer;font-size:20px;padding:0;margin:0;">🚗</button>
       <div class="tech-header-info">
         <div class="tech-header-title">ServisDrama</div>
         <div class="tech-header-user" id="techName">Teknisyen</div>
@@ -603,6 +603,7 @@
     </button>
   </div>
 
+  <script src="data.js"></script>
   <script>
     // Session check
     if (!localStorage.getItem('token')) {
@@ -612,36 +613,75 @@
     let companies = [];
     let visits = {};
     let currentUser = {};
+    let techId = '';
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
       loadData();
       renderPage('ziyaret');
+      setupVisibilityListener();
     });
+
+    function setupVisibilityListener() {
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          console.log('Page became visible, refreshing data...');
+          refreshData();
+        }
+      });
+      window.addEventListener('focus', function() {
+        console.log('Window focused, refreshing data...');
+        refreshData();
+      });
+    }
+
+    function refreshData() {
+      if (typeof SD !== 'undefined' && SD.loadRemote) {
+        SD.loadRemote().then(() => {
+          loadData();
+          renderPage('ziyaret');
+        });
+      } else {
+        loadData();
+        renderPage('ziyaret');
+      }
+    }
 
     function loadData() {
       try {
         const session = JSON.parse(sessionStorage.getItem('sd_session') || '{}');
         currentUser = session.userData || {};
+        techId = currentUser.id || '';
         document.getElementById('techName').textContent = currentUser.name || 'Teknisyen';
         document.getElementById('techFullName').textContent = currentUser.name || '-';
         document.getElementById('techCode').textContent = currentUser.code || '-';
         document.getElementById('techEmail').textContent = currentUser.email || '-';
         document.getElementById('techPhone').textContent = currentUser.phone || '-';
 
-        // Mock data (gerçek uygulamada API'den çekilecek)
-        companies = [
-          { id: 1, name: 'NSK OTOMOTİV', status: 'pending' },
-          { id: 2, name: 'TEKNOFORM MAKİNA', status: 'pending' },
-          { id: 3, name: 'ŞAHİNCE OTOMOTİV', status: 'pending' },
-          { id: 4, name: 'DURMAZLAR MAKİNA', status: 'done' },
-          { id: 5, name: 'BAYKAL MAKİNA', status: 'pending' }
-        ];
-
-        visits = JSON.parse(localStorage.getItem('visits')) || {};
+        // Use real data from SD (ServisDrama data manager)
+        if (typeof SD !== 'undefined') {
+          companies = (SD.companies || []).filter(c => c.techId === techId && c.aktif !== false);
+          visits = SD.visits || {};
+        } else {
+          console.warn('SD not loaded, using local storage');
+          companies = JSON.parse(localStorage.getItem('companies')) || [];
+          visits = JSON.parse(localStorage.getItem('sd_vi')) || {};
+        }
       } catch (e) {
         console.error('Data loading error:', e);
       }
+    }
+
+    function goToVisitPage() {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tech-nav-item').forEach(el => el.classList.remove('active'));
+      const visitPage = document.getElementById('page-ziyaret');
+      if (visitPage) {
+        visitPage.classList.add('active');
+        const firstNavBtn = document.querySelector('.tech-nav-item');
+        if (firstNavBtn) firstNavBtn.classList.add('active');
+      }
+      renderPage('ziyaret');
     }
 
     function switchPage(page) {
@@ -649,7 +689,10 @@
       document.querySelectorAll('.tech-nav-item').forEach(el => el.classList.remove('active'));
 
       document.getElementById('page-' + page).classList.add('active');
-      event.target.closest('.tech-nav-item').classList.add('active');
+      if (event && event.target) {
+        const navItem = event.target.closest('.tech-nav-item');
+        if (navItem) navItem.classList.add('active');
+      }
 
       renderPage(page);
     }
@@ -678,15 +721,23 @@
       }
 
       empty.style.display = 'none';
+      const today = new Date();
+      const todayMon = typeof DT !== 'undefined' && DT.monday ? DT.monday(today) : new Date(today);
+      const cwk = typeof DT !== 'undefined' && DT.wkey ? DT.wkey(todayMon) : '';
+
       list.innerHTML = filtered.map(company => {
-        const isVisited = visits['company_' + company.id];
+        let isVisited = false;
+        if (cwk && visits[company.id + '_' + cwk]) {
+          const rec = visits[company.id + '_' + cwk];
+          isVisited = rec && rec.status === 'done';
+        }
         return `
           <div class="tech-company-item">
             <div class="tech-company-info">
               <div class="tech-company-name">${company.name}</div>
               <div class="tech-company-status">${isVisited ? '✅ Ziyaret edildi' : '⏳ Beklemede'}</div>
             </div>
-            <button class="tech-company-btn ${isVisited ? 'done' : ''}" onclick="markVisit(${company.id}, '${company.name}')">
+            <button class="tech-company-btn ${isVisited ? 'done' : ''}" onclick="markVisit('${company.id}', '${company.name}')">
               ${isVisited ? '✓ Yapıldı' : 'Ziyaret Et'}
             </button>
           </div>
@@ -725,8 +776,33 @@
 
     function markVisit(companyId, companyName) {
       if (confirm(companyName + ' için ziyaretı tamamlandı olarak işaretle?')) {
-        visits['company_' + companyId] = new Date().toISOString();
-        localStorage.setItem('visits', JSON.stringify(visits));
+        const today = new Date();
+        const todayMon = typeof DT !== 'undefined' && DT.monday ? DT.monday(today) : new Date(today);
+        const cwk = typeof DT !== 'undefined' && DT.wkey ? DT.wkey(todayMon) : '';
+
+        if (typeof SD !== 'undefined' && SD.putVisitEntry) {
+          const key = companyId + '_' + cwk;
+          const dateStr = String(today.getDate()).padStart(2,'0') + '.' + String(today.getMonth()+1).padStart(2,'0');
+          const timeStr = String(today.getHours()).padStart(2,'0') + ':' + String(today.getMinutes()).padStart(2,'0');
+
+          visits[key] = SD.putVisitEntry(visits[key], currentUser.code || '1016', {
+            date: dateStr,
+            count: 1,
+            status: 'done',
+            saat: timeStr,
+            startDate: dateStr,
+            startTime: timeStr,
+            endDate: dateStr,
+            endTime: timeStr
+          });
+
+          SD.save('sd_vi', visits);
+          SD.pushRemote();
+        } else {
+          visits['company_' + companyId] = new Date().toISOString();
+          localStorage.setItem('sd_vi', JSON.stringify(visits));
+        }
+
         renderZiyaretPage();
       }
     }
