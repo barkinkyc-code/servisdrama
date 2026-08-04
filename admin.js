@@ -340,6 +340,10 @@ function initNavAvatar(cu){
   }
 }
 function toggleUserMenu(){
+  var topbar=document.getElementById('topbar');
+  if(topbar&&topbar.classList.contains('nav-open')){
+    closeMobileMenu();
+  }
   var dd=document.getElementById('navDropdown');if(!dd)return;
   dd.classList.toggle('hidden');
 }
