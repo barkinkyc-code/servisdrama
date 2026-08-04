@@ -758,14 +758,17 @@ function openRapor(){
   if(modal){
     var modalEl=modal.querySelector('.modal');
     if(A.isMobile()){
-      if(modalEl)modalEl.style.maxWidth='calc(100vw - 32px)';
-      if(iframe)iframe.style.height='50vh';
+      if(modalEl){
+        modalEl.style.maxWidth='calc(100vw - 8px)';
+        modalEl.style.width='100%';
+      }
+      if(iframe)iframe.style.height='70vh';
     }else if(A.isTablet()){
       if(modalEl)modalEl.style.maxWidth='calc(100vw - 64px)';
-      if(iframe)iframe.style.height='55vh';
+      if(iframe)iframe.style.height='65vh';
     }else{
       if(modalEl)modalEl.style.maxWidth='600px';
-      if(iframe)iframe.style.height='60vh';
+      if(iframe)iframe.style.height='65vh';
     }
   }
 
