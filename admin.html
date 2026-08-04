@@ -299,6 +299,15 @@
       <div class="form-row2">
         <div class="form-grp"><label class="form-lbl">Sorumlu Teknisyen</label><select class="inp" id="fTech"></select></div>
         <div class="form-grp"><label class="form-lbl">Firma E-postası</label><input class="inp" type="email" id="fEmail" placeholder="firma@ornek.com"></div>
+        <div class="form-grp">
+          <label class="form-lbl">Ek E-posta Alıcıları</label>
+          <div class="chip-row">
+            <input class="inp" type="email" id="fAMail" placeholder="ikinci@ornek.com" onkeypress="if(event.key==='Enter'){event.preventDefault();addAMail();}">
+            <button type="button" class="btn btn-outline btn-sm" id="fAMailEkle">Ekle</button>
+          </div>
+          <div id="fAMailChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+          <div class="form-hint">Truck bildirimi ve diğer mailler bu adreslere de gönderilir.</div>
+        </div>
       </div>
       <div class="form-grp">
         <label class="form-lbl">Ziyaret Programı</label>
