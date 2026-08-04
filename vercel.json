@@ -43,7 +43,7 @@
   "crons": [
     {
       "path": "/api/daily-summary",
-      "schedule": "0 15 * * *"
+      "schedule": "0 16 * * *"
     }
   ]
 }

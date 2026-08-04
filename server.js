@@ -330,7 +330,7 @@ app.all('/api/daily-summary',async(req,res)=>{
     // bağımsız olarak her cron tetiklemesinde kontrol edilir.
     const remindersChanged=await checkNumuneReminders(state,cfg);
 
-    const target=cfg.dailySummaryTime||'18:00',today=now.toISOString().slice(0,10),nowMin=now.getHours()*60+now.getMinutes();
+    const target=(!cfg.dailySummaryTime||cfg.dailySummaryTime==='18:00')?'19:00':cfg.dailySummaryTime,today=now.toISOString().slice(0,10),nowMin=now.getHours()*60+now.getMinutes();
     const tp=target.split(':').map(Number),targetMin=(tp[0]||0)*60+(tp[1]||0),due=nowMin>=targetMin;
     if(!force&&(!cfg.dailySummaryEnabled||!due||cfg.dailySummaryLastSent===today)){
       if(remindersChanged)await persistState(state);
