@@ -18,6 +18,12 @@ function tToast(msg, type) {
   T._tt = setTimeout(function(){ el.classList.remove('show'); }, 3000);
 }
 
+
+window.addEventListener('sd-sync-status',function(e){
+  var d=e.detail||{};
+  if(d.status==='error')tToast('Kayıt sunucuya ulaşmadı. İnternet gelince tekrar denenecek.','error');
+});
+
 /* ── Sheet ── */
 function openSheet(id){ var el=document.getElementById(id); if(el) el.classList.remove('hidden'); }
 function closeSheet(){ document.querySelectorAll('.sheet-overlay').forEach(function(el){ el.classList.add('hidden'); }); }
@@ -85,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async function(){
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible')autoRefreshData();
   });
-  setInterval(autoRefreshData,15*60*1000);
+  setInterval(function(){if(!SD.syncBusy())autoRefreshData();},15000);
 });
 
 /* ── Otomatik Mail Gönderimi ── */
@@ -276,11 +282,10 @@ function buildDesktopCell(co, col, vd, vk){
     var dc=0,dt; btn.addEventListener('click',function(){
       dc++;clearTimeout(dt);dt=setTimeout(function(){
         var vi=SD.visits;
-        if(dc===1){if((vi[vk]||{}).count>1){vi[vk].count--;if(vi[vk].dates)vi[vk].dates.pop();}else if(vi[vk]){vi[vk].status='pending';}}
-        else{var cur=vi[vk]||{},n=new Date(),dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));var ac=SD.activeTech();vi[vk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'};tToast((cur.count||1)+1+'. ziyaret!','success');}
+        var ac=SD.actingTech(co),code=ac?ac.code:'—',mine=SD.visitEntryFor(vi[vk],code);
+        if(dc===1){if(mine&&((mine.count||1)>1)){var dn=(mine.dates||[]).slice();dn.pop();vi[vk]=SD.putVisitEntry(vi[vk],code,{date:mine.date,saat:mine.saat,status:'done',count:(mine.count||1)-1,dates:dn});}else if(mine){vi[vk]=SD.putVisitEntry(vi[vk],code,{date:mine.date,saat:mine.saat,status:'pending',count:1,dates:mine.dates||[]});}}
+        else{var cur=mine||{},n=new Date(),dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));vi[vk]=SD.putVisitEntry(vi[vk],code,{date:DT.ddmm(n),count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'});tToast((cur.count||1)+1+'. ziyaret!','success');}
         SD.visits=vi;dc=0;render();
-        // Backend'e ziyaret kaydını gönder
-        fetch('/api/visits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visits:vi})}).catch(function(e){console.log('Ziyaret sync: '+e.message);});
       },260);
     });
   } else if (vd && vd.status==='pending'){
@@ -288,15 +293,15 @@ function buildDesktopCell(co, col, vd, vk){
     btn.innerHTML='<span style="font-size:14px;">⏳</span>'
       +'<span class="vt-cell-date">'+vd.date+(vd.saat?' '+vd.saat:'')+'</span>'
       +'<span class="vt-cell-code">'+vd.tc+'</span>';
-    btn.addEventListener('click',function(){var vi=SD.visits;if(vi[vk]){vi[vk].status='done';vi[vk].dates=[vi[vk].date];vi[vk].endDate=DT.ddmmyyyy(new Date());vi[vk].endTime=DT.hhii(new Date());}SD.visits=vi;tToast('Onaylandı 🔒','success');render();});
+    btn.addEventListener('click',function(){var vi=SD.visits,ac=SD.actingTech(co),code=ac?ac.code:'—',mine=SD.visitEntryFor(vi[vk],code);if(mine)vi[vk]=SD.putVisitEntry(vi[vk],code,{date:mine.date,saat:mine.saat,count:mine.count||1,status:'done',dates:[mine.date],endDate:DT.ddmmyyyy(new Date()),endTime:DT.hhii(new Date())});SD.visits=vi;tToast('Onaylandı 🔒','success');render();});
   } else if (col.isCur){
     btn.className+=' vt-cell-empty';
     btn.innerHTML='<span style="font-size:18px;color:#D1D5DB;">○</span>';
-    btn.addEventListener('click',function(){var vi=SD.visits,ac=SD.activeTech(),n=new Date();vi[vk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};SD.visits=vi;tToast('Planlandı ⏳','info');render();});
+    btn.addEventListener('click',function(){var vi=SD.visits,ac=SD.actingTech(co),n=new Date(),code=ac?ac.code:'—';vi[vk]=SD.putVisitEntry(vi[vk],code,{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});SD.visits=vi;tToast('Planlandı ⏳','info');render();});
   } else if (col.isPast){
     btn.className+=' vt-cell-miss';
     btn.innerHTML='<span style="font-size:15px;font-weight:900;color:var(--red);">✕</span>';
-    btn.addEventListener('click',function(){var vi=SD.visits,ac=SD.activeTech(),n=new Date();vi[vk]={date:DT.ddmm(n),tc:ac?ac.code:'—',count:1,status:'pending',saat:DT.hhii(n)};SD.visits=vi;tToast('Planlandı','info');render();});
+    btn.addEventListener('click',function(){var vi=SD.visits,ac=SD.actingTech(co),n=new Date(),code=ac?ac.code:'—';vi[vk]=SD.putVisitEntry(vi[vk],code,{date:DT.ddmm(n),count:1,status:'pending',saat:DT.hhii(n)});SD.visits=vi;tToast('Planlandı','info');render();});
   } else {
     btn.className+=' vt-cell-future'; btn.disabled=true;
     btn.innerHTML='<span style="font-size:12px;color:#D1D5DB;font-weight:600;">Sonra</span>';
@@ -571,7 +576,7 @@ function techLogin(){
   localStorage.setItem('sd_ac', tech.id);
   localStorage.setItem('techCode', code);
   document.getElementById('techLoginScreen').style.display='none';
-  location.reload();
+  window.location.href='tech.html?v=20260804-sync';
 }
 
 function initTechPanel(){

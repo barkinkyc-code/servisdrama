@@ -10,39 +10,73 @@ var SD=(function(){
      diğerinin ekranını da değiştirir. */
   var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples'];
   var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false;
+  var DIRTY_KEY='sd_sync_dirty_v2';
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}
+  function dirtyMap(){return load(DIRTY_KEY,{});}
+  function markDirty(k){var d=dirtyMap();d[k]=Date.now();store.setItem(DIRTY_KEY,JSON.stringify(d));emitSync('pending');}
+  function clearDirty(){store.removeItem(DIRTY_KEY);}
+  function hasDirty(){return Object.keys(dirtyMap()).length>0;}
+  function emitSync(status,message){
+    try{
+      window.dispatchEvent(new CustomEvent('sd-sync-status',{detail:{status:status,message:message||'',at:new Date().toISOString()}}));
+      var el=document.getElementById('sdSyncState');
+      if(!el&&document.body){el=document.createElement('div');el.id='sdSyncState';el.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99999;padding:7px 10px;border-radius:10px;font:600 11px/1.2 system-ui;background:#111827;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity .2s';document.body.appendChild(el);}
+      if(el){
+        var labels={pending:'Kaydedilmeyi bekliyor',saving:'Kaydediliyor…',saved:'Sunucuya kaydedildi',error:'Bağlantı yok · tekrar denenecek'};
+        el.textContent=labels[status]||message||status;
+        el.style.opacity=status==='saved'?'0': '1';
+        if(status==='saved'){setTimeout(function(){if(el)el.style.opacity='0';},900);}
+      }
+    }catch(e){}
+  }
   function snapshot(){var out={};SHARED_KEYS.forEach(function(k){var v=load(k,null);if(v!==null)out[k]=v;});return out;}
   function token(){return localStorage.getItem('token')||'';}
-  function pushRemote(){
-    if(!remoteLoaded||!token())return Promise.resolve();
-    if(syncInFlight){syncPending=true;return Promise.resolve();}
-    syncInFlight=true;
-    return fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({state:snapshot()})})
-      .then(function(r){if(!r.ok)throw new Error('Ortak veri kaydedilemedi');return r.json();})
-      .then(function(){store.setItem('sd_last_sync',new Date().toISOString());})
-      .catch(function(e){console.error(e);})
-      .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;pushRemote();}});
+  function pushRemote(options){
+    options=options||{};
+    if(!remoteLoaded||!token())return Promise.resolve(false);
+    if(syncInFlight){syncPending=true;return Promise.resolve(false);}
+    if(!hasDirty()&&!options.force)return Promise.resolve(true);
+    if(syncTimer){clearTimeout(syncTimer);syncTimer=null;}
+    syncInFlight=true;emitSync('saving');
+    return fetch('/api/state',{method:'PUT',cache:'no-store',keepalive:!!options.keepalive,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token()},body:JSON.stringify({state:snapshot()})})
+      .then(function(r){if(!r.ok)throw new Error('Ortak veri kaydedilemedi ('+r.status+')');return r.json();})
+      .then(function(){clearDirty();store.setItem('sd_last_sync',new Date().toISOString());emitSync('saved');return true;})
+      .catch(function(e){console.error(e);emitSync('error',e.message);return false;})
+      .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;pushRemote({force:true});}});
   }
-  function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(pushRemote,350);}
-  function save(k,v){try{store.setItem(k,JSON.stringify(v));if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0)scheduleSync();}catch(e){}}
-  function remove(k){try{store.removeItem(k);if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0)scheduleSync();}catch(e){}}
-  function remoteReady(){
+  function scheduleSync(delay){clearTimeout(syncTimer);syncTimer=setTimeout(function(){pushRemote();},typeof delay==='number'?delay:350);}
+  function save(k,v,immediate){try{store.setItem(k,JSON.stringify(v));if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0){markDirty(k);if(immediate)pushRemote({force:true});else scheduleSync();}}catch(e){}}
+  function remove(k,immediate){try{store.removeItem(k);if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0){markDirty(k);if(immediate)pushRemote({force:true});else scheduleSync();}}catch(e){}}
+  function remoteReady(options){
+    options=options||{};
     if(!token()){remoteLoaded=true;return Promise.resolve(false);}
-    var before=snapshot();
+    var before=snapshot(),dirty=dirtyMap();
     return fetch('/api/state',{cache:'no-store',headers:{'Authorization':'Bearer '+token()}})
-      .then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı');return r.json();})
+      .then(function(r){if(!r.ok)throw new Error('Ortak veri okunamadı ('+r.status+')');return r.json();})
       .then(function(data){
         var remote=data.state||{};
         var remoteHasData=Object.keys(remote).length>0&&((remote.sd_co&&remote.sd_co.length)||(remote.sd_te&&remote.sd_te.length)||Object.keys(remote.sd_vi||{}).length);
         if(remoteHasData){
-          SHARED_KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(remote,k))store.setItem(k,JSON.stringify(remote[k]));});
-          remoteLoaded=true;store.setItem('sd_last_sync',new Date().toISOString());return true;
+          SHARED_KEYS.forEach(function(k){
+            if(dirty[k])return; // Sunucuya ulaşmamış yerel değişikliği eski veriyle ezme.
+            if(Object.prototype.hasOwnProperty.call(remote,k))store.setItem(k,JSON.stringify(remote[k]));
+          });
+          remoteLoaded=true;store.setItem('sd_last_sync',new Date().toISOString());
+          if(hasDirty())return pushRemote({force:true}).then(function(){return true;});
+          emitSync('saved');return true;
         }
         remoteLoaded=true;
         var localHasData=(before.sd_co&&before.sd_co.length)||(before.sd_te&&before.sd_te.length)||Object.keys(before.sd_vi||{}).length;
-        return localHasData?pushRemote().then(function(){return true;}):true;
+        if(localHasData){SHARED_KEYS.forEach(function(k){if(before[k]!==undefined)markDirty(k);});return pushRemote({force:true}).then(function(){return true;});}
+        return true;
       })
-      .catch(function(e){console.error(e);remoteLoaded=true;return false;});
+      .catch(function(e){console.error(e);remoteLoaded=true;emitSync('error',e.message);return false;});
+  }
+  function flushRemote(){return pushRemote({force:true});}
+  function syncBusy(){return syncInFlight||hasDirty();}
+  if(typeof window!=='undefined'){
+    window.addEventListener('online',function(){if(remoteLoaded&&hasDirty())pushRemote({force:true});});
+    window.addEventListener('pagehide',function(){if(remoteLoaded&&hasDirty())pushRemote({force:true,keepalive:true});});
   }
   var DATA_VER='v12';
   function checkVersion(){if(store.getItem('sd_ver')!==DATA_VER)store.setItem('sd_ver',DATA_VER);}
@@ -61,7 +95,7 @@ var SD=(function(){
     if(!store.getItem('sd_users'))save('sd_users',[
       {id:'u0',username:'barkin.kayaci',name:'Barkın Kayacı',role:'admin',password:'1452580000',avatar:'',email:'barkin.kayaci@dramamakine.com'},
       {id:'u1',username:'semih.aglan',name:'Semih Ağlan',role:'tech',password:'1015',avatar:'',email:'semih.aglan@dramamakine.com',techId:'t1'},
-      {id:'u2',username:'suleyman',name:'Süleyman Küçük',role:'tech',password:'1016',avatar:'',email:'suleyman.kucuk@dramamakine.com',techId:'t2'}
+      {id:'u2',username:'suleyman.kucuk',name:'Süleyman Küçük',role:'tech',password:'1016',avatar:'',email:'suleyman.kucuk@dramamakine.com',techId:'t2'}
     ]);
     if(!store.getItem('sd_cfg'))save('sd_cfg',{
       senderName:'Drama Makine Teknik Servis',senderEmail:'',
@@ -244,7 +278,7 @@ var SD=(function(){
     var departures=load('sd_dp',[]);
     departures.push(entry);
     if(departures.length>1000)departures=departures.slice(departures.length-1000);
-    save('sd_dp',departures);
+    save('sd_dp',departures,true);
 
     var vi=load('sd_vi',{}),key=entry.companyId+'_'+DT.wkey(at),current=vi[key];
     if(!current||current.status==='pending'){
@@ -454,7 +488,7 @@ var SD=(function(){
   }
 
   return{
-    load:load,save:save,remove:remove,seed:seed,remoteReady:remoteReady,pushRemote:pushRemote,DT:DT,
+    load:load,save:save,remove:remove,seed:seed,remoteReady:remoteReady,pushRemote:pushRemote,flushRemote:flushRemote,syncBusy:syncBusy,DT:DT,
     ALL_TECH:ALL_TECH,sessionUser:sessionUser,sessionTech:sessionTech,actingTech:actingTech,
     visitEntryFor:visitEntryFor,visitEntries:visitEntries,visitAggregate:visitAggregate,
     putVisitEntry:putVisitEntry,removeVisitEntry:removeVisitEntry,
@@ -468,7 +502,7 @@ var SD=(function(){
     get users(){return load('sd_users',[]);},
     get currentUser(){return load('sd_cur_user',null);},
     set companies(v){save('sd_co',v);},set technicians(v){save('sd_te',v);},
-    set visits(v){save('sd_vi',mergeVisitMap(load('sd_vi',{}),v));},set extras(v){save('sd_ex',v);},set departures(v){save('sd_dp',v);},
+    set visits(v){save('sd_vi',mergeVisitMap(load('sd_vi',{}),v),true);},set extras(v){save('sd_ex',v,true);},set departures(v){save('sd_dp',v,true);},
     set config(v){save('sd_cfg',v);},set activeTechId(v){save('sd_ac',v);},
     set users(v){save('sd_users',v);},set currentUser(v){save('sd_cur_user',v);},
     activeTech:activeTech,

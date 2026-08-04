@@ -1,0 +1,15 @@
+DM final(8) - Ziyaret senkronizasyonu işlevsel düzeltmeleri
+
+Mevcut proje klasörünün köküne çıkarın ve dosyaların üzerine yazın.
+Klasör yapısını değiştirmeyin.
+
+Değişen dosyalar:
+- data.js
+- tech.js
+- admin.js
+- tech.html
+- tech-mobile.html
+- routes/state.js
+
+GitHub/Vercel yapılandırma dosyalarına, package.json'a, vercel.json'a,
+giriş sistemine ve mail sistemine dokunulmadı.

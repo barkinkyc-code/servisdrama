@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible')autoRefreshData();
   });
-  setInterval(autoRefreshData,15*60*1000);
+  setInterval(function(){if(!SD.syncBusy())autoRefreshData();},15000);
 });
 
 /* ═══ LOGOUT ═══ */

@@ -55,6 +55,27 @@ function rebuildVisitRecord(entries) {
   return { ...clone(latest, {}), by: clone(entries, {}) };
 }
 
+function itemOwnerCode(item) {
+  return String(item?.techCode || item?.technicianCode || item?.tc || '');
+}
+
+function itemKey(item) {
+  if (item?.id) return String(item.id);
+  return [item?.firmaId || item?.companyId || '', item?.date || item?.dayKey || '', item?.saat || item?.time || '', itemOwnerCode(item)].join('|');
+}
+
+// Teknisyen yalnızca kendi operasyon kayıtlarını ekler/günceller/siler.
+// Diğer teknisyenlerin program dışı ziyaret ve yola çıkış kayıtları korunur.
+function mergeTechnicianArray(currentArray, incomingArray, code) {
+  const current = Array.isArray(currentArray) ? currentArray : [];
+  const incoming = Array.isArray(incomingArray) ? incomingArray : [];
+  const others = current.filter(item => itemOwnerCode(item) !== code);
+  const ownIncoming = incoming.filter(item => itemOwnerCode(item) === code);
+  const unique = new Map();
+  [...others, ...ownIncoming].forEach(item => unique.set(itemKey(item), clone(item, item)));
+  return Array.from(unique.values());
+}
+
 // Teknisyen yalnızca kendi 1015/1016 alt kaydını değiştirebilir.
 // Böylece telefonun gönderdiği tam snapshot başka teknisyenin ziyaretini ezmez.
 function mergeTechnicianVisits(currentVisits, incomingVisits, code) {
@@ -95,53 +116,63 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.put('/', auth, async (req, res) => {
+  let client = null;
   try {
     await db.ready();
-    let state = req.body?.state;
-    if (!state || typeof state !== 'object') {
+    let incomingState = req.body?.state;
+    if (!incomingState || typeof incomingState !== 'object') {
       return res.status(400).json({ error: 'Geçerli state gerekli' });
     }
 
     const isOwner = String(req.user.username || '').toLowerCase() === 'barkin.kayaci';
-    if (!isOwner) {
-      const current = (await readState()).state || {};
-      const code = technicianCodeForUser(current, req.user);
-      if (!code) return res.status(403).json({ error: 'Teknisyen kodu bulunamadı' });
-
-      const safeState = clone(current, {}) || {};
-      safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, state.sd_vi || {}, code);
-      // Teknisyenlerin değiştirmesine izin verilen ortak operasyon alanları.
-      safeState.sd_ex = Array.isArray(state.sd_ex) ? state.sd_ex : (current.sd_ex || []);
-      safeState.sd_dp = Array.isArray(state.sd_dp) ? state.sd_dp : (current.sd_dp || []);
-      state = safeState;
-    }
+    let state = incomingState;
 
     if (db.dialect === 'postgres') {
-      await db.raw.query(
+      client = await db.raw.connect();
+      await client.query('BEGIN');
+      const locked = await client.query("SELECT payload FROM app_state WHERE state_key='main' FOR UPDATE");
+      const current = locked.rows[0]?.payload || {};
+
+      if (!isOwner) {
+        const code = technicianCodeForUser(current, req.user);
+        if (!code) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'Teknisyen kodu bulunamadı' }); }
+        const safeState = clone(current, {}) || {};
+        safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, incomingState.sd_vi || {}, code);
+        safeState.sd_ex = mergeTechnicianArray(current.sd_ex, incomingState.sd_ex, code);
+        safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
+        state = safeState;
+      }
+
+      await client.query(
         `INSERT INTO app_state(state_key,payload,updated_by,updated_at)
          VALUES('main',$1::jsonb,$2,NOW())
-         ON CONFLICT(state_key) DO UPDATE SET
-           payload=EXCLUDED.payload,
-           updated_by=EXCLUDED.updated_by,
-           updated_at=NOW()`,
+         ON CONFLICT(state_key) DO UPDATE SET payload=EXCLUDED.payload,updated_by=EXCLUDED.updated_by,updated_at=NOW()`,
         [JSON.stringify(state), req.user.id]
       );
+      await client.query('COMMIT');
     } else {
+      const current = (await readState()).state || {};
+      if (!isOwner) {
+        const code = technicianCodeForUser(current, req.user);
+        if (!code) return res.status(403).json({ error: 'Teknisyen kodu bulunamadı' });
+        const safeState = clone(current, {}) || {};
+        safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, incomingState.sd_vi || {}, code);
+        safeState.sd_ex = mergeTechnicianArray(current.sd_ex, incomingState.sd_ex, code);
+        safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
+        state = safeState;
+      }
       await new Promise((resolve, reject) => db.run(
         "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
-        [JSON.stringify(state), req.user.id],
-        e => e ? reject(e) : resolve()
+        [JSON.stringify(state), req.user.id], e => e ? reject(e) : resolve()
       ));
     }
 
-    res.json({
-      success: true,
-      updatedAt: new Date().toISOString(),
-      ownerWrite: isOwner,
-      technicianWrite: !isOwner
-    });
+    res.json({ success: true, updatedAt: new Date().toISOString(), ownerWrite: isOwner, technicianWrite: !isOwner });
   } catch (err) {
+    if (client) { try { await client.query('ROLLBACK'); } catch (_) {} }
     res.status(500).json({ error: 'State save failed', details: err.message });
+  } finally {
+    if (client) client.release();
   }
 });
 
