@@ -38,7 +38,9 @@
       var date=parseVisitDate(record.date,key);
       if(date&&date<today&&(!latest||date>latest))latest=date;
     });
-    if(!latest)return {date:'Kayıt yok',days:''};
+    if(!latest){
+      latest=new Date(2026,6,31);
+    }
     var days=Math.max(0,Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-latest)/86400000));
     return {date:String(latest.getDate()).padStart(2,'0')+'.'+String(latest.getMonth()+1).padStart(2,'0')+'.'+latest.getFullYear(),days:days+' gün geçti'};
   }

@@ -219,6 +219,10 @@ var SD=(function(){
         }
       });
     });
+    if(!best){
+      var milatDate=new Date(2026,6,31);
+      best={date:fullDate(milatDate),dateObject:milatDate,tc:'',saat:'',key:'',record:{}};
+    }
     return best;
   }
 

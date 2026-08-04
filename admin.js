@@ -877,6 +877,11 @@ function renderStat(){
         }
       });
       var daysAgo='';
+      if(!lastVisitObj){
+        var milatDate=new Date(2026,6,31);
+        lastVisitObj=milatDate;
+        lastVisitDate='31.07.2026';
+      }
       if(lastVisitObj){
         var lastDate=new Date(lastVisitObj.getFullYear(),lastVisitObj.getMonth(),lastVisitObj.getDate());
         var todayDate=new Date();
