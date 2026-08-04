@@ -1,11 +1,15 @@
-Değişen dosyalar:
-- data.js
+PWA / ANA EKRAN GUNCELLEME DOSYALARI
+
+Mevcut proje klasorunun kokune kopyalayin:
+- index.html
+- admin.html
 - tech.html
 - tech-mobile.html
-- admin.html
+- vercel.json
+- sw.js (yeni)
+- pwa-update.js (yeni)
+- manifest.webmanifest (yeni)
+- assets/pwa/icon-192.png (yeni)
+- assets/pwa/icon-512.png (yeni)
 
-Düzeltmeler:
-- Tek ziyaret işlemindeki çift sd_vi kaydı kaldırıldı.
-- Seed ziyaretleri doğrudan teknisyen bazlı by yapısında oluşturuluyor.
-- Mevcut eski ziyaret kayıtlarını bir kez by yapısına çeviren migration eklendi.
-- data.js cache sürümü v6 olarak yükseltildi.
+Klasor yapisini koruyun ve dosyalarin uzerine yazilmasina izin verin.
