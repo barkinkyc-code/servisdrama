@@ -258,6 +258,8 @@ var SD=(function(){
       values.forEach(function(value){
         var d=parseVisitDate(value,k);
         if(!d)return;
+        /* 31.07.2026 milat tarihini yoksay */
+        if(d.getDate()===31&&d.getMonth()===6&&d.getFullYear()===2026)return;
         if(rec.saat&&value===rec.date){
           var hm=String(rec.saat).match(/^(\d{1,2}):(\d{2})$/);
           if(hm)d.setHours(parseInt(hm[1],10),parseInt(hm[2],10),0,0);
