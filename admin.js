@@ -972,6 +972,8 @@ function renderStat(){
       Object.keys(vis).forEach(function(k){
         if(k!==c.id+'_'+cwk && k.indexOf(c.id+'_')===0 && vis[k].date){
           var d=parseStatVisitDate(vis[k].date,k);
+          /* 31.07.2026 milat tarihini yoksay */
+          if(d&&d.getDate()===31&&d.getMonth()===6&&d.getFullYear()===2026)return;
           if(d&&d<todayNorm&&(!lastVisitObj||d>lastVisitObj)){
             lastVisitObj=d;
             lastVisitDate=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
@@ -979,11 +981,6 @@ function renderStat(){
         }
       });
       var daysAgo='';
-      if(!lastVisitObj){
-        var milatDate=new Date(2026,6,31);
-        lastVisitObj=milatDate;
-        lastVisitDate='31.07.2026';
-      }
       if(lastVisitObj){
         var lastDate=new Date(lastVisitObj.getFullYear(),lastVisitObj.getMonth(),lastVisitObj.getDate());
         var todayDate=new Date();
@@ -997,6 +994,8 @@ function renderStat(){
           current.setDate(current.getDate()+1);
         }
         daysAgo=' • '+calendarDays+' gün geçti ('+businessDays+' iş günü)';
+      }else{
+        lastVisitDate='Kayıt yok';
       }
       return {name:c.name,lastVisit:lastVisitDate,lastVisitObj:lastVisitObj,daysAgo:daysAgo};
     }).sort(function(a,b){
@@ -1013,7 +1012,7 @@ function renderStat(){
     var header='<button type="button" class="tech-stat-header" aria-expanded="'+(!isMob)+'" style="width:100%;border:0;background:linear-gradient(135deg,#1A2952,#2563EB);padding:16px 18px;color:#fff;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;text-align:left;"><span style="font-weight:800;font-size:15px;">'+t.name+' ('+t.code+'): '+allTechCos.length+' firma</span><span class="tech-stat-arrow" style="font-size:18px;transition:transform .2s;display:inline-flex;">▼</span></button>';
     var body='<div class="tech-stat-body" style="padding:12px 0;display:'+(isMob?'none':'block')+';">';
     firmalar.forEach(function(f){
-      var visitText=f.lastVisit?'Son ziyaret: '+f.lastVisit+(f.daysAgo||''):' Kayıt yok';
+      var visitText=f.lastVisit&&f.lastVisit!=='Kayıt yok'?'Son ziyaret: '+f.lastVisit+(f.daysAgo||''):f.lastVisit||'Kayıt yok';
       body+='<div style="padding:8px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;"><div style="font-weight:600;color:#1E293B;">'+f.name+'</div><div style="font-size:12px;color:#64748B;margin-top:2px;">'+visitText+'</div></div>';
     });
     body+='</div>';
