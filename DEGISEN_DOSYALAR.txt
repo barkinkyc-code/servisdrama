@@ -1,15 +1,9 @@
-PWA / ANA EKRAN GUNCELLEME DOSYALARI
+Firma konumu senkronizasyon düzeltmesi
 
-Mevcut proje klasorunun kokune kopyalayin:
-- index.html
+Değişen dosyalar:
+- admin.js
 - admin.html
-- tech.html
-- tech-mobile.html
-- vercel.json
-- sw.js (yeni)
-- pwa-update.js (yeni)
-- manifest.webmanifest (yeni)
-- assets/pwa/icon-192.png (yeni)
-- assets/pwa/icon-512.png (yeni)
+- routes/state.js
 
-Klasor yapisini koruyun ve dosyalarin uzerine yazilmasina izin verin.
+Kurulum:
+ZIP içeriğini mevcut proje klasörünün köküne çıkarın ve üzerine yazmayı onaylayın.

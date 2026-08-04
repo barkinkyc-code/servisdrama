@@ -572,7 +572,41 @@ function searchMapAddress(){
     })
     .catch(function(){results.innerHTML='<div class="ac-item" style="color:var(--red);">Arama başarısız, internet bağlantısını kontrol edin.</div>';});
 }
-function saveMap(){var lbl=document.getElementById('coordsLbl');if(lbl&&A.mapLat)lbl.textContent='📍 '+A.mapLat.toFixed(5)+', '+A.mapLng.toFixed(5);UI.closeModal('mapModal');UI.openModal('firmaModal');if(A.mapLat)UI.toast('Konum kaydedildi.','success');}
+async function saveMap(){
+  var lbl=document.getElementById('coordsLbl');
+  if(lbl&&A.mapLat&&A.mapLng)lbl.textContent='📍 '+A.mapLat.toFixed(5)+', '+A.mapLng.toFixed(5);
+  UI.closeModal('mapModal');
+  UI.openModal('firmaModal');
+  if(!A.mapLat||!A.mapLng)return;
+
+  // Teknisyen mevcut firmasındayken haritadan aldığı konumu doğrudan kaydeder.
+  // Diğer firma alanları değiştirilmez; backend de yalnızca atanmış firmanın
+  // lat/lng alanlarını kabul eder.
+  if(!isSuperAdmin()&&A.editId){
+    var me=SD.sessionTech&&SD.sessionTech();
+    var companies=SD.companies;
+    var company=companies.find(function(c){return c.id===A.editId;});
+    if(!me||!company||String(company.techId)!==String(me.id)){
+      UI.toast('Yalnızca size atanmış firmanın konumunu kaydedebilirsiniz.','error');
+      return;
+    }
+    var now=new Date().toISOString();
+    companies=companies.map(function(c){
+      return c.id===A.editId?Object.assign({},c,{lat:A.mapLat,lng:A.mapLng,locationUpdatedAt:now,locationUpdatedBy:me.code||currentUsername(),locationSource:'technician-gps'}):c;
+    });
+    SD.save('sd_co',companies,false);
+    var saved=await SD.pushRemote({force:true});
+    if(saved){
+      UI.toast('Firma konumu sunucuya kaydedildi.','success');
+      if(typeof renderFirma==='function')renderFirma();
+    }else{
+      UI.toast('Konum cihazda bekliyor; bağlantı gelince yeniden gönderilecek.','error');
+    }
+    return;
+  }
+
+  UI.toast('Konum seçildi. Firma kaydını tamamlamak için Kaydet’e basın.','success');
+}
 
 /* ═══ ZİYARET TABLOSU ═══ */
 function renderVisit(){

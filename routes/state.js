@@ -37,6 +37,58 @@ function technicianCodeForUser(current, user) {
   return '';
 }
 
+
+function technicianIdentityForUser(current, user) {
+  const username = String(user?.username || '').toLowerCase();
+  const users = Array.isArray(current.sd_users) ? current.sd_users : [];
+  const techs = Array.isArray(current.sd_te) ? current.sd_te : [];
+  const appUser = users.find(u => String(u.username || '').toLowerCase() === username);
+  let tech = appUser && techs.find(t => String(t.id) === String(appUser.techId));
+
+  if (!tech) {
+    if (username === 'semih.aglan') tech = techs.find(t => String(t.code) === '1015') || { id: 't1', code: '1015' };
+    if (username === 'suleyman' || username === 'suleyman.kucuk') tech = techs.find(t => String(t.code) === '1016') || { id: 't2', code: '1016' };
+  }
+
+  return tech ? { techId: String(tech.id || ''), code: String(tech.code || '') } : { techId: '', code: '' };
+}
+
+function finiteCoordinate(value, min, max) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= min && n <= max ? n : null;
+}
+
+// Teknisyen bütün firma kaydını değiştiremez. Yalnızca kendisine atanmış
+// mevcut firmaların GPS koordinatları ve konum denetim alanları güncellenir.
+function mergeTechnicianCompanyLocations(currentCompanies, incomingCompanies, identity, user) {
+  const current = Array.isArray(currentCompanies) ? currentCompanies : [];
+  const incoming = Array.isArray(incomingCompanies) ? incomingCompanies : [];
+  const incomingById = new Map(incoming.map(company => [String(company?.id || ''), company]));
+
+  return current.map(company => {
+    if (String(company?.techId || '') !== String(identity.techId || '')) return company;
+    const candidate = incomingById.get(String(company?.id || ''));
+    if (!candidate) return company;
+
+    const lat = finiteCoordinate(candidate.lat, -90, 90);
+    const lng = finiteCoordinate(candidate.lng, -180, 180);
+    if (lat === null || lng === null) return company;
+
+    const oldLat = finiteCoordinate(company.lat, -90, 90);
+    const oldLng = finiteCoordinate(company.lng, -180, 180);
+    if (oldLat === lat && oldLng === lng) return company;
+
+    return {
+      ...company,
+      lat,
+      lng,
+      locationUpdatedAt: new Date().toISOString(),
+      locationUpdatedBy: identity.code || String(user?.username || ''),
+      locationSource: 'technician-gps'
+    };
+  });
+}
+
 function entriesOf(rec) {
   if (!rec || typeof rec !== 'object') return {};
   if (rec.by && typeof rec.by === 'object') return rec.by;
@@ -120,9 +172,11 @@ router.put('/', auth, async (req, res) => {
   try {
     await db.ready();
     let incomingState = req.body?.state;
-    if (!incomingState || typeof incomingState !== 'object') {
+    if (!incomingState || typeof incomingState !== 'object' || Array.isArray(incomingState)) {
       return res.status(400).json({ error: 'Geçerli state gerekli' });
     }
+    const payloadBytes = Buffer.byteLength(JSON.stringify(incomingState), 'utf8');
+    if (payloadBytes > 5 * 1024 * 1024) return res.status(413).json({ error: 'State boyutu çok büyük' });
 
     const isOwner = String(req.user.username || '').toLowerCase() === 'barkin.kayaci';
     let state = incomingState;
@@ -135,12 +189,14 @@ router.put('/', auth, async (req, res) => {
       const current = locked.rows[0]?.payload || {};
 
       if (!isOwner) {
-        const code = technicianCodeForUser(current, req.user);
-        if (!code) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'Teknisyen kodu bulunamadı' }); }
+        const identity = technicianIdentityForUser(current, req.user);
+        const code = identity.code || technicianCodeForUser(current, req.user);
+        if (!code || !identity.techId) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'Teknisyen eşlemesi bulunamadı' }); }
         const safeState = clone(current, {}) || {};
         safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, incomingState.sd_vi || {}, code);
         safeState.sd_ex = mergeTechnicianArray(current.sd_ex, incomingState.sd_ex, code);
         safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
+        safeState.sd_co = mergeTechnicianCompanyLocations(current.sd_co, incomingState.sd_co, identity, req.user);
         state = safeState;
       }
 
@@ -157,12 +213,14 @@ router.put('/', auth, async (req, res) => {
         const row = await new Promise((resolve, reject) => db.get("SELECT payload FROM app_state WHERE state_key='main'", [], (e, r) => e ? reject(e) : resolve(r)));
         const current = row?.payload ? clone(JSON.parse(row.payload), {}) : {};
         if (!isOwner) {
-          const code = technicianCodeForUser(current, req.user);
-          if (!code) throw Object.assign(new Error('Teknisyen kodu bulunamadı'), { statusCode: 403 });
+          const identity = technicianIdentityForUser(current, req.user);
+          const code = identity.code || technicianCodeForUser(current, req.user);
+          if (!code || !identity.techId) throw Object.assign(new Error('Teknisyen eşlemesi bulunamadı'), { statusCode: 403 });
           const safeState = clone(current, {}) || {};
           safeState.sd_vi = mergeTechnicianVisits(current.sd_vi || {}, incomingState.sd_vi || {}, code);
           safeState.sd_ex = mergeTechnicianArray(current.sd_ex, incomingState.sd_ex, code);
           safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
+          safeState.sd_co = mergeTechnicianCompanyLocations(current.sd_co, incomingState.sd_co, identity, req.user);
           state = safeState;
         }
         await new Promise((resolve, reject) => db.run(
@@ -177,6 +235,7 @@ router.put('/', auth, async (req, res) => {
       }
     }
 
+    res.set('Cache-Control', 'no-store');
     res.json({ success: true, updatedAt: new Date().toISOString(), ownerWrite: isOwner, technicianWrite: !isOwner });
   } catch (err) {
     if (client) { try { await client.query('ROLLBACK'); } catch (_) {} }
