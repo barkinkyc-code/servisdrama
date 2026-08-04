@@ -395,6 +395,11 @@ function makeMobileCard(co, vd, prevV, cwk, feats, viewWeeks){
       SD.visits=vi;tToast('Ziyaret tamamlandı 🔒','success');render();
     }));
     acts.appendChild(mkBtn('va-btn va-undo','←',function(){
+      var today=new Date(),currentWeekKey=DT.wkey(today);
+      if(cwk!==currentWeekKey){
+        tToast('Geçmiş haftalardaki veriler silinemez!','error');
+        return;
+      }
       var vi=SD.visits,ac=SD.actingTech(co),code=ac?ac.code:'—';vi[co.id+'_'+cwk]=SD.removeVisitEntry(vi[co.id+'_'+cwk],code);SD.visits=vi;tToast('İptal edildi','warning');render();
     }));
   } else if (vd.status==='done'){

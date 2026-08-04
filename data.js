@@ -803,6 +803,15 @@ function _buildCell(co,col,vd,vk,opts){
           if(progress>=1){
             clearInterval(_longPressTimer);
             _longPressActive=true;
+            /* Geçmiş haftalardaki veriyi silmeyi engelle */
+            if(!col.isCur){
+              btn.style.background='';
+              btn.style.opacity='';
+              btn.innerHTML=_wkBadge(col)+'<div class="vc-lock-icon">'+_lockSvg()+'</div><span class="vc-d1">'+(vd.startTime&&vd.endTime?(vd.startTime+'–'+vd.endTime):(vd.date+(vd.saat?' '+vd.saat:'')))+'</span><span class="vc-d2">'+vd.tc+'</span>';
+              UI.toast('Geçmiş haftalardaki veriler silinemez!','error');
+              _longPressActive=false;
+              return;
+            }
             btn.style.background='#FECACA';
             btn.innerHTML='<div style="font-size:11px;color:#991B1B;font-weight:700;">Siliniyor...</div>';
             setTimeout(function(){
@@ -861,6 +870,15 @@ function _buildCell(co,col,vd,vk,opts){
           if(progress>=1){
             clearInterval(_longPressTimer2);
             _longPressActive2=true;
+            /* Geçmiş haftalardaki veriyi silmeyi engelle */
+            if(!col.isCur){
+              btn.style.background='';
+              btn.style.opacity='';
+              btn.innerHTML=_wkBadge(col)+'<div class="vc-pend-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><span class="vc-d1">'+(vd.startTime&&vd.endTime?(vd.startTime+'–'+vd.endTime):(vd.date+(vd.saat?' '+vd.saat:'')))+'</span><span class="vc-d2">'+vd.tc+'</span>';
+              UI.toast('Geçmiş haftalardaki veriler silinemez!','error');
+              _longPressActive2=false;
+              return;
+            }
             btn.style.background='#FECACA';
             btn.innerHTML='<div style="font-size:11px;color:#991B1B;font-weight:700;">Siliniyor...</div>';
             setTimeout(function(){
