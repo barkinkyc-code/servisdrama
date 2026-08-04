@@ -753,7 +753,17 @@ function saveExtraVisit(){
 function openRapor(){
   var iframe=document.getElementById('raporIframe');
   if(iframe){iframe.removeAttribute('src');iframe.srcdoc=buildOutlookRaporHTMLPreview();}
+  updateMailRaporButtonState();
   UI.openModal('raporModal');
+}
+function updateMailRaporButtonState(){
+  var btn=document.getElementById('mailRaporBtn');
+  if(!btn)return;
+  var canSend=canSendReport();
+  btn.disabled=!canSend;
+  btn.style.opacity=canSend?'1':'0.5';
+  btn.style.cursor=canSend?'pointer':'not-allowed';
+  btn.title=canSend?'Mail Gönder':'Rapor gönderme izni yok';
 }
 function sendOutlookRapor(){
   if(!canSendReport()){
