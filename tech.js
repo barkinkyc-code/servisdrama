@@ -672,27 +672,10 @@ function techLogin(){
 
 function initTechPanel(){
   var code=localStorage.getItem('techCode');
-
-  /* Deploy / cache yenilenmesinden sonra techCode kaybolmuş olsa bile,
-     daha önce seçilmiş geçerli teknisyen kimliğinden oturumu geri kur. */
-  if(!code){
-    try{
-      SD.seed();
-      var activeId=localStorage.getItem('sd_ac');
-      var techs=SD.technicians||[];
-      var activeTech=techs.find(function(t){return String(t.id)===String(activeId);});
-      if(activeTech&&activeTech.code){
-        code=String(activeTech.code);
-        localStorage.setItem('techCode',code);
-      }
-    }catch(e){console.warn('Teknisyen oturumu geri yüklenemedi:',e);}
-  }
-
   if(!code){
     document.getElementById('techLoginScreen').style.display='flex';
     return false;
   }
-
   document.getElementById('techLoginScreen').style.display='none';
   return true;
 }
