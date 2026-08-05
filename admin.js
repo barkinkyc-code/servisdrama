@@ -2002,6 +2002,37 @@ function renderDashboard(){renderVisitDashboard();}
   function periodTextR(w){w=(w||[1,2,3,4]).map(Number).filter(Boolean).sort();var key=w.join(',');if(key==='1,2,3,4')return'Her hafta';if(w.length===1)return w[0]+'. hafta';return w.map(function(x,i){return x+'.'+(i===w.length-1?' hafta':'');}).join(', ').replace(/, ([0-9]+)\. hafta$/, ' ve $1. hafta');}
   function techByCodeR(code){var ts=SD.technicians||[];return ts.find(function(t){return String(t.code)===String(code);})||{name:code||'—',code:code||'—'};}
   function entryListR(rec){if(!rec)return[];if(rec.by&&typeof rec.by==='object')return Object.keys(rec.by).map(function(k){return rec.by[k];});return[rec];}
+  function parseVisitDateR(v){
+    if(!v)return null;
+    var ts=Number(v.ts);if(ts>0){var td=new Date(ts);if(!isNaN(td))return td;}
+    var ds=v.date||v.tarih||v.dayKey||'',m=String(ds).match(/(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{4}))?/);
+    if(m){var y=m[3]?Number(m[3]):new Date().getFullYear(),d=new Date(y,Number(m[2])-1,Number(m[1]));if(!m[3]&&d>Date.now()+86400000)d.setFullYear(d.getFullYear()-1);return d;}
+    var z=new Date(ds);return isNaN(z)?null:z;
+  }
+  function companyVisitsR(companyId){
+    var out=[];
+    Object.keys(SD.visits||{}).forEach(function(key){
+      var pos=key.lastIndexOf('_');if(pos<0||String(key.slice(0,pos))!==String(companyId))return;
+      entryListR((SD.visits||{})[key]).forEach(function(v){
+        if(!v||v.status!=='done')return;
+        var list=(v.dates&&v.dates.length?v.dates:[v.date]).filter(Boolean);
+        list.forEach(function(ds){var d=parseVisitDateR({date:ds,ts:v.ts});if(d)out.push({date:d,techCode:v.tc||v.techCode||v.technicianCode||'',techId:v.techId||''});});
+      });
+    });
+    (SD.extras||[]).forEach(function(ex){if(String(ex.firmaId||ex.companyId||'')!==String(companyId))return;var d=parseVisitDateR(ex);if(d)out.push({date:d,techCode:ex.techCode||ex.tc||'',techId:ex.techId||''});});
+    return out.sort(function(a,b){return b.date-a.date;});
+  }
+  function lastVisitBeforeR(companyId,beforeDate){var all=companyVisitsR(companyId),limit=beforeDate?new Date(beforeDate).getTime():Infinity;return all.find(function(v){return v.date.getTime()<limit;})||null;}
+  function scoreCardR(co){
+    if(!co)return{score:null,label:'—'};
+    var all=companyVisitsR(co.id),last=all[0]||null,days=last?Math.floor((Date.now()-last.date.getTime())/86400000):null,score=100;
+    if(days===null)score-=60;else if(days>90)score-=35;else if(days>60)score-=20;
+    var samples=(typeof SD.load==='function'?(SD.load('sd_samples',[])||[]):[]).filter(function(x){return String(x.firmaId||x.companyId||'')===String(co.id);});
+    var open=samples.filter(function(x){var st=String(x.status||x.durum||x.sonuc||'').toLocaleLowerCase('tr');return !/(kapandı|kapandi|iptal|sonuç geldi|sonuc geldi|tamamlandı|tamamlandi)/.test(st);});
+    if(open.length)score-=Math.min(25,open.length*8);
+    var recent=all.slice(0,3).map(function(v){return String(v.techCode||v.techId||'');}).filter(Boolean);if(new Set(recent).size>=3)score-=10;
+    score=Math.max(0,score);return{score:score,label:score>=80?'Sağlıklı':score>=60?'Takip':score>=40?'Riskli':'Kritik'};
+  }
   function reportDataR(start,end){
     start=new Date(start+'T00:00:00');end=new Date(end+'T23:59:59');
     var companies=SD.companies||[], visits=SD.visits||{}, rows=[];
@@ -2033,11 +2064,12 @@ function renderDashboard(){renderVisitDashboard();}
       var weeks=co?(co.weeks||[1,2,3,4]):[];
       rows.push({firma:co?co.name:(ex.firmAdi||'Program Dışı Firma'),teknisyen:exTech.name||ex.techCode||'—',tarih:trR(dt),date:dt,durum:'Tamamlandı',periyot:co?periodTextR(weeks):'Kayıtlı periyot yok',plan:'Program Dışı',firmaId:co?co.id:'extra',techCode:ex.techCode||exTech.code||'—',not:ex.not||''});
     });
+    rows.forEach(function(r){var co=companies.find(function(c){return String(c.id)===String(r.firmaId);});var prev=co?lastVisitBeforeR(co.id,r.date):null,sc=scoreCardR(co);r.lastVisit=prev?trR(prev.date):'İlk ziyaret';r.score=sc.score;r.scoreLabel=sc.label;});
     rows.sort(function(a,b){return a.date-b.date||String(a.techCode||'').localeCompare(String(b.techCode||''),'tr');});
     var unique={};rows.forEach(function(r){unique[r.firmaId||r.firma]=1;});
     var tech={};rows.forEach(function(r){tech[r.teknisyen]=(tech[r.teknisyen]||0)+1;});
     var days={};rows.forEach(function(r){days[r.tarih]=(days[r.tarih]||0)+1;});
-    return{rows:rows,total:rows.length,unique:Object.keys(unique).length,tech:tech,days:days,uygun:rows.filter(function(r){return r.plan==='Plana Uygun';}).length,disi:rows.filter(function(r){return r.plan==='Plan Dışı'||r.plan==='Program Dışı';}).length,planDisi:rows.filter(function(r){return r.plan==='Plan Dışı';}).length,programDisi:rows.filter(function(r){return r.plan==='Program Dışı';}).length,start:start,end:end};
+    var scored={},scoreSum=0,scoreCount=0;rows.forEach(function(r){if(r.score!=null&&!scored[r.firmaId]){scored[r.firmaId]=1;scoreSum+=r.score;scoreCount++;}});return{rows:rows,total:rows.length,unique:Object.keys(unique).length,tech:tech,days:days,uygun:rows.filter(function(r){return r.plan==='Plana Uygun';}).length,disi:rows.filter(function(r){return r.plan==='Plan Dışı'||r.plan==='Program Dışı';}).length,planDisi:rows.filter(function(r){return r.plan==='Plan Dışı';}).length,programDisi:rows.filter(function(r){return r.plan==='Program Dışı';}).length,avgScore:scoreCount?Math.round(scoreSum/scoreCount):0,start:start,end:end};
   }
   function barsR(obj){var keys=Object.keys(obj),max=Math.max.apply(null,keys.map(function(k){return obj[k];}).concat([1]));return keys.map(function(k){return'<div class="wr-bar-row"><span>'+escR(k)+'</span><div><i style="width:'+Math.max(8,Math.round(obj[k]/max*100))+'%"></i></div><b>'+obj[k]+'</b></div>';}).join('')||'<div class="wr-empty">Kayıt yok</div>';}
   function iconR(type){
@@ -2065,7 +2097,7 @@ function renderDashboard(){renderVisitDashboard();}
     d.rows.forEach(function(r){if(r.setupInfo)setupList+='<div style="margin:6px 0;font-size:12px;">'+escR(r.firma)+': '+escR(r.setupInfo)+'</div>';});
     var missedWarning=missedCos.length?'<div style="background:#fef3c7;border-left:5px solid #f59a00;margin:16px;border-radius:6px;overflow:hidden;"><div style="padding:16px;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;" onclick="var el=document.getElementById(\''+missedId+'\');el.style.display=el.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'span\').textContent=el.style.display===\'none\'?\'▸\':\'▾\';"><div><div style="font-weight:bold;color:#92400e;">⚠️ Planlanmış Ama Ziyaret Edilmemiş ('+missedCos.length+')</div></div><span style="font-size:18px;color:#92400e;">▸</span></div><div id="'+missedId+'" style="display:none;padding:0 16px 16px;border-top:1px solid #f3d9a8;font-size:13px;color:#78350f;">'+missedCos.join('<br>')+'</div></div>':'';
     var setupSection=setupList?'<div style="background:#fffbeb;border-left:5px solid #f59a00;padding:16px;margin:16px;border-radius:6px;"><div style="font-weight:bold;color:#92400e;">🔧 Kurulum & Devreye Alma</div><div style="margin-top:8px;font-size:12px;color:#78350f;">'+setupList+'</div></div>':'';
-    var rows=d.rows.map(function(r){var planCls=r.plan==='Plana Uygun'?'ok':(r.plan==='Program Dışı'?'off':'warn');return'<tr><td>'+escR(r.firma)+'</td><td>'+escR(r.teknisyen)+'</td><td>'+r.tarih+'</td><td><span class="wr-badge ok">'+r.durum+'</span></td><td>'+escR(r.periyot)+'</td><td><span class="wr-badge '+planCls+'">'+r.plan+'</span></td><td>'+escR(r.not||'')+'</td></tr>';}).join('');
+    var rows=d.rows.map(function(r){var planCls=r.plan==='Plana Uygun'?'ok':(r.plan==='Program Dışı'?'off':'warn');return'<tr><td>'+escR(r.firma)+'</td><td>'+escR(r.teknisyen)+'</td><td>'+r.tarih+'</td><td><span class="wr-badge ok">'+r.durum+'</span></td><td>'+escR(r.lastVisit||'—')+'</td><td><span style="font-weight:800;color:'+(r.score>=80?'#15803d':r.score>=60?'#b45309':'#dc2626')+'">'+(r.score==null?'—':r.score+' · '+escR(r.scoreLabel))+'</span></td><td><span class="wr-badge '+planCls+'">'+r.plan+'</span></td><td>'+escR(r.not||'')+'</td></tr>';}).join('');
     var techKeys=Object.keys(d.tech), sampleCount=d.rows.filter(function(r){return /numune/i.test(r.firma+' '+r.durum);}).length;
     return'<div class="weekly-report" style="font-family:Arial,Helvetica,sans-serif;color:#0c2854;background:#f7f9fc;">'
       +'<div class="wr-top" style="display:flex;align-items:center;justify-content:space-between;background:#102b50;color:#fff;padding:24px;">'
@@ -2073,12 +2105,12 @@ function renderDashboard(){renderVisitDashboard();}
         +'<div style="text-align:right;"><div style="font-size:32px;font-weight:bold;">'+d.total+'</div><div style="font-size:13px;color:#a0b4d4;">Teknik Ziyaret</div></div>'
       +'</div>'
       +'<div class="wr-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:16px;background:#fff;">'
-        +kpiR('Toplam Ziyaret',d.total,'visit','blue')+kpiR('Ziyaret Edilen Firma',d.unique,'company','navy')+kpiR('Plana Uygun',d.uygun,'ok','green')+kpiR('Plan Dışı',d.disi,'warn','red')
+        +kpiR('Toplam Ziyaret',d.total,'visit','blue')+kpiR('Ziyaret Edilen Firma',d.unique,'company','navy')+kpiR('Plana Uygun',d.uygun,'ok','green')+kpiR('Plan Dışı',d.planDisi,'warn','red')+kpiR('Program Dışı',d.programDisi,'company','navy')+kpiR('Ortalama Firma Skoru',d.avgScore,'ok','green')
       +'</div>'
       +setupSection
       +'<div class="wr-charts" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;padding:16px;background:#fff;"><section style="background:#fff;border:1px solid #dbe3ee;border-radius:8px;padding:12px;"><h3 style="margin:0 0 12px;font-size:13px;text-align:center;">Teknisyene Göre Ziyaret</h3>'+barsR(d.tech)+'</section><section style="background:#fff;border:1px solid #dbe3ee;border-radius:8px;padding:12px;"><h3 style="margin:0 0 12px;font-size:13px;text-align:center;">Günlere Göre Dağılım</h3>'+barsR(d.days)+'</section><section style="background:#fff;border:1px solid #dbe3ee;border-radius:8px;padding:12px;"><h3 style="margin:0 0 12px;font-size:13px;text-align:center;">Plan Durumu</h3>'+donutR(d.uygun,d.disi,d.total)+'</section></div>'
       +missedWarning
-      +'<div class="wr-table" style="background:#fff;border:1px solid #dbe3ee;border-radius:8px;margin:16px;overflow:auto;"><h3 style="margin:0;background:#0c3c78;color:#fff;padding:12px;font-size:13px;">HAFTALIK ZİYARET LİSTESİ</h3><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#0c3c78;color:#fff;"><th style="padding:8px;text-align:left;">Firma</th><th style="padding:8px;text-align:left;">Teknisyen</th><th style="padding:8px;text-align:center;">Ziyaret Tarihi</th><th style="padding:8px;text-align:center;">Durum</th><th style="padding:8px;text-align:left;">Periyot</th><th style="padding:8px;text-align:center;">Plan Durumu</th><th style="padding:8px;text-align:left;">Not</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="wr-table" style="background:#fff;border:1px solid #dbe3ee;border-radius:8px;margin:16px;overflow:auto;"><h3 style="margin:0;background:#0c3c78;color:#fff;padding:12px;font-size:13px;">HAFTALIK ZİYARET LİSTESİ</h3><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#0c3c78;color:#fff;"><th style="padding:8px;text-align:left;">Firma</th><th style="padding:8px;text-align:left;">Teknisyen</th><th style="padding:8px;text-align:center;">Ziyaret Tarihi</th><th style="padding:8px;text-align:center;">Durum</th><th style="padding:8px;text-align:center;">Son Ziyaret</th><th style="padding:8px;text-align:center;">Firma Skoru</th><th style="padding:8px;text-align:center;">Plan Durumu</th><th style="padding:8px;text-align:left;">Not</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
       +'<div class="wr-bottom" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:16px;background:#fff;border:1px solid #dbe3ee;border-radius:8px;overflow:hidden;">'+kpiR('Toplam Ziyaret',d.total,'visit','blue')+kpiR('Ziyaret Edilen Firma',d.unique,'company','navy')+kpiR('Plan Dışı',d.disi,'warn','red')+kpiR('Plana Uygun',d.uygun,'ok','green')+'</div></div>';
   }
   function rangeR(){var s=document.getElementById('raporStart'),e=document.getElementById('raporEnd'),now=new Date(),m=mondayR(now),f=addDaysR(m,4);return{start:s&&s.value?s.value:isoR(m),end:e&&e.value?e.value:isoR(f)};}
@@ -2091,55 +2123,30 @@ function renderDashboard(){renderVisitDashboard();}
   window.previewWeeklyReport=function(){var r=rangeR(),d=reportDataR(r.start,r.end),p=document.getElementById('raporPreviewArea');if(p)p.innerHTML=dashboardR(d);};
   async function workbookR(d){
     if(typeof ExcelJS==='undefined')throw new Error('ExcelJS yüklenemedi. İnternet bağlantısını kontrol edin.');
-    var wb=new ExcelJS.Workbook();wb.creator='DK Portal';wb.created=new Date();
-    var ws=wb.addWorksheet('Teknik Servis Raporu',{views:[{state:'frozen',ySplit:6}]});ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,paperSize:9};
-    var NAVY='FF102B50',ACCENT='FF3B82F6',MUTED='FF7A8799';
-    /* Satır 1: koyu lacivert marka şeridi — logo + rapor başlığı */
-    ws.getRow(1).height=42;['A1','B1','C1','D1','E1','F1','G1'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};});
-    ws.mergeCells('C1:G1');ws.getCell('C1').value='TEKNİK SERVİS HAFTALIK RAPORU';ws.getCell('C1').font={size:20,bold:true,color:{argb:'FFFFFFFF'}};ws.getCell('C1').alignment={vertical:'middle',horizontal:'right'};
-    try{
-      var logoResp=await fetch('assets/email/servisdrama/drama-makine-logo.png');
-      if(logoResp.ok){
-        var logoBuf=await logoResp.arrayBuffer();
-        var logoImgId=wb.addImage({buffer:logoBuf,extension:'png'});
-        ws.addImage(logoImgId,{tl:{col:0.15,row:0.12},ext:{width:120,height:34}});
-      }
-    }catch(e){}
-    /* Satır 2: eyebrow marka adı (sol) + dönem bilgisi (sağ) */
-    ws.getRow(2).height=20;
-    ws.getCell('A2').value='SERVİSDRAMA';ws.getCell('A2').font={bold:true,size:10,color:{argb:ACCENT}};ws.getCell('A2').alignment={vertical:'middle'};
-    ws.mergeCells('C2:G2');ws.getCell('C2').value='Dönem: '+trR(d.start)+' - '+trR(d.end)+'   •   Rapor Tarihi: '+trR(new Date());ws.getCell('C2').font={bold:true,size:11,color:{argb:'FF334155'}};ws.getCell('C2').alignment={vertical:'middle',horizontal:'right'};
-    /* Satır 3: ince marka rengi ayraç */
-    ws.getRow(3).height=4;['A3','B3','C3','D3','E3','F3','G3'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:ACCENT}};});
-    /* Satır 4: KPI kartları — her biri kendi anlam rengiyle */
-    var kpis=[
-      ['A4','Toplam Ziyaret',d.total,'FF1565D8','FFEFF6FF'],
-      ['B4','Ziyaret Edilen Firma',d.unique,'FF078578','FFE6F7F5'],
-      ['C4','Plana Uygun',d.uygun,'FF16A34A','FFECFDF5'],
-      ['D4','Plan Dışı',d.planDisi,'FFD97706','FFFFF7ED'],
-      ['E4','Program Dışı',d.programDisi,'FF7C3AED','FFF5F3FF']
-    ];
-    kpis.forEach(function(x){var c=ws.getCell(x[0]);c.value=x[1]+'\n'+x[2];c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.font={bold:true,size:14,color:{argb:x[3]}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:x[4]}};c.border={top:{style:'thin',color:{argb:'FFCBD5E1'}},left:{style:'thin',color:{argb:'FFCBD5E1'}},bottom:{style:'thin',color:{argb:'FFCBD5E1'}},right:{style:'thin',color:{argb:'FFCBD5E1'}}};});
-    ws.getRow(4).height=46;['F4','G4'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF7F9FC'}};});
-    ws.getRow(5).height=6;
-    var head=['Firma','Teknisyen (Kod)','Ziyaret Tarihi','Durum','Firma Kayıtlı Periyodu','Plan Durumu / Kurulum','Not'];ws.addRow(head);var hr=ws.lastRow;hr.height=22;hr.font={bold:true,color:{argb:'FFFFFFFF'}};hr.fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};hr.alignment={horizontal:'center',vertical:'middle'};
-    var planColors={'Plana Uygun':'FF16A34A','Plan Dışı':'FFD97706','Program Dışı':'FF7C3AED'};
-    d.rows.forEach(function(r,i){
-      var row=ws.addRow([r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,r.durum,r.periyot,r.plan+(r.setupInfo||''),r.not||'']);
-      var zebra=i%2?'FFF7FAFC':'FFFFFFFF';
-      row.eachCell({includeEmpty:true},function(c){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:zebra}};});
-      var planCell=row.getCell(6);planCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:planColors[r.plan]||'FF64748B'}};planCell.font={bold:true,color:{argb:'FFFFFFFF'}};planCell.alignment={horizontal:'center',vertical:'middle'};
-      var durumCell=row.getCell(4);durumCell.font={bold:true,color:{argb:'FF16A34A'}};durumCell.alignment={horizontal:'center',vertical:'middle'};
-    });
-    ws.columns=[{width:42},{width:23},{width:16},{width:16},{width:25},{width:20},{width:32}];ws.autoFilter={from:'A6',to:'G6'};
-    ws.eachRow(function(row,no){if(no>=6){row.alignment=row.alignment||{vertical:'middle'};row.eachCell(function(c){c.border=Object.assign({},c.border,{bottom:{style:'hair',color:{argb:'FFD9E2F0'}}});});}});
-    var lastRow=6+d.rows.length;
-    ws.getRow(lastRow+1).height=6;
-    ws.mergeCells('A'+(lastRow+2)+':G'+(lastRow+2));
-    var footCell=ws.getCell('A'+(lastRow+2));
-    footCell.value={richText:[{font:{bold:true,size:10,color:{argb:'FF1565D8'}},text:'ServisDrama'},{font:{size:10,color:{argb:MUTED}},text:' • Haftalık Rapor • Powered by BKAYACI'}]};
-    footCell.alignment={horizontal:'center',vertical:'middle'};
-    return wb;
+    var wb=new ExcelJS.Workbook();wb.creator='ServisDrama';wb.created=new Date();wb.company='Drama Makine';
+    var ws=wb.addWorksheet('Haftalık Rapor',{views:[{state:'frozen',ySplit:7}]});
+    ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9,margins:{left:0.2,right:0.2,top:0.35,bottom:0.35,header:0.1,footer:0.1}};
+    ws.properties.defaultRowHeight=20;ws.sheetProperties.pageSetUpPr={fitToPage:true};ws.headerFooter.oddFooter='&LServisDrama&C&CPage &P / &N&RPowered by BKAYACI';
+    var NAVY='FF0F2F57',BLUE='FF0B64C0',GREEN='FF16A34A',ORANGE='FFF08A0A',PURPLE='FF6D3BD1',LIGHT='FFF4F7FB',BORDER='FFD7E0EB',TEXT='FF12223F',MUTED='FF64748B';
+    ws.mergeCells('A1:B2');ws.mergeCells('C1:F2');ws.mergeCells('G1:H1');ws.mergeCells('G2:H2');
+    ['A1','C1','G1','G2'].forEach(function(a){ws.getCell(a).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};});
+    ws.getRow(1).height=29;ws.getRow(2).height=29;
+    ws.getCell('C1').value='TEKNİK SERVİS HAFTALIK RAPORU';ws.getCell('C1').font={size:21,bold:true,color:{argb:'FFFFFFFF'}};ws.getCell('C1').alignment={vertical:'middle',horizontal:'center'};
+    ws.getCell('G1').value='DÖNEM\n'+trR(d.start)+' - '+trR(d.end);ws.getCell('G2').value='RAPOR TARİHİ\n'+trR(new Date());
+    ['G1','G2'].forEach(function(a){var c=ws.getCell(a);c.font={size:10,bold:true,color:{argb:'FFFFFFFF'}};c.alignment={wrapText:true,vertical:'middle',horizontal:'center'};});
+    try{var logoResp=await fetch('assets/email/servisdrama/drama-makine-logo.png');if(logoResp.ok){var logoBuf=await logoResp.arrayBuffer(),logoId=wb.addImage({buffer:logoBuf,extension:'png'});ws.addImage(logoId,{tl:{col:0.12,row:0.18},ext:{width:126,height:46}});}}catch(e){}
+    ws.getRow(3).height=5;for(var ci=1;ci<=8;ci++)ws.getCell(3,ci).fill={type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
+    var kpis=[['A4','Toplam Ziyaret',d.total,BLUE,'FFEAF3FF'],['B4','Ziyaret Edilen Firma',d.unique,'FF078578','FFE8F8F5'],['C4','Plana Uygun',d.uygun,GREEN,'FFECFDF3'],['D4','Plan Dışı',d.planDisi,ORANGE,'FFFFF4E5'],['E4','Program Dışı',d.programDisi,PURPLE,'FFF4EEFF'],['F4','Ortalama Skor',d.avgScore,d.avgScore>=80?GREEN:(d.avgScore>=60?ORANGE:'FFDC2626'),'FFF3F6FA']];
+    kpis.forEach(function(x){var c=ws.getCell(x[0]);c.value={richText:[{font:{size:10,bold:true,color:{argb:TEXT}},text:x[1]+'\n'},{font:{size:18,bold:true,color:{argb:x[3]}},text:String(x[2])}]};c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:x[4]}};c.border={top:{style:'thin',color:{argb:BORDER}},left:{style:'thin',color:{argb:BORDER}},bottom:{style:'thin',color:{argb:BORDER}},right:{style:'thin',color:{argb:BORDER}}};});
+    ws.mergeCells('G4:H4');var rate=d.total?Math.round(d.uygun/d.total*100):0;var rc=ws.getCell('G4');rc.value={richText:[{font:{size:10,bold:true,color:{argb:TEXT}},text:'PLAN UYUM ORANI\n'},{font:{size:18,bold:true,color:{argb:GREEN}},text:'%'+rate}]};rc.alignment={wrapText:true,horizontal:'center',vertical:'middle'};rc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFECFDF3'}};rc.border={top:{style:'thin',color:{argb:BORDER}},left:{style:'thin',color:{argb:BORDER}},bottom:{style:'thin',color:{argb:BORDER}},right:{style:'thin',color:{argb:BORDER}}};
+    ws.getRow(4).height=52;ws.getRow(5).height=7;
+    ws.mergeCells('A6:H6');var info=ws.getCell('A6');info.value='Ziyaretler tarih sırasına göre listelenmiştir. Son Ziyaret alanı, rapordaki ziyaret tarihinden önceki en güncel tamamlanmış ziyareti gösterir.';info.font={size:9,italic:true,color:{argb:MUTED}};info.alignment={vertical:'middle'};info.fill={type:'pattern',pattern:'solid',fgColor:{argb:LIGHT}};ws.getRow(6).height=21;
+    var head=['Firma','Teknisyen (Kod)','Ziyaret Tarihi','Durum','Son Ziyaret','Firma Skoru','Plan Durumu / Kurulum','Not'];ws.addRow(head);var hr=ws.lastRow;hr.height=27;hr.font={bold:true,size:10,color:{argb:'FFFFFFFF'}};hr.fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};hr.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    var planColors={'Plana Uygun':GREEN,'Plan Dışı':ORANGE,'Program Dışı':PURPLE};
+    d.rows.forEach(function(r,i){var row=ws.addRow([r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,r.durum,r.lastVisit||'—',r.score==null?'—':r.score+' · '+r.scoreLabel,r.plan+(r.setupInfo||''),r.not||'']);row.height=23;var zebra=i%2?'FFF7FAFC':'FFFFFFFF';row.eachCell({includeEmpty:true},function(c){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:zebra}};c.font={size:9,color:{argb:TEXT}};c.alignment={vertical:'middle',wrapText:true};c.border={bottom:{style:'hair',color:{argb:BORDER}}};});row.getCell(3).alignment={horizontal:'center',vertical:'middle'};row.getCell(4).font={bold:true,color:{argb:GREEN}};row.getCell(4).alignment={horizontal:'center',vertical:'middle'};row.getCell(5).alignment={horizontal:'center',vertical:'middle'};var sc=row.getCell(6);sc.font={bold:true,color:{argb:r.score>=80?GREEN:(r.score>=60?ORANGE:'FFDC2626')}};sc.alignment={horizontal:'center',vertical:'middle'};var pc=row.getCell(7);pc.fill={type:'pattern',pattern:'solid',fgColor:{argb:planColors[r.plan]||'FF64748B'}};pc.font={bold:true,size:9,color:{argb:'FFFFFFFF'}};pc.alignment={horizontal:'center',vertical:'middle',wrapText:true};});
+    ws.columns=[{width:43},{width:24},{width:15},{width:14},{width:16},{width:18},{width:24},{width:31}];ws.autoFilter={from:'A7',to:'H7'};
+    var last=7+d.rows.length;ws.getRow(last+1).height=8;ws.mergeCells('A'+(last+2)+':H'+(last+2));var foot=ws.getCell('A'+(last+2));foot.value={richText:[{font:{bold:true,size:10,color:{argb:BLUE}},text:'ServisDrama'},{font:{size:10,color:{argb:MUTED}},text:'  •  Haftalık Rapor  •  Powered by BKAYACI  •  www.dramamakine.com'}]};foot.alignment={horizontal:'center',vertical:'middle'};foot.fill={type:'pattern',pattern:'solid',fgColor:{argb:LIGHT}};ws.getRow(last+2).height=24;
+    ws.printArea='A1:H'+(last+2);return wb;
   }
   function downloadR(buf,name){var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
   window.generateWeeklyReport=async function(){try{var r=rangeR(),d=reportDataR(r.start,r.end);if(!d.total){UI.toast('Seçilen tarih aralığında tamamlanmış ziyaret yok.','warning');return;}UI.toast('Profesyonel Excel hazırlanıyor...','info');var wb=await workbookR(d),buf=await wb.xlsx.writeBuffer();downloadR(buf,'Teknik_Servis_Haftalik_Rapor_'+r.start+'_'+r.end+'.xlsx');UI.toast('Excel raporu indirildi.','success');}catch(e){console.error(e);UI.toast(e.message||'Excel oluşturulamadı.','error');}};
