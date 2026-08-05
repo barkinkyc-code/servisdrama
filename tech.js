@@ -127,9 +127,9 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   var logo = document.getElementById('tLogo'); if(logo) logo.src = LOGO_SRC;
 
-  var tn = document.getElementById('techName'); if(tn) tn.textContent = tech.name;
+  var tn = document.getElementById('tName'); if(tn) tn.textContent = tech.name;
   var tn2 = document.getElementById('tName2'); if(tn2) tn2.textContent = tech.name;
-  var tc = document.getElementById('techID'); if(tc) tc.textContent = 'Kod: ' + tech.code;
+  var tc = document.getElementById('tCode'); if(tc) tc.textContent = tech.code;
   var tc2 = document.getElementById('tCode2'); if(tc2) tc2.textContent = tech.code;
 
   initTechNotifBell();
@@ -672,10 +672,27 @@ function techLogin(){
 
 function initTechPanel(){
   var code=localStorage.getItem('techCode');
+
+  /* Deploy / cache yenilenmesinden sonra techCode kaybolmuş olsa bile,
+     daha önce seçilmiş geçerli teknisyen kimliğinden oturumu geri kur. */
+  if(!code){
+    try{
+      SD.seed();
+      var activeId=localStorage.getItem('sd_ac');
+      var techs=SD.technicians||[];
+      var activeTech=techs.find(function(t){return String(t.id)===String(activeId);});
+      if(activeTech&&activeTech.code){
+        code=String(activeTech.code);
+        localStorage.setItem('techCode',code);
+      }
+    }catch(e){console.warn('Teknisyen oturumu geri yüklenemedi:',e);}
+  }
+
   if(!code){
     document.getElementById('techLoginScreen').style.display='flex';
     return false;
   }
+
   document.getElementById('techLoginScreen').style.display='none';
   return true;
 }
