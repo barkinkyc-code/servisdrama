@@ -1,13 +1,15 @@
-TEKNİSYEN OTURUM EKRANI DÜZELTMESİ
+TEKNISYEN OTURUM / ESKI EKRAN GERI YUKLEME - V9
 
-Değişen dosyalar:
+Degisen dosyalar:
 - tech.js
 - tech.html
+- sw.js
+- pwa-update.js
 
-Düzeltme:
-- Deploy veya tarayıcı önbelleği yenilendikten sonra techCode kaydı kaybolsa bile,
-  mevcut sd_ac teknisyen kimliğinden oturum otomatik geri yüklenir.
-- Geçerli teknisyen daha önce seçilmişse giriş ekranı gösterilmeden ziyaret ekranı açılır.
-- Gerçekten oturum bilgisi yoksa güvenli şekilde teknisyen giriş ekranı gösterilmeye devam eder.
-- "Teknikyen" yazım hatası "Teknisyen" olarak düzeltildi.
-- tech.js önbellek sürümü yenilendi.
+Duzeltmeler:
+1. Ana giris ekraninda oturum acan tech kullanicisi SD.sessionTech() ile otomatik eslestirilir.
+2. 1015/1016 icin ikinci "Teknisyen Girisi" ekrani gosterilmeden ziyaret paneli acilir.
+3. Eski dogrudan tech.html kod/sifre giris destegi korunur.
+4. Cikis yapildiginda tum oturum anahtarlari temizlenip ana giris ekranina donulur.
+5. PWA/service worker surumu yenilendi; telefondaki eski dosyalar otomatik guncellenir.
+6. PDF rapor/admin dosyalarina dokunulmadi.

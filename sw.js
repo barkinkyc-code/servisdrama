@@ -1,5 +1,5 @@
 /* ServisDrama update-safe service worker */
-const BUILD_ID = '20260805-sales-v2';
+const BUILD_ID = '20260806-session-fix-v9';
 const CACHE_NAME = `servisdrama-${BUILD_ID}`;
 const OFFLINE_FILES = [
   '/',

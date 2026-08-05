@@ -67,8 +67,12 @@ function techPage(page){
 
 function techLogout(){
   localStorage.removeItem('techCode');
+  localStorage.removeItem('sd_ac');
   sessionStorage.removeItem('sd_role_id');
-  location.href='tech.html';
+  sessionStorage.removeItem('sd_session');
+  localStorage.removeItem('sd_session_persist');
+  localStorage.removeItem('token');
+  location.href='index.html';
 }
 
 /* ── Bildirim zili: satışçı numune aldığında burada görünür ── */
@@ -119,9 +123,23 @@ function readTechNotification(id){
 document.addEventListener('DOMContentLoaded', async function(){
   await SD.remoteReady();
   SD.seed();
-  if(!initTechPanel()) return;
-  var rid = sessionStorage.getItem('sd_role_id');
-  if (rid) SD.activeTechId = rid;
+
+  /* Ana girişte oluşan oturum varsa teknisyeni otomatik belirle.
+     Böylece kullanıcı ikinci kez 1015/1016 kodu ve şifre girmek zorunda kalmaz. */
+  var sessionTech = (typeof SD.sessionTech === 'function') ? SD.sessionTech() : null;
+  if (sessionTech) {
+    SD.activeTechId = sessionTech.id;
+    sessionStorage.setItem('sd_role_id', sessionTech.id);
+    localStorage.setItem('techCode', sessionTech.code || '');
+    var loginScreen = document.getElementById('techLoginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+  } else {
+    /* Eski doğrudan tech.html girişini de bozmadan koru. */
+    if(!initTechPanel()) return;
+    var rid = sessionStorage.getItem('sd_role_id');
+    if (rid) SD.activeTechId = rid;
+  }
+
   var tech = SD.activeTech();
   if (!tech) { window.location.href = 'index.html'; return; }
 
