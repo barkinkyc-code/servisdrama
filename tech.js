@@ -67,79 +67,17 @@ function techPage(page){
 
 function techLogout(){
   localStorage.removeItem('techCode');
-  localStorage.removeItem('sd_ac');
   sessionStorage.removeItem('sd_role_id');
-  sessionStorage.removeItem('sd_session');
-  localStorage.removeItem('sd_session_persist');
-  localStorage.removeItem('token');
-  location.href='index.html';
-}
-
-/* ── Bildirim zili: satışçı numune aldığında burada görünür ── */
-function techApiHeaders(){return {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||'')};}
-function techEscapeHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function techFormatDate(d){if(!d||isNaN(d))return'-';return new Intl.DateTimeFormat('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);}
-function initTechNotifBell(){
-  var btn=document.getElementById('techBellBtn');
-  if(btn)btn.addEventListener('click',function(e){e.stopPropagation();toggleTechNotifBell();});
-  document.addEventListener('click',function(e){
-    if(!e.target.closest('#techBellWrap'))document.getElementById('techNotifDropdown').classList.add('hidden');
-  });
-  refreshTechNotifBadge();
-}
-function refreshTechNotifBadge(){
-  fetch('/api/notifications/unread/count',{headers:techApiHeaders()}).then(function(r){return r.ok?r.json():null;}).then(function(j){
-    if(!j)return;
-    var badge=document.getElementById('techBellBadge');if(!badge)return;
-    var n=j.unread_count||0;
-    badge.textContent=n>9?'9+':String(n);
-    badge.classList.toggle('hidden',n===0);
-  }).catch(function(){});
-}
-function toggleTechNotifBell(){
-  var dd=document.getElementById('techNotifDropdown');if(!dd)return;
-  var opening=dd.classList.contains('hidden');
-  dd.classList.toggle('hidden');
-  if(opening)loadTechNotifDropdown();
-}
-function loadTechNotifDropdown(){
-  var list=document.getElementById('techNotifList');if(!list)return;
-  list.innerHTML='<div class="tb-notif-empty">Yükleniyor...</div>';
-  fetch('/api/notifications',{headers:techApiHeaders()}).then(function(r){return r.json();}).then(function(j){
-    var items=(j.notifications||[]).slice(0,15);
-    list.innerHTML=items.length?items.map(function(n){
-      return '<div class="tb-notif-item '+(n.read||n.readAt?'':'unread')+'" onclick="readTechNotification(\''+n.id+'\')">'
-        +'<b>'+techEscapeHtml(n.title||'Bildirim')+'</b><div>'+techEscapeHtml(n.message||'')+'</div>'
-        +'<small>'+techEscapeHtml(techFormatDate(new Date(n.createdAt)))+'</small></div>';
-    }).join(''):'<div class="tb-notif-empty">Bildiriminiz yok.</div>';
-  }).catch(function(){list.innerHTML='<div class="tb-notif-empty">Bildirimler yüklenemedi.</div>';});
-}
-function readTechNotification(id){
-  fetch('/api/notifications/'+encodeURIComponent(id)+'/read',{method:'PUT',headers:techApiHeaders()})
-    .then(function(){loadTechNotifDropdown();refreshTechNotifBadge();}).catch(function(){});
+  location.href='tech.html';
 }
 
 /* ── Boot ── */
 document.addEventListener('DOMContentLoaded', async function(){
   await SD.remoteReady();
   SD.seed();
-
-  /* Ana girişte oluşan oturum varsa teknisyeni otomatik belirle.
-     Böylece kullanıcı ikinci kez 1015/1016 kodu ve şifre girmek zorunda kalmaz. */
-  var sessionTech = (typeof SD.sessionTech === 'function') ? SD.sessionTech() : null;
-  if (sessionTech) {
-    SD.activeTechId = sessionTech.id;
-    sessionStorage.setItem('sd_role_id', sessionTech.id);
-    localStorage.setItem('techCode', sessionTech.code || '');
-    var loginScreen = document.getElementById('techLoginScreen');
-    if (loginScreen) loginScreen.style.display = 'none';
-  } else {
-    /* Eski doğrudan tech.html girişini de bozmadan koru. */
-    if(!initTechPanel()) return;
-    var rid = sessionStorage.getItem('sd_role_id');
-    if (rid) SD.activeTechId = rid;
-  }
-
+  if(!initTechPanel()) return;
+  var rid = sessionStorage.getItem('sd_role_id');
+  if (rid) SD.activeTechId = rid;
   var tech = SD.activeTech();
   if (!tech) { window.location.href = 'index.html'; return; }
 
@@ -149,8 +87,6 @@ document.addEventListener('DOMContentLoaded', async function(){
   var tn2 = document.getElementById('tName2'); if(tn2) tn2.textContent = tech.name;
   var tc = document.getElementById('tCode'); if(tc) tc.textContent = tech.code;
   var tc2 = document.getElementById('tCode2'); if(tc2) tc2.textContent = tech.code;
-
-  initTechNotifBell();
 
   /* Ay nav */
   document.getElementById('prevM').addEventListener('click', function(){ T.vm--; if(T.vm<0){T.vm=11;T.vy--;} render(); });
@@ -689,13 +625,39 @@ function techLogin(){
 }
 
 function initTechPanel(){
-  var code=localStorage.getItem('techCode');
-  if(!code){
-    document.getElementById('techLoginScreen').style.display='flex';
-    return false;
+  /* Ana giriş oturumunu eski, çalışan teknisyen ekranına bağla.
+     Kullanıcı teknisyen rolündeyse ikinci kez kod/şifre isteme. */
+  var sessionTech=null;
+  try{
+    if(typeof SD!=='undefined' && typeof SD.sessionTech==='function'){
+      sessionTech=SD.sessionTech();
+    }
+  }catch(e){ sessionTech=null; }
+
+  if(sessionTech && sessionTech.id){
+    localStorage.setItem('sd_ac', sessionTech.id);
+    localStorage.setItem('techCode', String(sessionTech.code||''));
+    sessionStorage.setItem('sd_role_id', sessionTech.id);
+    document.getElementById('techLoginScreen').style.display='none';
+    return true;
   }
-  document.getElementById('techLoginScreen').style.display='none';
-  return true;
+
+  /* Eski çalışan davranış: daha önce teknisyen kodu kaydedildiyse paneli aç. */
+  var code=localStorage.getItem('techCode');
+  if(code){
+    var techs=(typeof SD!=='undefined' && SD.technicians)||[];
+    var matched=techs.find(function(t){return String(t.code||'')===String(code);});
+    if(matched){
+      localStorage.setItem('sd_ac', matched.id);
+      sessionStorage.setItem('sd_role_id', matched.id);
+      document.getElementById('techLoginScreen').style.display='none';
+      return true;
+    }
+    localStorage.removeItem('techCode');
+  }
+
+  document.getElementById('techLoginScreen').style.display='flex';
+  return false;
 }
 
 function renderNumunePage(){

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD_ID = '20260806-session-fix-v9';
+  const BUILD_ID = '20260806-tech-restore-v11';
   const RELOAD_KEY = `sd_pwa_reloaded_${BUILD_ID}`;
   let registration = null;
   let checking = false;
