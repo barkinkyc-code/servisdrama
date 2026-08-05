@@ -1,18 +1,24 @@
-HAFTALIK RAPOR PDF GUNCELLEMESI
+SERVİSDRAMA HAFTALIK YÖNETİCİ PDF RAPORU
 
-Degisen dosyalar:
+Değişen dosyalar:
 - admin.js
 - admin.html
+- weekly-report-pdf.js (yeni)
 
-Yapilanlar:
-- Haftalik rapor indirme cikisi Excel yerine A4 yatay PDF yapildi.
-- PDF ilk sayfada yonetici ozeti, KPI kartlari, teknisyen/gun dagilimlari, plan uyumu ve firma skor dagilimi bulunur.
-- Ikinci sayfada ziyaret detay tablosu, son ziyaret, firma skoru/seviyesi, plan durumu ve notlar bulunur.
-- Firma skoru A+, A, B+, B, C, D seviyelerinde kurumsal bicimde gosterilir.
-- Mail gonderimi Excel yerine application/pdf eki gonderir.
-- Drama Makine logosu PDF ve e-posta icinde kullanilir.
-- PDFMake ve Turkce karakter destekli Roboto VFS kutuphaneleri eklendi.
+Yapılanlar:
+- Haftalık rapor indirme çıktısı Excel yerine PDF oldu.
+- Mail eki application/pdf olarak gönderiliyor.
+- PDF A4 yatay, kurumsal yönetici sunumu düzeninde oluşturuluyor.
+- 1. bölüm: logo, dönem, KPI kartları, teknisyen dağılımı, gün dağılımı,
+  plan durumu, firma skor dağılımı ve son ziyaret özeti.
+- 2. bölüm: detaylı ziyaret tablosu ve yönetici değerlendirmesi.
+- Firma Kayıtlı Periyodu PDF'den kaldırıldı; yerine Son Ziyaret getirildi.
+- Mevcut satışçı panelindeki firma sağlık skoru mantığı PDF'ye uyarlandı.
+- Skorlar A+, A, B+, B, C, D seviyeli profesyonel renkli rozet olarak gösteriliyor.
+- Drama Makine'nin projedeki mevcut PNG logosu kullanılıyor.
+- Grafik ve KPI ikonları vektörel üretildiği için ek ikon dosyası gerekmedi.
 
 Kurulum:
-ZIP icindeki admin.js ve admin.html dosyalarini proje kokundeki ayni dosyalarin uzerine kopyalayin.
-Vercel deploy sonrasinda Ctrl+F5 ile zorla yenileyin.
+Bu klasördeki 3 dosyayı proje kökündeki aynı dosyaların üzerine kopyalayın.
+Vercel deploy sonrası Ctrl+F5 uygulayın. Telefonda PWA kullanılıyorsa uygulamayı
+kapatıp yeniden açın.
