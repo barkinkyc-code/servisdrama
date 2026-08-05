@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const auth = require('../middleware/auth');
+const { resolveSalesRepIdentity, filterStateForSalesRep } = require('../utils/salesIdentity');
 const router = express.Router();
 
 async function readState() {
@@ -155,100 +156,6 @@ function mergeTechnicianVisits(currentVisits, incomingVisits, code) {
   return merged;
 }
 
-// Giriş yapan satışçının state içindeki sd_st kaydını bulur.
-// JWT yalnızca {id,username,role} taşır; satışçı kimliği state'ten çözülür.
-function salesRepIdentityForUser(current, user) {
-  const username = String(user?.username || '').toLowerCase();
-  const reps = Array.isArray(current?.sd_st) ? current.sd_st : [];
-  const users = Array.isArray(current?.sd_users) ? current.sd_users : [];
-
-  // 1) veritabanı userId veya doğrudan username/email eşleşmesi
-  let rep = reps.find(s => String(s?.userId || '') === String(user?.id || ''))
-         || reps.find(s => String(s?.username || '').toLowerCase() === username)
-         || reps.find(s => String(s?.email || '').split('@')[0].toLowerCase() === username);
-
-  // 2) sd_users üzerinden id/salesRepId köprüsü
-  if (!rep) {
-    const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
-    if (appUser) {
-      const wanted = String(appUser.salesRepId || appUser.id || '');
-      rep = reps.find(s => String(s?.id || '') === wanted);
-    }
-  }
-
-  if (!rep) return null;
-  const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
-  return { ...rep, userId: rep.userId || user?.id || '', legacyUserId: rep.legacyUserId || appUser?.id || '' };
-}
-
-// Satışçı kullanıcısı için state filtrelemesi: yalnızca atanmış firmaları döner.
-// Kimlik çözülemezse boş state döner (fail-closed).
-function filterStateForSalesRep(state, salesRep) {
-  if (!state || typeof state !== 'object' || !salesRep || !salesRep.id) return {};
-  const salesRepId = String(salesRep.id);
-  const filtered = clone(state, {});
-
-  // Satışçıya atanmış firmaları bul
-  const salesUserId = String(salesRep.userId || '');
-  const legacyUserId = String(salesRep.legacyUserId || '');
-  const assignedCompanies = (filtered.sd_co || []).filter(c => {
-    const ids = [c.salesRepId, c.salesRepUserId].filter(Boolean).map(String);
-    return ids.includes(salesRepId) || (salesUserId && ids.includes(salesUserId)) || (legacyUserId && ids.includes(legacyUserId));
-  });
-  const assignedCoIds = new Set(assignedCompanies.map(c => String(c.id)));
-
-  // Sadece atanmış firmaları sakla
-  filtered.sd_co = assignedCompanies;
-
-  // Ziyaretleri filtrele (sadece atanmış firmaların ziyaretleri).
-  // Anahtar biçimi hem 'firmaId|hafta' hem 'firmaId_hafta' olabilir.
-  if (filtered.sd_vi && typeof filtered.sd_vi === 'object') {
-    const filteredVisits = {};
-    Object.entries(filtered.sd_vi).forEach(([key, record]) => {
-      const firmaId = String(key).split(/[|_]/)[0];
-      if (assignedCoIds.has(firmaId)) filteredVisits[key] = record;
-    });
-    filtered.sd_vi = filteredVisits;
-  }
-
-  // Program dışı ziyaretleri filtrele
-  if (Array.isArray(filtered.sd_ex)) {
-    filtered.sd_ex = filtered.sd_ex.filter(x => assignedCoIds.has(String(x.firmaId || x.companyId || '')));
-  }
-
-  // Yola çıkış kayıtları satışçıyı ilgilendirmez
-  filtered.sd_dp = [];
-
-  // Numuneleri filtrele
-  if (Array.isArray(filtered.sd_samples)) {
-    filtered.sd_samples = filtered.sd_samples.filter(s => assignedCoIds.has(String(s.firmaId || s.companyId || '')));
-  }
-
-  // Bildirim ve aksiyonlar: yalnızca kendisine ait olanlar
-  if (Array.isArray(filtered.sd_notifications)) {
-    filtered.sd_notifications = filtered.sd_notifications.filter(
-      n => String(n?.recipientUserId || '') === salesRepId
-    );
-  }
-  if (Array.isArray(filtered.sd_actions)) {
-    filtered.sd_actions = filtered.sd_actions.filter(
-      a => String(a?.salesRepId || '') === salesRepId
-    );
-  }
-
-  // Diğer satışçıların kayıtları gizli — yalnızca kendi profili kalır
-  filtered.sd_st = [salesRep];
-
-  // Kullanıcı listesi (parola hash'leri dahil) ve risk olayları satışçıya kapalı
-  delete filtered.sd_users;
-  delete filtered.sd_risk_events;
-
-  // SMTP parolası gibi sırlar içeren yapılandırma satışçıya kapalı
-  delete filtered.sd_cfg;
-
-  return filtered;
-}
-
 router.get('/', auth, async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
@@ -260,7 +167,7 @@ router.get('/', auth, async (req, res) => {
 
     // Satışçı: sadece kendi firmalarının verisi. Kimlik çözülemezse boş state (fail-closed).
     if (isSalesRep && !isAdmin) {
-      const salesRep = salesRepIdentityForUser(r.state, req.user);
+      const salesRep = resolveSalesRepIdentity(r.state, req.user);
       r.state = filterStateForSalesRep(r.state, salesRep);
     }
     // Tech user: satışçı veri anahtarları gizli

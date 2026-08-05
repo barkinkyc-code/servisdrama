@@ -14,40 +14,51 @@
 .sales-body .page-header p{font-size:14px;color:var(--text3);}
 .sales-body .content-body{width:100%;max-width:1200px;}
 
-/* ── Dashboard KPI kartları ── */
-.sales-body .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
-.sales-body .stat-card{
-  display:flex;align-items:center;gap:16px;padding:20px;
-  border-radius:var(--r-xl);background:var(--surface);
-  border:1px solid var(--border);box-shadow:var(--sh-sm);transition:box-shadow var(--tr);
-}
-.sales-body .stat-card:hover{box-shadow:var(--sh-md);}
-.sales-body .stat-blue{border-left:4px solid var(--blue);}
-.sales-body .stat-green{border-left:4px solid var(--green);}
-.sales-body .stat-red{border-left:4px solid var(--red);}
-.sales-body .stat-icon{font-size:30px;flex-shrink:0;line-height:1;}
-.sales-body .stat-content{flex:1;min-width:0;}
-.sales-body .stat-value{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;}
-.sales-body .stat-label{font-size:12.5px;color:var(--text3);margin-top:4px;}
+/* ── Dashboard KPI kartları: .kpi-row/.kpi-card ortak style.css'ten gelir ── */
 
-/* ── Firma kartları ── */
-.sales-body .companies-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
-.sales-body .company-card{
-  padding:16px;border-radius:var(--r-xl);background:var(--surface);
-  border:1px solid var(--border);box-shadow:var(--sh-sm);
-  transition:box-shadow var(--tr),transform var(--tr),border-color var(--tr);cursor:pointer;
+/* ── Dashboard: Bu hafta / geciken firma mini listeleri ── */
+.sales-body .dash-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;}
+.sales-body .dash-sec-title{font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px;letter-spacing:-.01em;}
+.sales-body .mini-list{display:flex;flex-direction:column;gap:8px;}
+.sales-body .mini-row{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-lg);
+  background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all var(--tr);
 }
-.sales-body .company-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);border-color:var(--blue-m);}
-.sales-body .company-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3;}
-.sales-body .company-region{font-size:12.5px;color:var(--text3);margin-bottom:12px;}
-.sales-body .company-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--border);}
-.sales-body .meta-item{font-size:12.5px;color:var(--text2);}
-.sales-body .meta-badge{
-  display:inline-block;padding:3px 9px;border-radius:99px;
-  background:var(--green-l);color:var(--green);font-size:11.5px;font-weight:700;
+.sales-body .mini-row:hover{border-color:var(--blue-m);box-shadow:var(--sh-xs);transform:translateX(2px);}
+.sales-body .mini-avatar{
+  width:34px;height:34px;border-radius:50%;background:var(--blue-l);color:var(--blue);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;
 }
-.sales-body .meta-badge[data-badge='unscheduled']{background:var(--amber-l);color:var(--amber);}
-.sales-body .meta-badge[data-badge='delayed']{background:var(--red-l);color:var(--red);}
+.sales-body .mini-info{flex:1;min-width:0;}
+.sales-body .mini-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sales-body .mini-sub{font-size:11.5px;color:var(--text3);margin-top:2px;}
+
+/* ── Rozet (durum etiketi) ── */
+.sales-body .badge{padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.sales-body .badge-green{background:var(--green-l);color:var(--green);}
+.sales-body .badge-blue{background:var(--blue-l);color:var(--blue);}
+.sales-body .badge-amber{background:var(--amber-l);color:var(--amber);}
+.sales-body .badge-red{background:var(--red-l);color:var(--red);}
+
+/* ── Firmalarım: filtrelenebilir satır listesi (.co-list/.co-card ortak style.css'ten gelir) ── */
+.sales-body .co-card{cursor:pointer;}
+.sales-body .co-icon{
+  border-radius:50%;background:var(--blue-l);color:var(--blue);
+  font-size:12.5px;font-weight:800;
+}
+.sales-body .co-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.sales-body .health-row-inline{display:flex;align-items:center;gap:6px;}
+.sales-body .health-row-inline .health-bar{width:64px;height:5px;border-radius:99px;background:var(--surface2);overflow:hidden;}
+.sales-body .health-bar-fill{height:100%;border-radius:99px;transition:width var(--tr);}
+.sales-body .health-bar-fill.health-green{background:var(--green);}
+.sales-body .health-bar-fill.health-blue{background:var(--blue);}
+.sales-body .health-bar-fill.health-amber{background:var(--amber);}
+.sales-body .health-bar-fill.health-red{background:var(--red);}
+.sales-body .health-label{font-size:11px;font-weight:700;white-space:nowrap;}
+.sales-body .health-text-green{color:var(--green);}
+.sales-body .health-text-blue{color:var(--blue);}
+.sales-body .health-text-amber{color:var(--amber);}
+.sales-body .health-text-red{color:var(--red);}
 
 /* ── Ziyaret geçmişi ── */
 .sales-body .visit-timeline{display:flex;flex-direction:column;gap:12px;}
@@ -65,32 +76,12 @@
 .sales-body .visit-tech,.sales-body .visit-status{font-size:12.5px;color:var(--text2);margin-bottom:3px;}
 .sales-body .visit-notes{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text2);line-height:1.6;}
 
-/* ── Aksiyon ekleme formu ── */
-.sales-body .action-form{
-  display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;
+/* ── Numune kartları ── */
+.sales-body .samples-list{display:flex;flex-direction:column;gap:12px;}
+.sales-body .sample-card{
   padding:14px 16px;border-radius:var(--r-xl);background:var(--surface);
-  border:1px solid var(--border);box-shadow:var(--sh-xs);
+  border:1px solid var(--border);box-shadow:var(--sh-xs);border-left:4px solid var(--cyan);
 }
-.sales-body .action-inp{
-  padding:9px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:var(--r);
-  outline:none;font-family:inherit;background:var(--surface);color:var(--text);
-  transition:border-color .15s;
-}
-.sales-body .action-inp:focus{border-color:var(--blue);}
-.sales-body #actionTitle{flex:1;min-width:220px;}
-.sales-body .action-sel{max-width:220px;}
-.sales-body .action-card[data-status='done']{opacity:.65;border-left-color:var(--green);}
-.sales-body .action-card[data-status='done'] .action-type{color:var(--green);}
-
-/* ── Numune / aksiyon / bildirim kartları ── */
-.sales-body .samples-list,.sales-body .actions-list,.sales-body .notifications-list{display:flex;flex-direction:column;gap:12px;}
-.sales-body .sample-card,.sales-body .action-card,.sales-body .notification-card{
-  padding:14px 16px;border-radius:var(--r-xl);background:var(--surface);
-  border:1px solid var(--border);box-shadow:var(--sh-xs);
-}
-.sales-body .sample-card{border-left:4px solid var(--cyan);}
-.sales-body .action-card{border-left:4px solid var(--purple);}
-.sales-body .notification-card{border-left:4px solid var(--amber);}
 .sales-body .sample-id{font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:4px;}
 .sales-body .sample-company{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;}
 .sales-body .sample-lab,.sales-body .sample-date{font-size:12.5px;color:var(--text2);margin-bottom:3px;}
@@ -98,22 +89,146 @@
 .sales-body .result-pending{display:inline-block;padding:3px 9px;border-radius:99px;background:var(--amber-l);color:var(--amber);font-size:11.5px;font-weight:700;}
 .sales-body .result-ok{display:inline-block;padding:3px 9px;border-radius:99px;background:var(--green-l);color:var(--green);font-size:11.5px;font-weight:700;}
 .sales-body .result-fail{display:inline-block;padding:3px 9px;border-radius:99px;background:var(--red-l);color:var(--red);font-size:11.5px;font-weight:700;}
-.sales-body .action-type{font-size:11.5px;font-weight:700;color:var(--purple);margin-bottom:4px;}
-.sales-body .action-description{font-size:13.5px;color:var(--text);margin-bottom:6px;}
-.sales-body .action-due,.sales-body .action-status{font-size:12.5px;color:var(--text2);}
-.sales-body .notification-type{font-size:11.5px;font-weight:700;color:var(--amber);margin-bottom:4px;}
-.sales-body .notification-title{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:6px;}
-.sales-body .notification-message{font-size:12.5px;color:var(--text2);margin-bottom:6px;line-height:1.6;}
-.sales-body .notification-date{font-size:11.5px;color:var(--text3);}
-.sales-body .notification-actions{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
-.sales-body .notification-card[data-read='true']{opacity:.6;}
 
-.sales-body .btn-small{
-  padding:6px 12px;border-radius:var(--r);background:var(--blue-l);color:var(--blue);
-  font-size:12px;font-weight:700;border:none;cursor:pointer;transition:background var(--tr),color var(--tr);
+/* ── Bildirim zili (üst çubuk, isim yanında) ── */
+.sales-body .nav-bell-menu{position:relative;}
+.sales-body .nav-bell-btn{
+  position:relative;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--text2);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all var(--tr);
 }
-.sales-body .btn-small:hover{background:var(--blue);color:#fff;}
+.sales-body .nav-bell-btn:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue);}
+.sales-body .nav-bell-btn svg{width:18px;height:18px;}
+.sales-body .nav-bell-badge{
+  position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;
+  background:var(--red);color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;
+  border:2px solid var(--surface);
+}
+.sales-body .nav-notif-dropdown{width:340px;max-width:calc(100vw - 32px);}
+.sales-body .nav-notif-list{max-height:400px;overflow-y:auto;}
+.sales-body .nav-notif-item{
+  padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--tr);
+}
+.sales-body .nav-notif-item:last-child{border-bottom:none;}
+.sales-body .nav-notif-item:hover{background:var(--surface2);}
+.sales-body .nav-notif-item b{display:block;font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.sales-body .nav-notif-item div{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:4px;}
+.sales-body .nav-notif-item small{font-size:11px;color:var(--text3);}
+.sales-body .nav-notif-item:not(.unread){opacity:.55;}
+.sales-body .nav-notif-item.unread{background:var(--blue-l);}
+.sales-body .nav-notif-item.unread:hover{background:var(--blue-m);}
+.sales-body .nav-notif-empty{padding:28px 16px;text-align:center;font-size:13px;color:var(--text3);}
+
+/* ── Ziyaret Geçmişi: admin Raporlar sayfasındaki .wr-* rapor görünümüyle aynı dil ── */
+.sales-body .wr-top{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:linear-gradient(135deg,#0b1632,#173c78 60%,#2563eb);color:#fff;
+  padding:26px 28px;border-radius:var(--r-xl);margin-bottom:20px;box-shadow:0 10px 30px rgba(19,55,110,.18);
+}
+.sales-body .wr-kicker{font-size:11px;font-weight:800;letter-spacing:.16em;color:#9ec5ff;margin-bottom:8px;}
+.sales-body .wr-title{font-family:'Plus Jakarta Sans','Inter',sans-serif;font-size:24px;font-weight:800;margin:0 0 6px;letter-spacing:-.02em;}
+.sales-body .wr-meta{font-size:13px;color:#dbeafe;margin:0;}
+.sales-body .wr-top-right{text-align:right;flex-shrink:0;}
+.sales-body .wr-total-num{font-size:34px;font-weight:900;line-height:1;}
+.sales-body .wr-total-lbl{font-size:12px;color:#a0b4d4;margin-top:4px;}
+.sales-body .wr-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.sales-body .wr-kpi{
+  display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-xl);padding:16px;box-shadow:var(--sh-xs);min-width:0;
+}
+.sales-body .wr-kpi-icon{width:38px;height:38px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.sales-body .wr-kpi small{display:block;font-size:11.5px;color:var(--text3);font-weight:600;}
+.sales-body .wr-kpi b{display:block;font-size:22px;font-weight:800;color:var(--text);margin-top:2px;}
+.sales-body .wr-kpi.blue .wr-kpi-icon{background:var(--blue-l);}
+.sales-body .wr-kpi.green .wr-kpi-icon{background:var(--green-l);}
+.sales-body .wr-kpi.navy .wr-kpi-icon{background:#E0E7FF;}
+.sales-body .wr-kpi.purple .wr-kpi-icon{background:#F5F3FF;}
+
+/* ── Hafta seçici (takvim modülü) ── */
+.sales-body .wr-week-picker{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);flex-wrap:wrap;
+}
+.sales-body .wr-week-picker svg{width:18px;height:18px;color:var(--text3);flex-shrink:0;}
+.sales-body .wr-week-picker .form-lbl{margin:0;flex-shrink:0;}
+.sales-body .wr-week-picker input[type="week"]{
+  flex:1;min-width:160px;padding:9px 12px;font-size:13.5px;border:1.5px solid var(--border);
+  border-radius:var(--r-lg);outline:none;font-family:inherit;background:var(--surface);color:var(--text);
+  min-height:40px;box-sizing:border-box;
+}
+.sales-body .wr-week-picker input[type="week"]:focus{border-color:var(--blue);}
+.sales-body .wr-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;margin-bottom:16px;}
+.sales-body .wr-table h3{margin:0;background:#0c3c78;color:#fff;padding:12px 16px;font-size:12.5px;font-weight:800;letter-spacing:.04em;}
+.sales-body .wr-table-scroll{overflow-x:auto;}
+/* style.css'teki genel "mobilde table -> kart" dönüşümü (admin'in ziyaret tablosu için)
+   thead'i gizleyip tr'yi bloğa çeviriyor; bizim sıralanabilir başlıklarımızı mobilde
+   tıklanamaz/görünmez kılmasın diye bu tabloyu o dönüşümden çıkarıyoruz. */
+.sales-body .wr-table table{display:table!important;}
+.sales-body .wr-table thead{display:table-header-group!important;}
+.sales-body .wr-table tbody{display:table-row-group!important;}
+.sales-body .wr-table tr{display:table-row!important;background:none!important;border:none!important;padding:0!important;margin:0!important;box-shadow:none!important;}
+.sales-body .wr-table td{display:table-cell!important;grid-template-columns:none!important;}
+.sales-body .wr-table td::before{content:none!important;}
+.sales-body .wr-table table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.sales-body .wr-table th{background:var(--surface2);color:var(--text3);padding:10px 14px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;border-bottom:1px solid var(--border);}
+.sales-body .wr-table th[data-sort]{cursor:pointer;user-select:none;transition:color var(--tr),background var(--tr);}
+.sales-body .wr-table th[data-sort]:hover{color:var(--blue);background:var(--blue-l);}
+.sales-body .wr-table th[data-sort].sorted{color:var(--blue);}
+.sales-body .wr-sort-arrow{display:inline-block;margin-left:4px;font-size:9px;color:var(--blue);}
+.sales-body .wr-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap;}
+.sales-body .wr-table td:first-child{color:var(--text);font-weight:600;white-space:normal;}
+.sales-body .wr-table td:last-child{white-space:normal;color:var(--text3);}
+.sales-body .wr-table tbody tr:hover{background:var(--surface2);}
+.sales-body .wr-badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;}
+.sales-body .wr-badge.ok{background:var(--green-l);color:var(--green);}
+.sales-body .wr-badge.off{background:var(--amber-l);color:var(--amber);}
+
+/* ── Firma detay modalı: bilgi ızgarası ── */
+.sales-body .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+.sales-body .detail-grid>div{background:var(--surface2);border-radius:var(--r-lg);padding:10px 12px;display:flex;flex-direction:column;gap:3px;}
+.sales-body .detail-grid>div b{font-size:11.5px;color:var(--text3);font-weight:600;}
+.sales-body .detail-grid>div span{font-size:13.5px;font-weight:600;color:var(--text);}
+
 .sales-body .empty-msg{font-size:13.5px;color:var(--text3);padding:24px;text-align:center;background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r-xl);}
+
+/* ── Genel "ekle" butonu (Numune Ekle, Şifreyi Güncelle, Numuneyi Kaydet) ── */
+.sales-body .btn-add{
+  min-height:44px;padding:0 22px;border-radius:var(--r-lg);
+  background:linear-gradient(135deg,var(--blue),var(--blue-d));color:#fff;
+  font-weight:700;font-size:14px;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  white-space:nowrap;transition:box-shadow var(--tr),transform var(--tr);
+}
+.sales-body .btn-add:hover{box-shadow:0 4px 12px rgba(37,99,235,.25);transform:translateY(-1px);}
+.sales-body .btn-add:active{transform:scale(.97);}
+
+/* ── Ayarlar sayfası ── */
+.sales-body .ay-hero{
+  display:flex;align-items:center;gap:18px;padding:24px 28px;margin-bottom:20px;
+  background:linear-gradient(135deg,#0b1632,#173c78 60%,#2563eb);border-radius:var(--r-xl);
+  box-shadow:0 10px 30px rgba(19,55,110,.18);color:#fff;
+}
+.sales-body .ay-avatar{
+  width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 14px rgba(0,0,0,.2);
+  border:3px solid rgba(255,255,255,.25);
+}
+.sales-body .ay-hero-info{min-width:0;}
+.sales-body .ay-name{font-family:'Plus Jakarta Sans','Inter',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.01em;}
+.sales-body .ay-role{font-size:12.5px;color:#9ec5ff;margin-top:2px;font-weight:600;}
+.sales-body .ay-badges{display:flex;gap:8px;margin-top:10px;}
+.sales-body .ay-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+.sales-body .ay-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);
+  padding:20px;box-shadow:var(--sh-xs);
+}
+.sales-body .ay-card-hd{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:16px;}
+.sales-body .ay-card-icon{font-size:17px;}
+
+.sales-body .pw-form{max-width:none;}
+.sales-body .pw-msg{margin-top:12px;padding:10px 14px;border-radius:var(--r-lg);font-size:13px;font-weight:600;}
+.sales-body .pw-msg.ok{background:var(--green-l);color:var(--green);}
+.sales-body .pw-msg.err{background:var(--red-l);color:var(--red);}
 
 /* ── Firma detay modalı ── */
 .sales-modal{
@@ -157,10 +272,24 @@
 
 @media(max-width:768px){
   .sales-body .page{padding:16px;}
-  .sales-body .stats-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
-  .sales-body .companies-list{grid-template-columns:1fr;}
-  .sales-body .stat-card{padding:16px;gap:12px;}
-  .sales-body .stat-icon{font-size:24px;}
-  .sales-body .stat-value{font-size:20px;}
+  .sales-body .dash-cols{grid-template-columns:1fr;}
+  /* Filtreler: rastgele genişlikte sıkışık satırlar yerine tam genişlik, dokunması kolay yığın */
+  .sales-body .firma-filters{flex-direction:column;align-items:stretch;gap:10px;}
+  .sales-body .firma-filters select,.sales-body .firma-filters .fchk,.sales-body .firma-filters button{width:100%;max-width:none;}
+  .sales-body .firma-filters select{min-height:44px;}
+  .sales-body .firma-filters .fchk{min-height:44px;padding:0 4px;}
+  .sales-body .firma-filters button{min-height:44px;}
+  .sales-body .co-card{flex-wrap:wrap;}
+  .sales-body .co-right{flex-direction:row;align-items:center;width:100%;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+  .sales-body #mobileMenuBtn{min-width:44px;min-height:44px;}
+  /* Ziyaret geçmişi raporu: mobilde tek sütun, tablo yatay kaydırılabilir */
+  .sales-body .wr-top{flex-direction:column;align-items:flex-start;padding:20px;}
+  .sales-body .wr-top-right{text-align:left;margin-top:12px;}
+  .sales-body .wr-kpis{grid-template-columns:1fr 1fr;}
+  .sales-body .wr-week-picker{flex-direction:column;align-items:stretch;}
+  .sales-body .wr-week-picker input[type="week"]{width:100%;}
+  .sales-body .nav-notif-dropdown{position:fixed;top:64px;right:8px;left:8px;width:auto;max-width:none;}
+  .sales-body .ay-hero{flex-direction:column;text-align:center;padding:22px 18px;}
+  .sales-body .ay-grid{grid-template-columns:1fr;}
   .sales-modal-body{padding:16px;}
 }

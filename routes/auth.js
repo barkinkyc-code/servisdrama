@@ -50,6 +50,25 @@ router.post('/register', auth, async (req, res) => {
   }
 });
 
+// Kullanıcı kendi şifresini değiştirir (rol fark etmez) — mevcut şifre doğrulaması zorunlu.
+router.put('/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Mevcut ve yeni şifre gerekli' });
+    if (String(newPassword).length < 6) return res.status(400).json({ error: 'Yeni şifre en az 6 karakter olmalı' });
+    await db.ready();
+    const rows = await db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    const user = rows[0];
+    if (!(await bcrypt.compare(currentPassword, user.password))) return res.status(401).json({ error: 'Mevcut şifre yanlış' });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [hash, req.user.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Şifre güncellenemedi', details: err.message });
+  }
+});
+
 function verifyToken(req,res,next){
   const token=req.headers.authorization?.split(' ')[1];
   if(!token)return res.status(401).json({error:'No token provided'});

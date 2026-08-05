@@ -35,6 +35,7 @@ app.use('/api/backup', require('./routes/backup'));
 app.use('/api/state', require('./routes/state'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/actions', require('./routes/actions'));
+app.use('/api/samples', require('./routes/samples'));
 app.use('/api/sales', require('./routes/sales'));
 
 // ═══ MAIL SYSTEM ═══

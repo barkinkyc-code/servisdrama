@@ -35,31 +35,39 @@
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
       Dashboard
     </button>
-    <button class="nav-tab" data-page="firmalar">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-      Firmalarım
-    </button>
     <button class="nav-tab" data-page="ziyaretler">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
       Ziyaret Geçmişi
+    </button>
+    <button class="nav-tab" data-page="firmalar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      Firmalarım
     </button>
     <button class="nav-tab" data-page="numuneler">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
       Numuneler
     </button>
-    <button class="nav-tab" data-page="aksiyonlar">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-      Aksiyonlarım
-    </button>
-    <button class="nav-tab" data-page="bildirimler">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-      Bildirimler
+    <button class="nav-tab" data-page="ayarlar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ayarlar
     </button>
   </nav>
 
   <div class="topbar-right">
+    <div class="nav-bell-menu" id="navBellMenu">
+      <button class="nav-bell-btn" id="navBellBtn" onclick="toggleNotifBell(event)" aria-label="Bildirimler">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        <span class="nav-bell-badge hidden" id="navBellBadge">0</span>
+      </button>
+      <div class="nav-dropdown nav-notif-dropdown hidden" id="navNotifDropdown">
+        <div class="nav-dd-header">
+          <div class="nav-dd-name">Bildirimler</div>
+        </div>
+        <div class="nav-notif-list" id="navNotifList"></div>
+      </div>
+    </div>
     <div class="nav-user-menu" id="navUserMenu">
-      <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu()">
+      <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu(event)">
         <div class="nav-avatar-img" id="navAvatarImg"></div>
         <span class="topbar-username" id="navUserLabel"></span>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
@@ -86,6 +94,35 @@
 </header>
 <div class="overlay-mobile" id="mobileOverlay"></div>
 
+<!-- ═══ SOL PANEL (yalnızca masaüstü) ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-nav">
+    <button class="nav-tab" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-tab" data-page="ziyaretler">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
+      Ziyaret Geçmişi
+    </button>
+    <button class="nav-tab" data-page="firmalar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      Firmalarım
+    </button>
+    <button class="nav-tab" data-page="numuneler">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
+      Numuneler
+    </button>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="sidebar-section-title">AYARLAR</div>
+    <button class="nav-tab" data-page="ayarlar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ayarlar
+    </button>
+  </div>
+</aside>
+
 <!-- ═══ ANA İÇERİK ═══ -->
 <main class="content" id="mainContent">
   <!-- Dashboard Sekmesi -->
@@ -95,7 +132,11 @@
       <p>Kendi firmalarınızın özeti ve durumu</p>
     </div>
     <div class="content-body">
-      <div id="dashboardStats" class="stats-grid"></div>
+      <div id="dashboardStats"></div>
+      <div class="dash-cols">
+        <div id="dashboardUpcoming" class="dash-col"></div>
+        <div id="dashboardOverdue" class="dash-col"></div>
+      </div>
     </div>
   </section>
 
@@ -103,19 +144,34 @@
   <section id="firmalarContent" class="page hidden">
     <div class="page-header">
       <h1>Firmalarım</h1>
-      <p>Size atanmış müşteriler</p>
+      <p id="companiesSub">Size atanmış müşteriler</p>
     </div>
     <div class="content-body">
-      <div id="companiesList" class="companies-list"></div>
+      <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="companySearch" placeholder="Firma ara..."></div>
+      <div class="firma-filters">
+        <select class="inp inp-sm" id="companyStatusFilter">
+          <option value="">Tüm Durumlar</option>
+          <option value="scheduled">Bu Hafta Planlı</option>
+          <option value="visited">Bu Hafta Ziyaret Edildi</option>
+          <option value="delayed">Gecikti</option>
+          <option value="critical">Kritik</option>
+          <option value="risk">Riskli</option>
+        </select>
+        <select class="inp inp-sm" id="companySortBy">
+          <option value="name">İsme Göre (A-Z)</option>
+          <option value="lastVisit">Son Ziyarete Göre (En Eski Önce)</option>
+          <option value="health">Sağlık Skoruna Göre (Düşükten Yükseğe)</option>
+        </select>
+        <label class="fchk"><input type="checkbox" id="companyOpenSampleFilter"> 🧪 Açık numunesi olanlar</label>
+        <button class="btn btn-ghost btn-sm" id="companyFilterClear">Filtreyi Temizle</button>
+      </div>
+      <div id="companiesList" class="co-list"></div>
+      <p class="empty-state hidden" id="companiesEmpty">Firma bulunamadı.</p>
     </div>
   </section>
 
   <!-- Ziyaret Geçmişi Sekmesi -->
   <section id="ziyaretlerContent" class="page hidden">
-    <div class="page-header">
-      <h1>Ziyaret Geçmişi</h1>
-      <p>Firmalarıma yapılan tüm ziyaretler</p>
-    </div>
     <div class="content-body">
       <div id="visitHistory" class="visit-history"></div>
     </div>
@@ -128,38 +184,65 @@
       <p>Numune takip sistemi</p>
     </div>
     <div class="content-body">
+      <button class="btn-add" id="sampleAddBtn" style="margin-bottom:16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Numune Ekle</button>
       <div id="samplesList" class="samples-list"></div>
     </div>
   </section>
 
-  <!-- Aksiyonlar Sekmesi -->
-  <section id="aksiyonlarContent" class="page hidden">
-    <div class="page-header">
-      <h1>Aksiyonlarım</h1>
-      <p>Açık aksiyonlar ve görevlerim</p>
-    </div>
+  <!-- Ayarlar Sekmesi -->
+  <section id="ayarlarContent" class="page hidden">
     <div class="content-body">
-      <form id="actionForm" class="action-form">
-        <input type="text" id="actionTitle" class="action-inp" placeholder="Yeni aksiyon (örn: NSK fiyat teklifi gönder)" maxlength="300" required>
-        <select id="actionCompany" class="action-inp action-sel"><option value="">Firma (opsiyonel)</option></select>
-        <input type="date" id="actionDue" class="action-inp action-date">
-        <button type="submit" class="btn-small">Ekle</button>
-      </form>
-      <div id="actionsList" class="actions-list"></div>
-    </div>
-  </section>
-
-  <!-- Bildirimler Sekmesi -->
-  <section id="bildirimlerContent" class="page hidden">
-    <div class="page-header">
-      <h1>Bildirimler</h1>
-      <p>Size gönderilen bildirimler</p>
-    </div>
-    <div class="content-body">
-      <div id="notificationsList" class="notifications-list"></div>
+      <div class="ay-hero">
+        <div class="ay-avatar" id="ayAvatar"></div>
+        <div class="ay-hero-info">
+          <div class="ay-name" id="ayName"></div>
+          <div class="ay-role">Satışçı · Sales</div>
+          <div class="ay-badges">
+            <span class="badge badge-blue" id="ayCodeBadge"></span>
+            <span class="badge" id="ayStatusBadge"></span>
+          </div>
+        </div>
+      </div>
+      <div class="ay-grid">
+        <div class="ay-card">
+          <div class="ay-card-hd"><span class="ay-card-icon">👤</span>Profil Bilgileri</div>
+          <div class="detail-grid" id="profileGrid"></div>
+        </div>
+        <div class="ay-card">
+          <div class="ay-card-hd"><span class="ay-card-icon">🔒</span>Şifre Değiştir</div>
+          <form id="passwordForm" class="pw-form">
+            <div class="form-grp"><label class="form-lbl">Mevcut Şifre</label><input type="password" id="pwCurrent" class="inp" required autocomplete="current-password"></div>
+            <div class="form-grp"><label class="form-lbl">Yeni Şifre</label><input type="password" id="pwNew" class="inp" required minlength="6" autocomplete="new-password"></div>
+            <div class="form-grp"><label class="form-lbl">Yeni Şifre (Tekrar)</label><input type="password" id="pwConfirm" class="inp" required minlength="6" autocomplete="new-password"></div>
+            <button type="submit" class="btn-add">Şifreyi Güncelle</button>
+            <div id="pwMsg" class="pw-msg hidden"></div>
+          </form>
+        </div>
+      </div>
     </div>
   </section>
 </main>
+
+<!-- ═══ Modal: Numune Ekle ═══ -->
+<div id="sampleAddModal" class="sales-modal hidden">
+  <div class="sales-modal-box">
+    <div class="sales-modal-hd">
+      <h2>Numune Ekle</h2>
+      <button class="sales-modal-x" onclick="closeSampleAddModal()" aria-label="Kapat">×</button>
+    </div>
+    <div class="sales-modal-body">
+      <form id="sampleAddForm">
+        <div class="form-grp"><label class="form-lbl">Firma</label><select id="sampleCompany" class="inp" required></select></div>
+        <div class="form-grp"><label class="form-lbl">Analiz Merkezi / Lab</label><input type="text" id="sampleLab" class="inp" placeholder="örn: İntertek" required></div>
+        <div class="form-grp"><label class="form-lbl">Ürün / Numune (virgülle ayırın)</label><input type="text" id="sampleUrunler" class="inp" placeholder="örn: DRAMA KX-500, DRAMA HD-200" required></div>
+        <div class="form-grp"><label class="form-lbl">Tarih</label><input type="date" id="sampleTarih" class="inp"></div>
+        <div class="form-grp"><label class="form-lbl">Not (opsiyonel)</label><textarea id="sampleNot" class="inp" rows="2"></textarea></div>
+        <button type="submit" class="btn-add" style="width:100%;">Numuneyi Kaydet</button>
+        <div id="sampleAddMsg" class="pw-msg hidden"></div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ Modal: Firma Detayı ═══ -->
 <div id="companyDetailModal" class="sales-modal hidden">

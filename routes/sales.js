@@ -3,16 +3,13 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 const auth = require('../middleware/auth');
 const { readState, mutateState } = require('../utils/stateStore');
+const { companyBelongsToSalesRep } = require('../utils/salesIdentity');
 const router = express.Router();
 
 const allowedRoles = new Set(['admin']);
 const isAdmin = user => allowedRoles.has(String(user?.role || '').toLowerCase());
 const clean = (v, n = 200) => String(v == null ? '' : v).trim().slice(0, n);
-
-function profileMatchesCompany(company, profile) {
-  const values = [company?.salesRepId, company?.salesRepUserId].filter(v => v !== undefined && v !== null).map(String);
-  return values.includes(String(profile?.id || '')) || values.includes(String(profile?.userId || ''));
-}
+const profileMatchesCompany = companyBelongsToSalesRep;
 
 async function hydrateProfiles(state) {
   const profiles = Array.isArray(state.sd_st) ? state.sd_st : [];
