@@ -127,9 +127,9 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   var logo = document.getElementById('tLogo'); if(logo) logo.src = LOGO_SRC;
 
-  var tn = document.getElementById('tName'); if(tn) tn.textContent = tech.name;
+  var tn = document.getElementById('techName'); if(tn) tn.textContent = tech.name;
   var tn2 = document.getElementById('tName2'); if(tn2) tn2.textContent = tech.name;
-  var tc = document.getElementById('tCode'); if(tc) tc.textContent = tech.code;
+  var tc = document.getElementById('techID'); if(tc) tc.textContent = 'Kod: ' + tech.code;
   var tc2 = document.getElementById('tCode2'); if(tc2) tc2.textContent = tech.code;
 
   initTechNotifBell();
