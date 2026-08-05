@@ -409,9 +409,9 @@
           showMessage('✅ Başarılı! Yönlendiriliyor...', 'success');
           setTimeout(() => {
             const role = (data.user?.role || 'admin').toLowerCase();
-            if (role === 'tech') {
-              window.location.href = '/tech.html';
-            } else if (role === 'sales') {
+            // Teknisyenler eski ve çalışan Ziyaret Takibi arayüzünü admin.html
+            // üzerinden kullanır. /tech.html bağımsız ekranı ikinci giriş ister.
+            if (role === 'sales') {
               window.location.href = '/sales.html';
             } else {
               window.location.href = '/admin.html';
@@ -432,6 +432,6 @@
       msgEl.className = 'message show ' + type;
     }
   </script>
-<script src="/pwa-update.js?v=20260804-pwa-v1"></script>
+<script src="/pwa-update.js?v=20260806-tech-route-v1"></script>
 </body>
 </html>

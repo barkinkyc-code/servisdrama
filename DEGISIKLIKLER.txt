@@ -1,9 +1,14 @@
-TEKNİSYEN EKRANI KESİN DÜZELTME V11
+TEKNİSYEN GİRİŞ YÖNLENDİRME DÜZELTMESİ
 
-- tech.html, çalışan GitHub commit 4de222d sürümünden geri getirildi.
-- tech.js, çalışan sürümden geri getirildi.
-- Ana girişteki sd_session teknisyen kaydı otomatik olarak techCode / sd_ac / sd_role_id alanlarına bağlandı.
-- Böylece 1015 veya 1016 hesabıyla giriş yapıldığında ikinci Teknisyen Girişi ekranı açılmaz.
-- Oturum eşleşmezse eski manuel teknisyen giriş ekranı güvenli yedek olarak kalır.
-- Service Worker ve PWA sürümü yenilendi; telefondaki eski önbellek otomatik temizlenir.
-- Admin/PDF rapor dosyalarına dokunulmadı.
+Asıl sorun tech.html veya tech.js değildi.
+Yeni index.html, role=tech kullanıcısını /tech.html adresine yönlendiriyordu.
+Çalışan eski GitHub sürümü ise teknisyen dahil kullanıcıları /admin.html adresine gönderiyordu.
+Kullanıcının istediği eski Ziyaret Takibi ekranı admin.html içindeki yetkilendirilmiş teknisyen görünümüdür.
+
+Değişiklikler:
+- index.html: tech kullanıcıları yeniden /admin.html adresine yönlendirilir.
+- sales kullanıcıları /sales.html adresine gitmeye devam eder.
+- sw.js: önbellek sürümü yenilendi ve eski bağımsız tech sayfaları ön yükleme listesinden çıkarıldı.
+- pwa-update.js: servis worker sürümü yenilendi.
+
+PDF/admin rapor kodlarına ve verilere dokunulmadı.
