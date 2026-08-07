@@ -83,7 +83,7 @@
         +'</tr></table></td></tr>';
     }).join('');
     if(!keys.length)rows='<tr><td style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:'+C.muted+';">Bu dönemde veri yok.</td></tr>';
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px 16px 12px;">'
+    return '<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';height:100%;"><tr><td style="padding:16px 16px 12px;">'
       +'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:'+C.navy+';letter-spacing:.3px;margin-bottom:10px;">'+esc(title)+'</div>'
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'+rows+'</table>'
       +'</td></tr></table>';
@@ -110,7 +110,7 @@
         +'<td style="padding:6px 0 6px 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:'+C.ink+';">'+s.label+'</td>'
         +'<td align="right" style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:'+C.ink+';">'+s.v+'</td></tr>';
     }).join('');
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px;">'
+    return '<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';height:100%;"><tr valign="top"><td style="padding:16px;">'
       +'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:'+C.navy+';letter-spacing:.3px;margin-bottom:12px;">PLAN DURUMU DAĞILIMI · %'+d.planRate+' UYUM</div>'
       +bar
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;">'+legend+'</table>'
@@ -132,7 +132,7 @@
         +'<td style="padding:6px 0 6px 8px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:'+C.muted+';">Kayıt yok</td>'
         +'<td align="right" style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:'+C.ink+';">'+unknown+'</td></tr>';
     }
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px;">'
+    return '<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';height:100%;"><tr valign="top"><td style="padding:16px;">'
       +'<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:'+C.navy+';letter-spacing:.3px;margin-bottom:10px;">FİRMA SKOR DAĞILIMI · ORT. '+d.avgScore+'</div>'
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'+rows+'</table>'
       +'</td></tr></table>';
