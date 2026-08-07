@@ -106,8 +106,9 @@
 
     Object.keys(ctx.visits).forEach(function(key){
       var companyId=visitCompanyId(key),weekKey=visitWeekKey(key);
+      /* Firma daha sonra silinmiş/yeniden adlandırılmış olabilir — kaydı yine de göster,
+         sadece plan-uygunluk kontrolünü (BL.scheduled firma nesnesi ister) atla. */
       var company=ctx.companies.find(function(c){return c.id===companyId;});
-      if(!company)return;
       var es=entries(ctx.visits[key]);
       Object.keys(es).forEach(function(code){
         var e=es[code];
@@ -115,8 +116,8 @@
         var date=parseDate(e.date,weekKey);
         if(!date||date<rangeStart||date>rangeEnd)return;
         var tech=ctx.technicians.find(function(t){return t.code===code;});
-        var plan=ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı';
-        rows.push({firmaId:company.id,firma:company.name,techCode:code,teknisyen:tech?tech.name:code,dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
+        var plan=company?(ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı'):'Plan Dışı';
+        rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),techCode:code,teknisyen:tech?tech.name:code,dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
       });
     });
 
