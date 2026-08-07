@@ -942,6 +942,108 @@ function sendRapor(){
 function copyRapor(){var ta=document.getElementById('raporTa');if(!ta)return;ta.select();document.execCommand('copy');UI.toast('Kopyalandı!','success');}
 function openHtmlRapor(){var html=buildOutlookRaporHTMLPreview();var w=window.open();w.document.write(html);w.document.close();}
 
+/* ═══ HAFTALIK RAPOR ═══ */
+function haftalikRaporRange(){
+  var sEl=document.getElementById('haftalikRaporStart'),eEl=document.getElementById('haftalikRaporEnd');
+  var today=new Date(),monday=DT.monday(today),friday=new Date(monday);friday.setDate(friday.getDate()+4);
+  var toIso=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+  if(sEl&&!sEl.value)sEl.value=toIso(monday);
+  if(eEl&&!eEl.value)eEl.value=toIso(friday);
+  var start=sEl&&sEl.value?new Date(sEl.value+'T00:00:00'):monday;
+  var end=eEl&&eEl.value?new Date(eEl.value+'T00:00:00'):friday;
+  return {start:start,end:end};
+}
+function haftalikRaporData(){
+  var r=haftalikRaporRange();
+  return collectWeeklyDataWithTrend(r.start,r.end,{SD:SD,DT:DT,BL:BL});
+}
+function haftalikRaporPreviewHTML(){
+  var d=haftalikRaporData();
+  return buildWeeklyReportMailHTML(d,weeklyReportGrade)
+    .replace(/cid:drama-makine-logo/g,'assets/email/technical-service/drama-makine-logo.png')
+    .replace(/cid:stat-visits/g,'assets/email/servisdrama/stat-icons/stat-visits.png')
+    .replace(/cid:stat-companies/g,'assets/email/servisdrama/stat-icons/stat-companies.png')
+    .replace(/cid:stat-check/g,'assets/email/servisdrama/stat-icons/stat-check.png')
+    .replace(/cid:stat-alert/g,'assets/email/servisdrama/stat-icons/stat-alert.png')
+    .replace(/cid:stat-calendar/g,'assets/email/servisdrama/stat-icons/stat-calendar.png')
+    .replace(/cid:stat-score/g,'assets/email/servisdrama/stat-icons/stat-score.png')
+    .replace(/cid:stat-target/g,'assets/email/servisdrama/stat-icons/stat-target.png');
+}
+function refreshHaftalikRaporPreview(){
+  var iframe=document.getElementById('haftalikRaporIframe');
+  if(iframe){iframe.removeAttribute('src');iframe.srcdoc=haftalikRaporPreviewHTML();}
+  var btn=document.getElementById('mailHaftalikRaporBtn');
+  if(btn){
+    var canSend=canSendReport();
+    btn.disabled=!canSend;
+    btn.style.opacity=canSend?'1':'0.5';
+    btn.style.cursor=canSend?'pointer':'not-allowed';
+    btn.title=canSend?'Mail Gönder':'Rapor gönderme izni yok';
+  }
+}
+function openHaftalikRapor(){
+  var modal=document.getElementById('haftalikRaporModal');
+  if(modal){
+    var modalEl=modal.querySelector('.modal');
+    if(A.isMobile()){
+      if(modalEl){modalEl.style.maxWidth='calc(100vw - 8px)';modalEl.style.width='100%';}
+    }else if(A.isTablet()){
+      if(modalEl)modalEl.style.maxWidth='calc(100vw - 64px)';
+    }else{
+      if(modalEl)modalEl.style.maxWidth='760px';
+    }
+  }
+  haftalikRaporRange();
+  refreshHaftalikRaporPreview();
+  UI.openModal('haftalikRaporModal');
+}
+function sendHaftalikRapor(){
+  if(!canSendReport()){
+    UI.toast('Bu işlem için yetkiniz yok. Rapor gönderme izni sadece barkin.kayaci yönetim panelinden verilebilir.','error');
+    return;
+  }
+  var cfg=SD.config;
+  var to=['esra.onur@dramamakine.com','ersin.ertugen@dramamakine.com','yagiz.erel@dramamakine.com','suleyman.kucuk@dramamakine.com','semih.aglan@dramamakine.com'];
+  var cc=['emin.ertas@dramamakine.com','barkin.kayaci@dramamakine.com','ibrahim.nuhoglu@dramakimya.com'];
+  to=to.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+  cc=cc.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+  var r=haftalikRaporRange();
+  var fmt=function(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();};
+  var subject='ServisDrama - Haftalık Servis Raporu ('+fmt(r.start)+' - '+fmt(r.end)+')';
+  var html=haftalikRaporPreviewHTML();
+  var attachmentNames=['drama-makine-logo','stat-visits','stat-companies','stat-check','stat-alert','stat-calendar','stat-score','stat-target'];
+
+  fetch('/api/send-test-mail',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      to:to,
+      cc:cc,
+      subject:subject,
+      html:html,
+      smtpHost:cfg.smtpHost||'',
+      smtpPort:cfg.smtpPort||'',
+      smtpUser:cfg.smtpUser||'',
+      smtpPass:cfg.smtpPass||'',
+      smtpTls:cfg.smtpTls||'tls',
+      from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||'servis@dramamakine.com')+'>',
+      attachmentNames:attachmentNames
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.success){
+      UI.closeModal('haftalikRaporModal');
+      UI.toast('✓ Haftalık rapor başarıyla gönderildi ('+to.join(', ')+(cc.length?' | CC: '+cc.join(', '):'')+')','success');
+    }else{
+      UI.toast('Mail gönderme hatası: '+d.error,'error');
+    }
+  })
+  .catch(function(e){
+    UI.toast('Server bağlantı hatası: '+e.message,'error');
+  });
+}
+
 /* ═══ İSTATİSTİK ═══ */
 function parseStatVisitDate(value,weekKey){
   if(!value)return null;

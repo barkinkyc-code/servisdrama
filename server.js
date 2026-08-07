@@ -46,7 +46,14 @@ const REPORT_PNG_FILES = {
   'icon-phone': { file: 'icon-phone.png', dir: 'technical-service' },
   'icon-mail': { file: 'icon-mail.png', dir: 'technical-service' },
   'icon-star': { file: 'icon-star.png', dir: 'servisdrama' },
-  'servisdrama-calendar-white': { file: 'icon-calendar-white.png', dir: 'servisdrama' }
+  'servisdrama-calendar-white': { file: 'icon-calendar-white.png', dir: 'servisdrama' },
+  'stat-visits': { file: 'stat-visits.png', dir: 'servisdrama/stat-icons' },
+  'stat-companies': { file: 'stat-companies.png', dir: 'servisdrama/stat-icons' },
+  'stat-check': { file: 'stat-check.png', dir: 'servisdrama/stat-icons' },
+  'stat-alert': { file: 'stat-alert.png', dir: 'servisdrama/stat-icons' },
+  'stat-calendar': { file: 'stat-calendar.png', dir: 'servisdrama/stat-icons' },
+  'stat-score': { file: 'stat-score.png', dir: 'servisdrama/stat-icons' },
+  'stat-target': { file: 'stat-target.png', dir: 'servisdrama/stat-icons' }
 };
 function buildCidAttachments(names) {
   const attachments = [];
