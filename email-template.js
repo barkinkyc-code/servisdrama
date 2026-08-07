@@ -30,21 +30,23 @@
     return isNaN(date.getTime())?null:date;
   }
   function previousVisit(companyId,visits,currentWeekKey,today){
-    var latest=null;
+    var latest=null,milat=null;
     Object.keys(visits).forEach(function(key){
       if(key===companyId+'_'+currentWeekKey||key.indexOf(companyId+'_')!==0)return;
       var record=visits[key];
       if(!record||record.status!=='done')return;
       var date=parseVisitDate(record.date,key);
-      /* 31.07.2026 milat tarihini yoksay */
-      if(date&&date.getDate()===31&&date.getMonth()===6&&date.getFullYear()===2026)return;
-      if(date&&date<today&&(!latest||date>latest))latest=date;
+      if(!date||date>=today)return;
+      var isMilat=date.getDate()===31&&date.getMonth()===6&&date.getFullYear()===2026;
+      if(isMilat){milat=date;return;}
+      if(!latest||date>latest)latest=date;
     });
-    if(!latest){
+    var result=latest||milat;
+    if(!result){
       return {date:'Kayıt yok',days:''};
     }
-    var days=Math.max(0,Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-latest)/86400000));
-    return {date:String(latest.getDate()).padStart(2,'0')+'.'+String(latest.getMonth()+1).padStart(2,'0')+'.'+latest.getFullYear(),days:days+' gün geçti'};
+    var days=Math.max(0,Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-result)/86400000));
+    return {date:String(result.getDate()).padStart(2,'0')+'.'+String(result.getMonth()+1).padStart(2,'0')+'.'+result.getFullYear(),days:days+' gün geçti'};
   }
   function visitRow(visit){
     var marker=visit.isExtra
