@@ -10,13 +10,17 @@ function trDate(d){const months=['Ocak','Şubat','Mart','Nisan','Mayıs','Hazira
 function fmt(d){return d?String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear():'';}
 async function imageData(url){try{const r=await fetch(url);if(!r.ok)return null;const b=await r.blob();return await new Promise((ok,err)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.onerror=err;fr.readAsDataURL(b);});}catch(e){return null;}}
 
+/* NOT: pdfMake'in gömülü Roboto altkümesinde ▲▼★☆ gibi dingbat karakterler
+   yok — metin olarak yazılırsa boş kutucuk (tofu) çıkıyor. Yön için ok yerine
+   +/- işaretli renkli yüzde, yıldız için de metin yerine gerçek SVG daire
+   kullanıyoruz; ikisi de font glifine bağımlı değil. */
 function trendRun(t,invert){
   if(!t)return{text:'',fontSize:6,color:C.muted};
   if(t.type==='new')return{text:[{text:'Geçen Dönem: 0  '},{text:'Yeni',color:C.blue,bold:true}],fontSize:6,color:C.muted};
   if(t.type==='flat')return{text:'Geçen Dönem: '+t.prev+'  %0',fontSize:6,color:C.muted};
   const good=invert?t.type==='down':t.type==='up';
-  const arrow=t.type==='up'?'▲':'▼';
-  return{text:[{text:'Geçen Dönem: '+t.prev+'  '},{text:arrow+' %'+Math.abs(t.value),color:good?C.green:C.red,bold:true}],fontSize:6,color:C.muted};
+  const sign=t.type==='up'?'+':'-';
+  return{text:[{text:'Geçen Dönem: '+t.prev+'  '},{text:sign+'%'+Math.abs(t.value),color:good?C.green:C.red,bold:true}],fontSize:6,color:C.muted};
 }
 function card(label,value,color,trendObj,invert){
   return{table:{widths:['*'],body:[[{margin:[9,7,9,6],stack:[
@@ -25,12 +29,14 @@ function card(label,value,color,trendObj,invert){
     trendRun(trendObj,invert)
   ]}]]},layout:{fillColor:()=>C.white,hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.7,vLineWidth:()=>0.7},margin:[1.5,0]};
 }
-function starText(score){
-  if(score==null)return{text:'—',fontSize:7,color:C.muted};
+function starSvg(score){
+  if(score==null)return{text:'—',fontSize:7,color:C.muted,alignment:'center'};
   const filled=Math.max(0,Math.min(5,Math.round(score/20)));
-  return{text:'★'.repeat(filled)+'☆'.repeat(5-filled),fontSize:8,color:'#F5A623'};
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="9">`;
+  for(let i=0;i<5;i++)s+=`<circle cx="${5+i*10}" cy="4.5" r="3.6" fill="${i<filled?'#F5A623':'none'}" stroke="#F5A623" stroke-width="1"/>`;
+  return{svg:s+'</svg>',width:50,height:9};
 }
-function badgeCell(r){return{stack:[{text:r.grade.g+'  '+(r.score==null?'-':r.score),bold:true,color:C.white,fontSize:7,alignment:'center',margin:[2,2,2,2]}],fillColor:r.grade.color};}
+function badgeCell(r){return{stack:[{text:r.score==null?r.grade.g:(r.grade.g+'  '+r.score),bold:true,color:C.white,fontSize:7,alignment:'center',margin:[2,2,2,2]}],fillColor:r.grade.color};}
 function daysAgoText(r){
   if(!r.registered)return'—';
   if(!r.lastVisit)return'İlk ziyaret';
@@ -39,9 +45,40 @@ function daysAgoText(r){
 }
 function planColor(p){return p==='Plana Uygun'?C.green:(p==='Program Dışı'?C.purple:C.orange);}
 
-function barSvg(obj,w=260,h=118){const keys=Object.keys(obj),max=Math.max(1,...keys.map(k=>obj[k])),left=80,bw=w-left-28,row=Math.max(22,(h-12)/Math.max(1,keys.length));let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;keys.forEach((k,i)=>{const y=8+i*row,ww=Math.round(obj[k]/max*bw);s+=`<text x="0" y="${y+12}" font-size="9" fill="${C.ink}" font-family="Roboto">${String(k).replace(/&/g,'&amp;')}</text><rect x="${left}" y="${y}" width="${bw}" height="14" rx="3" fill="#EAF0F7"/><rect x="${left}" y="${y}" width="${ww}" height="14" rx="3" fill="${C.blue}"/><text x="${left+bw+6}" y="${y+12}" font-size="10" font-weight="700" fill="${C.ink}" font-family="Roboto">${obj[k]}</text>`;});return s+(keys.length?'':`<text x="0" y="16" font-size="9" fill="${C.muted}">Kayıt yok</text>`)+'</svg>';}
-function donutSvg(d,w=180,h=125){const p=d.planRate,cx=58,cy=58,r=38,circ=2*Math.PI*r,dash=circ*p/100;return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#EEE8FF" stroke-width="17"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${C.green}" stroke-width="17" stroke-dasharray="${dash} ${circ-dash}" transform="rotate(-90 ${cx} ${cy})"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="17" font-weight="700" fill="${C.ink}" font-family="Roboto">%${p}</text><rect x="112" y="27" width="9" height="9" fill="${C.green}"/><text x="127" y="35" font-size="9" fill="${C.ink}" font-family="Roboto">Plana Uygun ${d.uygun}</text><rect x="112" y="49" width="9" height="9" fill="${C.purple}"/><text x="127" y="57" font-size="9" fill="${C.ink}" font-family="Roboto">Program Dışı ${d.programDisi}</text><rect x="112" y="71" width="9" height="9" fill="${C.orange}"/><text x="127" y="79" font-size="9" fill="${C.ink}" font-family="Roboto">Plan Dışı ${d.planDisi}</text></svg>`;}
-function scoreSvg(d,w=220,h=125){const bands=[['A+',90,100,C.green],['A',80,89,'#46A758'],['B+',70,79,'#EAB308'],['B',60,69,C.orange],['C',40,59,'#EA580C'],['D',0,39,C.red]],counts={};bands.forEach(x=>counts[x[0]]=0);let unknown=0;d.rows.forEach(r=>{if(r.grade&&r.grade.g!=='-')counts[r.grade.g]=(counts[r.grade.g]||0)+1;else unknown++;});let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;bands.forEach((x,i)=>{const y=5+i*17;s+=`<rect x="2" y="${y}" width="28" height="13" rx="3" fill="${x[3]}"/><text x="16" y="${y+9.5}" text-anchor="middle" font-size="7.5" font-weight="700" fill="white" font-family="Roboto">${x[0]}</text><text x="39" y="${y+9.5}" font-size="7.5" fill="${C.muted}" font-family="Roboto">${x[1]}-${x[2]}</text><text x="190" y="${y+9.5}" text-anchor="end" font-size="8.5" font-weight="700" fill="${C.ink}" font-family="Roboto">${counts[x[0]]||0}</text>`;});if(unknown>0){const y=5+6*17;s+=`<rect x="2" y="${y}" width="28" height="13" rx="3" fill="#94A3B8"/><text x="16" y="${y+9.5}" text-anchor="middle" font-size="7.5" font-weight="700" fill="white" font-family="Roboto">-</text><text x="39" y="${y+9.5}" font-size="7.5" fill="${C.muted}" font-family="Roboto">Kayıt yok</text><text x="190" y="${y+9.5}" text-anchor="end" font-size="8.5" font-weight="700" fill="${C.ink}" font-family="Roboto">${unknown}</text>`;}return s+'</svg>';}
+/* NOT: svg genişlikleri, içine konduğu pdfMake sütununun GERÇEK genişliğinden
+   büyük olursa komşu sütuna taşıp üst üste biniyor — bu yüzden burada ve
+   çağrı noktalarında sütun genişliğine göre HESAPLANMIŞ, güvenli değerler
+   kullanılıyor (sabit/tahmini değerler değil). */
+function barSvg(obj,w,h){
+  const keys=Object.keys(obj),max=Math.max(1,...keys.map(k=>obj[k]));
+  const maxChars=keys.reduce((m,k)=>Math.max(m,String(k).length),4);
+  const left=Math.max(46,Math.min(w*0.46,maxChars*4.3));
+  const bw=Math.max(24,w-left-26);
+  const row=Math.max(20,(h-10)/Math.max(1,keys.length));
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;
+  keys.forEach((k,i)=>{const y=6+i*row,ww=Math.round(obj[k]/max*bw);s+=`<text x="0" y="${y+11}" font-size="8" fill="${C.ink}" font-family="Roboto">${String(k).replace(/&/g,'&amp;')}</text><rect x="${left}" y="${y}" width="${bw}" height="13" rx="3" fill="#EAF0F7"/><rect x="${left}" y="${y}" width="${ww}" height="13" rx="3" fill="${C.blue}"/><text x="${left+bw+5}" y="${y+11}" font-size="9" font-weight="700" fill="${C.ink}" font-family="Roboto">${obj[k]}</text>`;});
+  return s+(keys.length?'':`<text x="0" y="16" font-size="8" fill="${C.muted}">Kayıt yok</text>`)+'</svg>';
+}
+function donutSvg(d,w){
+  const p=d.planRate,r=Math.min(30,w*0.22),cx=r+10,cy=r+10,circ=2*Math.PI*r,dash=circ*p/100,h=(r+10)*2+8;
+  const lx=cx+r+14,lh=15;
+  const legend=[['Plana Uygun',d.uygun,C.green],['Program Dışı',d.programDisi,C.purple],['Plan Dışı',d.planDisi,C.orange]]
+    .map((row,i)=>`<rect x="${lx}" y="${cy-lh+i*lh}" width="7" height="7" fill="${row[2]}"/><text x="${lx+10}" y="${cy-lh+7+i*lh}" font-size="6.6" fill="${C.ink}" font-family="Roboto">${row[0]} ${row[1]}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#EEE8FF" stroke-width="${Math.max(9,r*0.42)}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${C.green}" stroke-width="${Math.max(9,r*0.42)}" stroke-dasharray="${dash} ${circ-dash}" transform="rotate(-90 ${cx} ${cy})"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="${Math.max(10,r*0.36)}" font-weight="700" fill="${C.ink}" font-family="Roboto">%${p}</text>${legend}</svg>`;
+}
+function scoreSvg(d,w){
+  const bands=[['A+',90,100,C.green],['A',80,89,'#46A758'],['B+',70,79,'#EAB308'],['B',60,69,C.orange],['C',40,59,'#EA580C'],['D',0,39,C.red]],counts={};
+  bands.forEach(x=>counts[x[0]]=0);let unknown=0;
+  d.rows.forEach(r=>{if(r.grade&&r.grade.g!=='-')counts[r.grade.g]=(counts[r.grade.g]||0)+1;else unknown++;});
+  const rows=unknown>0?bands.concat([['-',0,0,'#94A3B8']]):bands;
+  const rowH=15,countX=w-6,rangeX=36;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${rows.length*rowH+8}">`;
+  rows.forEach((x,i)=>{
+    const y=4+i*rowH,label=x[0]==='-'?'-':x[0],rangeText=x[0]==='-'?'Kayıt yok':(x[1]+'-'+x[2]),count=x[0]==='-'?unknown:(counts[x[0]]||0);
+    s+=`<rect x="2" y="${y}" width="26" height="12" rx="3" fill="${x[3]}"/><text x="15" y="${y+8.7}" text-anchor="middle" font-size="7" font-weight="700" fill="white" font-family="Roboto">${label}</text><text x="${rangeX}" y="${y+8.7}" font-size="6.8" fill="${C.muted}" font-family="Roboto">${rangeText}</text><text x="${countX}" y="${y+8.7}" text-anchor="end" font-size="8" font-weight="700" fill="${C.ink}" font-family="Roboto">${count}</text>`;
+  });
+  return s+'</svg>';
+}
 function tableLayout(){return{fillColor:(i)=>i===0?C.navy:(i%2===0?'#F8FAFD':C.white),hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.45,vLineWidth:()=>0.45,paddingLeft:()=>4,paddingRight:()=>4,paddingTop:()=>3.5,paddingBottom:()=>3.5};}
 
 async function buildPdf(d){
@@ -51,10 +88,10 @@ async function buildPdf(d){
   const g=window.weeklyReportGrade;
 
   const headerSummary=['Firma','Teknisyen (Kod)','Ziyaret Tarihi','Durum','Son Ziyaret','Kaç Gün Önce','Firma Skoru','Plan Durumu','Not'].map(h=>({text:h,style:'th'}));
-  const summaryRows=topRows.map(r=>[r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,{text:'●  Tamamlandı',color:C.green,bold:true},r.lastVisit?fmt(r.lastVisit):(r.registered?'İlk ziyaret':'—'),daysAgoText(r),badgeCell(r),{text:r.plan,bold:true,color:planColor(r.plan)},r.not||'-']);
+  const summaryRows=topRows.map(r=>[r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,{text:'Tamamlandı',color:C.green,bold:true},r.lastVisit?fmt(r.lastVisit):(r.registered?'İlk ziyaret':'—'),daysAgoText(r),badgeCell(r),{text:r.plan,bold:true,color:planColor(r.plan)},r.not||'-']);
 
   const headerDetail=['Firma','Teknisyen (Kod)','Ziyaret Tarihi','Durum','Son Ziyaret','Kaç Gün Önce','Firma Skoru','Skor Seviyesi','Plan Durumu','Not'].map(h=>({text:h,style:'th'}));
-  const detailRows=d.rows.map(r=>[r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,{text:'●  Tamamlandı',color:C.green,bold:true},r.lastVisit?fmt(r.lastVisit):(r.registered?'İlk ziyaret':'—'),daysAgoText(r),badgeCell(r),starText(r.score),{text:r.plan,bold:true,color:planColor(r.plan)},r.not||'-']);
+  const detailRows=d.rows.map(r=>[r.firma,r.teknisyen+' ('+r.techCode+')',r.tarih,{text:'Tamamlandı',color:C.green,bold:true},r.lastVisit?fmt(r.lastVisit):(r.registered?'İlk ziyaret':'—'),daysAgoText(r),badgeCell(r),starSvg(r.score),{text:r.plan,bold:true,color:planColor(r.plan)},r.not||'-']);
 
   const missedRows=d.missed.map(m=>[m.firma,m.bolge,m.teknisyen+' ('+m.techCode+')',m.lastVisit?fmt(m.lastVisit):'Hiç ziyaret edilmedi']);
 
@@ -81,10 +118,10 @@ async function buildPdf(d){
       ],columnGap:3,margin:[0,0,0,13]},
 
       {columns:[
-        {width:'25%',table:{widths:['*'],body:[[{stack:[{text:'TEKNİSYENE GÖRE ZİYARET',style:'sec'},{svg:barSvg(d.tech,240,118)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
-        {width:'25%',table:{widths:['*'],body:[[{stack:[{text:'GÜNLERE GÖRE ZİYARET DAĞILIMI',style:'sec'},{svg:barSvg(d.days,240,118)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
-        {width:'23%',table:{widths:['*'],body:[[{stack:[{text:'PLAN DURUMU DAĞILIMI',style:'sec'},{svg:donutSvg(d)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
-        {width:'27%',table:{widths:['*'],body:[[{stack:[{text:'FİRMA SKOR DAĞILIMI',style:'sec'},{svg:scoreSvg(d)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}}
+        {width:'25%',table:{widths:['*'],body:[[{stack:[{text:'TEKNİSYENE GÖRE ZİYARET',style:'sec'},{svg:barSvg(d.tech,168,110)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
+        {width:'25%',table:{widths:['*'],body:[[{stack:[{text:'GÜNLERE GÖRE ZİYARET DAĞILIMI',style:'sec'},{svg:barSvg(d.days,168,110)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
+        {width:'23%',table:{widths:['*'],body:[[{stack:[{text:'PLAN DURUMU DAĞILIMI',style:'sec'},{svg:donutSvg(d,153)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
+        {width:'27%',table:{widths:['*'],body:[[{stack:[{text:'FİRMA SKOR DAĞILIMI',style:'sec'},{svg:scoreSvg(d,183)}],margin:8}]]},layout:{hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}}
       ],columnGap:8,margin:[0,0,0,12]},
 
       {text:'SON ZİYARETLER - ÖZET',style:'sec'},
@@ -98,7 +135,7 @@ async function buildPdf(d){
         :{text:'✓ Bu dönem planlanan tüm firmalar ziyaret edildi.',color:C.green,bold:true,fontSize:9,margin:[0,0,0,14]},
 
       {columns:[{text:'ZİYARET DETAYI',fontSize:13,bold:true,color:C.navy},{text:'Dönem: '+fmt(d.start)+' - '+fmt(d.end),alignment:'right',fontSize:8,bold:true,color:C.muted}],margin:[0,0,0,8]},
-      {table:{headerRows:1,widths:[122,82,44,50,50,38,44,44,58,'*'],body:[headerDetail].concat(detailRows),dontBreakRows:true},layout:tableLayout()},
+      {table:{headerRows:1,widths:[112,78,40,50,50,38,44,54,58,'*'],body:[headerDetail].concat(detailRows),dontBreakRows:true},layout:tableLayout()},
 
       {columns:[
         {width:'55%',margin:[0,12,10,0],table:{widths:['*'],body:[[{stack:[{text:'YÖNETİCİ DEĞERLENDİRMESİ',fontSize:9,bold:true,color:C.navy},{text:'• Plan uyum oranı: %'+d.planRate+'\n• Ortalama firma skoru: '+d.avgScore+' ('+g(d.avgScore).g+')\n• Program dışı ziyaret: '+d.programDisi+'\n• Plan dışı ziyaret: '+d.planDisi+'\n• Gidilmesi gerekip gidilmeyen firma: '+d.missed.length+' / '+d.scheduledCount,fontSize:8,lineHeight:1.5,margin:[0,6,0,0]}],margin:10}]]},layout:{fillColor:()=>C.soft,hLineColor:()=>C.line,vLineColor:()=>C.line,hLineWidth:()=>0.6,vLineWidth:()=>0.6}},
