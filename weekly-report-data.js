@@ -193,7 +193,13 @@
       return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',lastVisit:last};
     }).sort(function(a,b){return a.firma.localeCompare(b.firma,'tr');});
 
-    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,scheduledCount:Object.keys(scheduledIds).length};
+    /* Bu dönem planlanan VE gerçekten gidilen aktif firmalar (Plana Uygun ziyaretler). */
+    var visited=rows.filter(function(r){return r.plan==='Plana Uygun'&&scheduledIds[r.firmaId];}).map(function(r){
+      var c=activeCompanies.find(function(x){return x.id===r.firmaId;});
+      return {firmaId:r.firmaId,firma:r.firma,bolge:c?(c.bolge||'-'):'-',teknisyen:r.teknisyen,techCode:r.techCode,tarih:r.tarih,dateObj:r.dateObj};
+    }).sort(function(a,b){return a.firma.localeCompare(b.firma,'tr');});
+
+    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,visited:visited,scheduledCount:Object.keys(scheduledIds).length};
   }
 
   function previousPeriodRange(start,end){

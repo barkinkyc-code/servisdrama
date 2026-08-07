@@ -176,6 +176,25 @@
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';">'+head+body+'</table>';
   }
 
+  function visitedTable(visited){
+    if(!visited.length){
+      return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:'+C.muted+';">Bu dönem planlanıp gidilen firma bulunmuyor.</td></tr></table>';
+    }
+    var head='<tr>'+['Firma','Bölge','Teknisyen (Kod)','Ziyaret Tarihi'].map(function(h){
+      return '<td bgcolor="'+C.green+'" style="background-color:'+C.green+';padding:12px 10px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
+    }).join('')+'</tr>';
+    var body=visited.map(function(v,i){
+      var bg=i%2===0?'#ffffff':'#F0FDF6';
+      return '<tr>'
+        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;font-weight:bold;color:'+C.ink+';">'+esc(v.firma)+'</td>'
+        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.muted+';white-space:nowrap;">'+esc(v.bolge)+'</td>'
+        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.ink+';white-space:nowrap;">'+esc(v.teknisyen)+' ('+esc(v.techCode)+')</td>'
+        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11px;color:'+C.muted+';white-space:nowrap;">'+esc(v.tarih)+'</td>'
+        +'</tr>';
+    }).join('');
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';">'+head+body+'</table>';
+  }
+
   function buildWeeklyReportMailHTML(d,gradeFn){
     var reportDate=trDate(new Date());
     var period=fmtShort(d.start)+' – '+fmtShort(d.end);
@@ -220,7 +239,10 @@
       +emptyNote
       +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Firma skoru; firmanın kendi beklenen ziyaret sıklığına göre (haftalık/2 haftalık/4 haftalık) ne kadar gecikildiğine, hiç ziyaret edilmemiş olmasına, açık numune sayısına ve son ziyaretlerdeki teknisyen sürekliliğine göre hesaplanır.</td></tr>'
 
-      +'<tr><td class="pad" style="padding:6px 30px 12px;border-top:1px solid '+C.line+';padding-top:22px;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.red+';">Gidilmesi Gerekip Gidilmeyen Firmalar ('+d.missed.length+' / '+d.scheduledCount+')</div><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:'+C.muted+';margin-top:3px;">Bu dönem planlanan '+d.scheduledCount+' firmadan '+d.missed.length+' tanesine hiç gidilmedi.</div></td></tr>'
+      +'<tr><td class="pad" style="padding:22px 30px 12px;border-top:1px solid '+C.line+';"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.green+';">Planlanıp Gidilen Firmalar ('+d.visited.length+' / '+d.scheduledCount+')</div><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:'+C.muted+';margin-top:3px;">Bu dönem planlanan '+d.scheduledCount+' firmadan '+d.visited.length+' tanesine gidildi.</div></td></tr>'
+      +'<tr><td class="pad" style="padding:0 30px 26px;overflow-x:auto;">'+visitedTable(d.visited)+'</td></tr>'
+
+      +'<tr><td class="pad" style="padding:6px 30px 12px;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.red+';">Gidilmesi Gerekip Gidilmeyen Firmalar ('+d.missed.length+' / '+d.scheduledCount+')</div><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:'+C.muted+';margin-top:3px;">Bu dönem planlanan '+d.scheduledCount+' firmadan '+d.missed.length+' tanesine hiç gidilmedi.</div></td></tr>'
       +'<tr><td class="pad" style="padding:0 30px 26px;overflow-x:auto;">'+missedTable(d.missed)+'</td></tr>'
 
       +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:'+C.blue+';">ServisDrama</strong> • Haftalık Rapor • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
