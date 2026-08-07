@@ -31,6 +31,13 @@
   function visitCompanyId(key){return String(key).split('_')[0];}
   function visitWeekKey(key){return String(key).split('_')[1];}
 
+  /* Bir kayıt AYNI hafta içinde birden fazla ziyaret tutabilir: `dates` dizisi
+     tüm ziyaret günlerini, `date` yalnızca sonuncusunu içerir. Sadece `date`
+     okunursa aynı haftadaki önceki ziyaretler kaybolur (ziyaret sayısı eksik
+     çıkar, "son ziyaret" zinciri kopar) — bu yüzden dizi açılarak okunur. */
+  function visitDatesOf(entry){
+    return (entry.dates&&entry.dates.length?entry.dates:[entry.date]).filter(Boolean);
+  }
   function allDoneVisits(ctx,companyId){
     var out=[];
     Object.keys(ctx.visits).forEach(function(key){
@@ -39,8 +46,10 @@
       Object.keys(es).forEach(function(code){
         var e=es[code];
         if(!e||e.status!=='done')return;
-        var d=parseDate(e.date,wk);
-        if(d)out.push({d:d,v:e});
+        visitDatesOf(e).forEach(function(ds){
+          var d=parseDate(ds,wk);
+          if(d)out.push({d:d,v:e});
+        });
       });
     });
     (ctx.extras||[]).forEach(function(e){
@@ -96,7 +105,7 @@
     var score=expectedWeeks?Math.round(metWeeks/expectedWeeks*100):100;
     var reasons=[];
     var missedWeeks=expectedWeeks-metWeeks;
-    if(missedWeeks>0)reasons.push(missedWeeks+' planlı hafta atlandı ('+metWeeks+'/'+expectedWeeks+')');
+    if(missedWeeks>0)reasons.push(missedWeeks+' planlı hafta atlandı');
 
     var open=samplesFor(ctx,company.id).filter(sampleOpen).length;
     if(open){var pen=Math.min(20,open*7);score-=pen;reasons.push(open+' açık numune (-'+pen+')');}
@@ -106,17 +115,22 @@
     score=Math.max(0,Math.min(100,Math.round(score)));
     return{score:score,reason:reasons.length?reasons.join(' · '):'Tam uyum'};
   }
-  /* Firmanın satış temsilcisi: önce doğrudan alan, yoksa salesRepId üzerinden
-     kullanıcı listesinden çözülür. Atanmamışsa boş döner. */
+  /* Satış temsilcisi kayıtları SD.users'ta DEĞİL, ayrı `sd_st` deposunda tutulur
+     (id: s1, code: S01 ...). Firma `salesRepId` (s-id) ya da `salesRepUserId`
+     (sayısal userId) ile bağlanır. Raporda temsilcinin KODU gösterilir. */
+  function salesRepRecord(ctx,company){
+    if(!company)return null;
+    var list=ctx.salesReps||[];
+    var byId=company.salesRepId?list.find(function(s){return String(s.id)===String(company.salesRepId);}):null;
+    if(byId)return byId;
+    var byUser=company.salesRepUserId?list.find(function(s){return String(s.userId)===String(company.salesRepUserId);}):null;
+    return byUser||null;
+  }
   function salesRepOf(ctx,company){
+    var rep=salesRepRecord(ctx,company);
+    if(rep)return rep.code||rep.name||'';
     if(!company)return'';
-    if(company.salesRepName)return company.salesRepName;
-    var id=company.salesRepId||company.salesRepUserId;
-    if(id){
-      var u=(ctx.users||[]).find(function(x){return String(x.id)===String(id);});
-      if(u&&u.name)return u.name;
-    }
-    return company.salesRepCode||'';
+    return company.salesRepCode||company.salesRepName||'';
   }
   function grade(score){
     if(score==null)return{g:'-',label:'Kayıt yok',color:'#94A3B8'};
@@ -143,6 +157,7 @@
     ctx.visits=ctx.SD.visits||{};
     ctx.extras=ctx.SD.extras||[];
     ctx.users=ctx.SD.users||[];
+    ctx.salesReps=(ctx.SD.load?ctx.SD.load('sd_st',[]):[])||[];
     ctx.samples=(ctx.SD.load?ctx.SD.load('sd_samples',[]):[])||[];
 
     var rangeStart=new Date(startDate);rangeStart.setHours(0,0,0,0);
@@ -158,11 +173,13 @@
       Object.keys(es).forEach(function(code){
         var e=es[code];
         if(!e||e.status!=='done')return;
-        var date=parseDate(e.date,weekKey);
-        if(!date||date<rangeStart||date>rangeEnd)return;
         var tech=ctx.technicians.find(function(t){return t.code===code;});
-        var plan=company?(ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı'):'Plan Dışı';
-        rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
+        visitDatesOf(e).forEach(function(ds){
+          var date=parseDate(ds,weekKey);
+          if(!date||date<rangeStart||date>rangeEnd)return;
+          var plan=company?(ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı'):'Plan Dışı';
+          rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
+        });
       });
     });
 
@@ -227,7 +244,14 @@
       var c=activeCompanies.find(function(x){return x.id===id;});
       var tech=ctx.technicians.find(function(t){return t.id===c.techId;});
       var last=lastVisitBefore(ctx,id,rangeEnd);
-      return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',salesRep:salesRepOf(ctx,c),lastVisit:last};
+      var sd=scoreDetail(ctx,c,rangeEnd);
+      /* Ziyaret tablosuyla AYNI sütunları taşıyabilmesi için skor/gerekçe ve
+         "kaç gün önce" bilgisi burada da üretilir. */
+      return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',
+        salesRep:salesRepOf(ctx,c),lastVisit:last,registered:true,
+        score:sd.score,scoreReason:sd.reason,grade:grade(sd.score),
+        notOrReason:sd.reason||'-',
+        daysSince:last?Math.max(0,Math.round((rangeEnd-last)/86400000)):null};
     }).sort(function(a,b){return a.firma.localeCompare(b.firma,'tr');});
 
     return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,scheduledCount:Object.keys(scheduledIds).length};

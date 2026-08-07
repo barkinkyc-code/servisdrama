@@ -154,47 +154,49 @@
     if(!r.lastVisit)return'İlk ziyaret';
     return Math.max(0,Math.round((r.dateObj-r.lastVisit)/86400000))+' gün';
   }
-  function summaryTable(rows){
+  /* Tarih hücresi: üstte ziyaret tarihi, altında ince "SON" etiketiyle bir
+     önceki ziyaret. İki kademeli tipografi (koyu/kalın üst, açık gri alt). */
+  function dateCellHtml(r,isMissed){
+    var main=isMissed?'—':esc(r.tarih);
+    var sub=r.lastVisit?fmtShort(r.lastVisit):(isMissed?'Hiç ziyaret edilmedi':(r.registered?'İlk ziyaret':'—'));
+    var subColor=r.lastVisit?'#5A6B85':(isMissed?C.red:'#9AA7B8');
+    return '<div style="font-size:12px;line-height:16px;font-weight:bold;color:'+(isMissed?'#9AA7B8':C.ink)+';">'+main+'</div>'
+      +'<div style="margin-top:3px;font-size:8.5px;line-height:12px;letter-spacing:.6px;font-weight:bold;color:#A9B4C4;">SON ZİYARET</div>'
+      +'<div style="font-size:10px;line-height:14px;font-weight:bold;color:'+subColor+';">'+sub+'</div>';
+  }
+  /* Ziyaret tablosu ile "gidilmeyen firmalar" tablosu AYNI sütun düzenini
+     kullanır; sadece başlık rengi ve plan durumu etiketi değişir. */
+  function visitTable(rows,opts){
+    opts=opts||{};
+    var headBg=opts.headBg||C.navy, zebra=opts.zebra||'#F8FAFD', missed=!!opts.missed;
+    if(!rows.length&&opts.emptyText){
+      return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:'+C.green+';font-weight:bold;">&#10003; '+esc(opts.emptyText)+'</td></tr></table>';
+    }
     var head='<tr>'+['Firma','Tekn.','Ziyaret Tarihi','Satış Temsilcisi','Kaç Gün Önce','Skor','Plan Durumu','Not'].map(function(h){
-      return '<td bgcolor="'+C.navy+'" style="background-color:'+C.navy+';padding:12px 9px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
+      return '<td bgcolor="'+headBg+'" style="background-color:'+headBg+';padding:12px 9px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
     }).join('')+'</tr>';
     var body=rows.map(function(r,i){
-      var bg=i%2===0?'#ffffff':'#F8FAFD';
+      var bg=i%2===0?'#ffffff':zebra;
       var cell='background-color:'+bg+';padding:10px 9px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;';
+      var days=missed?(r.daysSince==null?'—':r.daysSince+' gün'):daysAgoText(r);
+      var planText=missed?'Gidilmedi':r.plan;
+      var planCol=missed?C.red:planColor(r.plan);
       return '<tr>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+C.ink+';">'+esc(r.firma)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;color:'+C.ink+';white-space:nowrap;" align="center">'+esc(r.techCode||'—')+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'white-space:nowrap;"><div style="font-size:11px;color:'+C.ink+';">'+esc(r.tarih)+'</div>'
-          +'<div style="font-size:9.5px;color:'+C.muted+';margin-top:2px;">Son: '+(r.lastVisit?fmtShort(r.lastVisit):(r.registered?'İlk ziyaret':'—'))+'</div></td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(r.salesRep?C.ink:C.muted)+';">'+esc(r.salesRep||'—')+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+C.muted+';white-space:nowrap;" align="center">'+esc(daysAgoText(r))+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'white-space:nowrap;">'+dateCellHtml(r,missed)+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+(r.salesRep?C.ink:'#9AA7B8')+';white-space:nowrap;" align="center">'+esc(r.salesRep||'—')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+C.muted+';white-space:nowrap;" align="center">'+esc(days)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'" align="center">'+(r.grade?'<span style="display:inline-block;padding:4px 8px;background-color:'+r.grade.color+';color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;white-space:nowrap;">'+r.grade.g+(r.score==null?'':' '+r.score)+'</span>':'-')+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+planColor(r.plan)+';white-space:nowrap;" align="center">'+esc(r.plan)+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+planCol+';white-space:nowrap;" align="center">'+esc(planText)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(r.not?C.ink:C.muted)+';">'+esc(r.notOrReason||'-')+'</td>'
         +'</tr>';
     }).join('');
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';">'+head+body+'</table>';
   }
-
+  function summaryTable(rows){return visitTable(rows,{});}
   function missedTable(missed){
-    if(!missed.length){
-      return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:'+C.green+';font-weight:bold;">&#10003; Bu dönem planlanan tüm firmalar ziyaret edildi.</td></tr></table>';
-    }
-    var head='<tr>'+['Firma','Bölge','Tekn.','Satış Temsilcisi','Son Ziyaret'].map(function(h){
-      return '<td bgcolor="'+C.red+'" style="background-color:'+C.red+';padding:12px 9px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
-    }).join('')+'</tr>';
-    var body=missed.map(function(m,i){
-      var bg=i%2===0?'#ffffff':'#FEF2F2';
-      var cell='background-color:'+bg+';padding:10px 9px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;';
-      return '<tr>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+C.ink+';">'+esc(m.firma)+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+C.muted+';white-space:nowrap;">'+esc(m.bolge)+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;color:'+C.ink+';white-space:nowrap;" align="center">'+esc(m.techCode||'—')+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(m.salesRep?C.ink:C.muted)+';">'+esc(m.salesRep||'—')+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(m.lastVisit?C.muted:C.red)+';white-space:nowrap;">'+(m.lastVisit?fmtShort(m.lastVisit):'Hiç ziyaret edilmedi')+'</td>'
-        +'</tr>';
-    }).join('');
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';">'+head+body+'</table>';
+    return visitTable(missed,{headBg:C.red,zebra:'#FEF3F3',missed:true,emptyText:'Bu dönem planlanan tüm firmalar ziyaret edildi.'});
   }
 
   function buildWeeklyReportMailHTML(d,gradeFn){
@@ -236,13 +238,15 @@
       +'<td class="stack" width="50%" valign="top" style="padding-left:6px;">'+scoreDistributionBlock(d,gradeFn)+'</td>'
       +'</tr></table></td></tr>'
 
-      +sectionHeading('Dönem İçindeki Tüm Ziyaretler',topRows.length,C.ink,false)
+      /* Öncelik sırası: önce GİDİLMEYEN firmalar (aksiyon gerektiren), sonra
+         yapılan ziyaretler. */
+      +sectionHeading('Program Dahilinde Gidilmeyen Firmalar',d.missed.length,C.red,false)
+      +'<tr><td class="pad" style="padding:0 30px 26px;overflow-x:auto;">'+missedTable(d.missed)+'</td></tr>'
+
+      +sectionHeading('Dönem İçindeki Tüm Ziyaretler',topRows.length,C.ink,true)
       +'<tr><td class="pad" style="padding:0 30px 10px;overflow-x:auto;">'+summaryTable(topRows)+'</td></tr>'
       +emptyNote
       +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Firma skoru; ilk ziyaretten bu döneme kadar geçen tüm haftaların ortalama uyum oranıdır (beklenen hafta sayısına göre kaç haftada gerçekten ziyaret edilmiş), buna açık numune sayısı ve son ziyaretlerdeki teknisyen sürekliliği düzeltme olarak eklenir. Not sütunu boşsa skorun neden düştüğü yazılır. Program dışı ziyaretler tarih fark etmeksizin en altta toplanır.</td></tr>'
-
-      +sectionHeading('Gidilmesi Gerekip Gidilmeyen Firmalar',d.missed.length,C.red,true)
-      +'<tr><td class="pad" style="padding:0 30px 26px;overflow-x:auto;">'+missedTable(d.missed)+'</td></tr>'
 
       +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:'+C.blue+';">ServisDrama</strong> • Haftalık Rapor • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
 

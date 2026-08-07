@@ -1016,7 +1016,8 @@ async function downloadHaftalikRaporPdf(startId,endId){
     UI.toast(e.message||'PDF oluşturulamadı.','error');
   }
 }
-async function sendHaftalikRapor(startId,endId){
+/* skipPdf=true → PDF eki üretilmez, sadece HTML gövde gönderilir. */
+async function sendHaftalikRapor(startId,endId,skipPdf){
   if(!canSendReport()){
     UI.toast('Bu işlem için yetkiniz yok. Rapor gönderme izni sadece barkin.kayaci yönetim panelinden verilebilir.','error');
     return;
@@ -1035,10 +1036,15 @@ async function sendHaftalikRapor(startId,endId){
   var html=buildWeeklyReportMailHTML(d,weeklyReportGrade);
   var attachmentNames=['drama-makine-logo','stat-visits','stat-companies','stat-check','stat-alert','stat-calendar','stat-score','stat-target'];
 
-  UI.toast('PDF eki hazırlanıyor...','info');
-  var pdfBase64=null;
-  try{pdfBase64=await window.weeklyReportPdfBase64(d);}catch(e){console.error(e);UI.toast('PDF eki oluşturulamadı, mail PDF olmadan gönderiliyor: '+(e.message||''),'warning');}
-  var attachments=pdfBase64?[{filename:haftalikRaporPdfFilename(r),contentBase64:pdfBase64,contentType:'application/pdf'}]:[];
+  var attachments=[];
+  if(!skipPdf){
+    UI.toast('PDF eki hazırlanıyor...','info');
+    var pdfBase64=null;
+    try{pdfBase64=await window.weeklyReportPdfBase64(d);}catch(e){console.error(e);UI.toast('PDF eki oluşturulamadı, mail PDF olmadan gönderiliyor: '+(e.message||''),'warning');}
+    if(pdfBase64)attachments.push({filename:haftalikRaporPdfFilename(r),contentBase64:pdfBase64,contentType:'application/pdf'});
+  }else{
+    UI.toast('Mail gönderiliyor (PDF eki olmadan)...','info');
+  }
 
   fetch('/api/send-test-mail',{
     method:'POST',
@@ -1652,6 +1658,7 @@ function renderDetailedReports(){
       +'<div><label class="form-lbl" style="font-size:11px;">Bitiş</label><input type="date" class="inp" id="raporlarPageEnd" onchange="refreshDetailedReportsPreview()"></div>'
       +'<button class="btn btn-outline btn-sm" onclick="refreshDetailedReportsPreview()">Yenile</button>'
       +'<button class="btn btn-outline btn-sm" onclick="downloadHaftalikRaporPdf(\'raporlarPageStart\',\'raporlarPageEnd\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> PDF İndir</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="sendHaftalikRapor(\'raporlarPageStart\',\'raporlarPageEnd\',true)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg> Mail Gönder (PDF\'siz)</button>'
       +'<button class="btn btn-primary btn-sm" id="mailDetailedReportsBtn" onclick="sendHaftalikRapor(\'raporlarPageStart\',\'raporlarPageEnd\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg> Mail Gönder (PDF ekiyle)</button>'
       +'</div>'
       +'<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;height:75vh;"><iframe id="raporlarPageIframe" src="" style="width:100%;height:100%;border:none;background:#f3f6fa;"></iframe></div>';

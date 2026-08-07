@@ -336,13 +336,19 @@ function durumCell(){
 function scoreBadge(r){
   return{text:r.score==null?'—':(r.grade.g+'  '+r.score),bold:true,color:C.white,fontSize:6.4,alignment:'center',fillColor:r.grade.color,margin:[1,2.5,1,2.5]};
 }
-function dateCell(r){
+/* Tarih hücresi: kalın ziyaret tarihi + ince "SON ZİYARET" etiketi altında
+   önceki ziyaret. İki kademeli tipografi ile okunaklı/kurumsal görünüm. */
+function dateCell(r,isMissed){
+  const sub=r.lastVisit?fmt(r.lastVisit):(isMissed?'Hiç ziyaret edilmedi':(r.registered?'İlk ziyaret':'—'));
+  const subColor=r.lastVisit?'#5A6B85':(isMissed?C.red:'#9AA7B8');
   return{stack:[
-    {text:r.tarih,fontSize:6.6,color:C.ink},
-    {text:r.lastVisit?('Son: '+fmt(r.lastVisit)):(r.registered?'Son: İlk ziyaret':'Son: —'),fontSize:5.4,color:C.muted,margin:[0,1,0,0]}
+    {text:isMissed?'—':r.tarih,fontSize:7,bold:true,color:isMissed?'#9AA7B8':C.ink},
+    {text:'SON ZİYARET',fontSize:4.4,bold:true,color:'#A9B4C4',characterSpacing:0.35,margin:[0,1.6,0,0]},
+    {text:sub,fontSize:5.8,bold:true,color:subColor,margin:[0,0.6,0,0]}
   ]};
 }
-function daysAgoCell(r){
+function daysAgoCell(r,isMissed){
+  if(isMissed)return{text:r.daysSince==null?'—':(r.daysSince+' gün'),fontSize:6.4,color:r.daysSince==null?C.muted:C.orange,alignment:'center'};
   if(!r.registered)return{text:'—',fontSize:6.4,color:C.muted,alignment:'center'};
   if(!r.lastVisit)return{text:'İlk ziyaret',fontSize:6,color:C.muted,alignment:'center'};
   const days=Math.max(0,Math.round((r.dateObj-r.lastVisit)/864e5));
@@ -406,25 +412,13 @@ async function buildPdf(d){
 
   /* ── tablolar ── */
   const th=(t)=>({text:t,style:'th'});
-  const summaryHead=['Firma','Tekn.','Ziyaret Tarihi','Satış Temsilcisi','Kaç Gün Önce','Firma Skoru','Plan Durumu','Not'].map(th);
-  const summaryRows=d.rows.slice(0,8).map(r=>[
-    {text:r.firma,fontSize:6.6,bold:true},
-    {text:r.techCode||'—',fontSize:6.6,alignment:'center'},
-    dateCell(r),
-    {text:r.salesRep||'—',fontSize:6.4,color:r.salesRep?C.ink:C.muted},
-    daysAgoCell(r),
-    scoreBadge(r),
-    {text:r.plan,fontSize:6.4,bold:true,color:planColor(r.plan),alignment:'center'},
-    {text:r.notOrReason||'-',fontSize:6,color:r.not?C.ink:C.muted}
-  ]);
-
   const detailHead=['Firma','Tekn.','Ziyaret Tarihi','Durum','Satış Temsilcisi','Kaç Gün Önce','Firma Skoru','Skor Seviyesi','Plan Durumu','Not'].map(th);
   const detailRows=d.rows.map(r=>[
     {text:r.firma,fontSize:6.4,bold:true},
     {text:r.techCode||'—',fontSize:6.4,alignment:'center'},
     dateCell(r),
     durumCell(),
-    {text:r.salesRep||'—',fontSize:6.2,color:r.salesRep?C.ink:C.muted},
+    {text:r.salesRep||'—',fontSize:6.4,bold:true,color:r.salesRep?C.ink:'#9AA7B8',alignment:'center'},
     daysAgoCell(r),
     scoreBadge(r),
     starCell(r.score),
@@ -432,13 +426,17 @@ async function buildPdf(d){
     {text:r.notOrReason||'-',fontSize:5.9,color:r.not?C.ink:C.muted}
   ]);
 
-  const missedHead=['Firma','Bölge','Tekn.','Satış Temsilcisi','Son Ziyaret'].map(th);
+  /* Gidilmeyen firmalar tablosu, ziyaret tablosuyla AYNI sütun düzenini kullanır. */
+  const missedHead=['Firma','Tekn.','Ziyaret Tarihi','Satış Temsilcisi','Kaç Gün Önce','Firma Skoru','Plan Durumu','Not'].map(th);
   const missedRows=d.missed.map(m=>[
     {text:m.firma,fontSize:6.6,bold:true},
-    {text:m.bolge,fontSize:6.4,color:C.muted},
-    {text:m.techCode||'—',fontSize:6.4,alignment:'center'},
-    {text:m.salesRep||'—',fontSize:6.4,color:m.salesRep?C.ink:C.muted},
-    {text:m.lastVisit?fmt(m.lastVisit):'Hiç ziyaret edilmedi',fontSize:6.4,color:m.lastVisit?C.ink:C.red}
+    {text:m.techCode||'—',fontSize:6.6,alignment:'center'},
+    dateCell(m,true),
+    {text:m.salesRep||'—',fontSize:6.6,bold:true,color:m.salesRep?C.ink:'#9AA7B8',alignment:'center'},
+    daysAgoCell(m,true),
+    scoreBadge(m),
+    {text:'Gidilmedi',fontSize:6.4,bold:true,color:C.red,alignment:'center'},
+    {text:m.notOrReason||'-',fontSize:6,color:C.muted}
   ]);
 
   const explain=[
@@ -479,11 +477,17 @@ async function buildPdf(d){
     content:[
       {columns:cards,columnGap:CARD_GAP,margin:[0,0,0,10]},
       {columns:charts,columnGap:CH_GAP,margin:[0,0,0,12]},
+      /* Öncelik sırası: aksiyon gerektiren GİDİLMEYEN firmalar önce gelir. */
       {columns:[
         {width:'*',stack:[
-          sectionTitle('SON ZİYARETLER — ÖZET',d.rows.length),
-          {table:{headerRows:1,widths:[142,26,58,72,44,50,56,'*'],body:[summaryHead].concat(summaryRows)},layout:tableLayout()},
-          {text:'Tüm ziyaretlerin tam listesi 2. sayfadaki "Ziyaret Detayı" tablosundadır.',fontSize:5.8,italics:true,color:C.muted,margin:[0,5,0,0]}
+          sectionTitle('PROGRAM DAHİLİNDE GİDİLMEYEN FİRMALAR — ÖZET',d.missed.length,C.red),
+          d.missed.length
+            ? {table:{headerRows:1,widths:[142,26,58,72,44,50,56,'*'],body:[missedHead].concat(missedRows.slice(0,8))},layout:redLayout()}
+            : {text:'Bu dönem planlanan tüm firmalar ziyaret edildi.',color:C.green,bold:true,fontSize:8},
+          {text:d.missed.length>8
+              ? ('Listenin tamamı ('+d.missed.length+' firma) 2. sayfadadır.')
+              : 'Yapılan ziyaretlerin tam listesi 2. sayfadaki "Ziyaret Detayı" tablosundadır.',
+            fontSize:5.8,italics:true,color:C.muted,margin:[0,5,0,0]}
         ]},
         {width:186,stack:[{
           table:{widths:['*'],body:[[{stack:explainStack,margin:[8,7,8,7]}]]},
@@ -492,9 +496,9 @@ async function buildPdf(d){
       ],columnGap:10},
 
       {text:'',pageBreak:'before'},
-      sectionTitle('GİDİLMESİ GEREKİP GİDİLMEYEN FİRMALAR',d.missed.length,C.red),
+      sectionTitle('PROGRAM DAHİLİNDE GİDİLMEYEN FİRMALAR — TAM LİSTE',d.missed.length,C.red),
       d.missed.length
-        ? {table:{headerRows:1,widths:[250,90,34,120,'*'],body:[missedHead].concat(missedRows)},layout:redLayout(),margin:[0,0,0,16]}
+        ? {table:{headerRows:1,widths:[200,30,66,80,52,56,66,'*'],body:[missedHead].concat(missedRows)},layout:redLayout(),margin:[0,0,0,16]}
         : {text:'Bu dönem planlanan tüm firmalar ziyaret edildi.',color:C.green,bold:true,fontSize:8,margin:[0,0,0,16]},
 
       sectionTitle('ZİYARET DETAYI',d.rows.length),
