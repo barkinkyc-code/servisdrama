@@ -35,14 +35,19 @@
       color=good?C.green:C.red;
       text='%'+Math.abs(t.value);
     }
-    return '<div style="font-size:10px;line-height:14px;color:'+C.muted+';margin-top:5px;">Geçen Dönem: '+t.prev+' <span style="color:'+color+';font-weight:bold;">'+arrow+' '+text+'</span></div>';
+    /* nowrap + sabit yükseklik: uzun trend metni (ör. "Geçen Dönem: 97.5 ▼ %0.4")
+       ikinci satıra taşıp kartı diğerlerinden uzun yapmasın. */
+    return '<div style="height:14px;line-height:14px;font-size:9.5px;color:'+C.muted+';margin-top:5px;white-space:nowrap;overflow:hidden;">Geçen Dönem: '+t.prev+' <span style="color:'+color+';font-weight:bold;">'+arrow+' '+text+'</span></div>';
   }
 
+  /* Kartlar SABİT yükseklikte (height + fixed satır yükseklikleri): etiket bir
+     ya da iki satıra sarsa da tüm kartlar aynı boyda kalır, alt kenarlar
+     hizalanır. Outlook masaüstü height niteliğine uyar. */
   function statCard(icon,color,value,label,trend,invert){
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px 14px;font-family:Arial,Helvetica,sans-serif;">'
+    return '<table role="presentation" width="100%" height="132" cellpadding="0" cellspacing="0" border="0" style="height:132px;border:1px solid '+C.line+';"><tr><td valign="top" style="padding:14px 13px;font-family:Arial,Helvetica,sans-serif;">'
       +'<table role="presentation" width="28" height="28" cellpadding="0" cellspacing="0" border="0" bgcolor="'+color+'" style="width:28px;height:28px;background-color:'+color+';"><tr><td align="center" valign="middle"><img src="cid:'+icon+'" width="15" height="15" alt="" style="display:block;width:15px;height:15px;"></td></tr></table>'
-      +'<div style="font-size:21px;line-height:25px;font-weight:bold;color:'+C.ink+';margin-top:10px;">'+esc(value)+'</div>'
-      +'<div style="font-size:10.5px;line-height:14px;font-weight:bold;color:'+C.muted+';margin-top:3px;">'+esc(label)+'</div>'
+      +'<div style="height:34px;line-height:34px;font-size:25px;font-weight:bold;color:'+C.ink+';margin-top:8px;">'+esc(value)+'</div>'
+      +'<div style="height:28px;font-size:10.5px;line-height:14px;font-weight:bold;color:'+C.muted+';">'+esc(label)+'</div>'
       +trendLine(trend,invert)
       +'</td></tr></table>';
   }
@@ -138,20 +143,34 @@
       +'</td></tr></table>';
   }
 
+  /* Tüm bölüm başlıkları AYNI biçim: "Başlık (adet)" — sadece renk değişir. */
+  function sectionHeading(title,count,color,topBorder){
+    return '<tr><td class="pad" style="padding:'+(topBorder?'22px':'26px')+' 30px 12px;'+(topBorder?'border-top:1px solid '+C.line+';':'')+'">'
+      +'<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+color+';">'+esc(title)+' <span style="color:'+C.muted+';">('+count+')</span></div>'
+      +'</td></tr>';
+  }
+  function daysAgoText(r){
+    if(!r.registered)return'—';
+    if(!r.lastVisit)return'İlk ziyaret';
+    return Math.max(0,Math.round((r.dateObj-r.lastVisit)/86400000))+' gün';
+  }
   function summaryTable(rows){
-    var head='<tr>'+['Firma','Teknisyen (Kod)','Tarih','Son Ziyaret','Skor','Plan Durumu','Not'].map(function(h){
-      return '<td bgcolor="'+C.navy+'" style="background-color:'+C.navy+';padding:12px 10px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
+    var head='<tr>'+['Firma','Tekn.','Ziyaret Tarihi','Satış Temsilcisi','Kaç Gün Önce','Skor','Plan Durumu','Not'].map(function(h){
+      return '<td bgcolor="'+C.navy+'" style="background-color:'+C.navy+';padding:12px 9px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
     }).join('')+'</tr>';
     var body=rows.map(function(r,i){
       var bg=i%2===0?'#ffffff':'#F8FAFD';
+      var cell='background-color:'+bg+';padding:10px 9px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;';
       return '<tr>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;font-weight:bold;color:'+C.ink+';">'+esc(r.firma)+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.ink+';white-space:nowrap;">'+esc(r.teknisyen)+' ('+esc(r.techCode)+')</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.ink+';white-space:nowrap;">'+esc(r.tarih)+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11px;color:'+C.muted+';white-space:nowrap;">'+(r.lastVisit?fmtShort(r.lastVisit):(r.registered?'İlk ziyaret':'—'))+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';">'+(r.grade?'<span style="display:inline-block;padding:4px 8px;background-color:'+r.grade.color+';color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-weight:bold;">'+r.grade.g+' '+(r.score==null?'-':r.score)+'</span>':'-')+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;font-weight:bold;color:'+planColor(r.plan)+';white-space:nowrap;">'+esc(r.plan)+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.ink+';">'+esc(r.not||'-')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+C.ink+';">'+esc(r.firma)+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;color:'+C.ink+';white-space:nowrap;" align="center">'+esc(r.techCode||'—')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'white-space:nowrap;"><div style="font-size:11px;color:'+C.ink+';">'+esc(r.tarih)+'</div>'
+          +'<div style="font-size:9.5px;color:'+C.muted+';margin-top:2px;">Son: '+(r.lastVisit?fmtShort(r.lastVisit):(r.registered?'İlk ziyaret':'—'))+'</div></td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(r.salesRep?C.ink:C.muted)+';">'+esc(r.salesRep||'—')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+C.muted+';white-space:nowrap;" align="center">'+esc(daysAgoText(r))+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'" align="center">'+(r.grade?'<span style="display:inline-block;padding:4px 8px;background-color:'+r.grade.color+';color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;white-space:nowrap;">'+r.grade.g+(r.score==null?'':' '+r.score)+'</span>':'-')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+planColor(r.plan)+';white-space:nowrap;" align="center">'+esc(r.plan)+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(r.not?C.ink:C.muted)+';">'+esc(r.notOrReason||'-')+'</td>'
         +'</tr>';
     }).join('');
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';">'+head+body+'</table>';
@@ -161,16 +180,18 @@
     if(!missed.length){
       return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';"><tr><td style="padding:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:'+C.green+';font-weight:bold;">&#10003; Bu dönem planlanan tüm firmalar ziyaret edildi.</td></tr></table>';
     }
-    var head='<tr>'+['Firma','Bölge','Teknisyen (Kod)','Son Ziyaret'].map(function(h){
-      return '<td bgcolor="'+C.red+'" style="background-color:'+C.red+';padding:12px 10px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
+    var head='<tr>'+['Firma','Bölge','Tekn.','Satış Temsilcisi','Son Ziyaret'].map(function(h){
+      return '<td bgcolor="'+C.red+'" style="background-color:'+C.red+';padding:12px 9px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+h+'</td>';
     }).join('')+'</tr>';
     var body=missed.map(function(m,i){
       var bg=i%2===0?'#ffffff':'#FEF2F2';
+      var cell='background-color:'+bg+';padding:10px 9px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;';
       return '<tr>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;font-weight:bold;color:'+C.ink+';">'+esc(m.firma)+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.muted+';white-space:nowrap;">'+esc(m.bolge)+'</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:'+C.ink+';white-space:nowrap;">'+esc(m.teknisyen)+' ('+esc(m.techCode)+')</td>'
-        +'<td bgcolor="'+bg+'" style="background-color:'+bg+';padding:11px 10px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:11px;color:'+C.muted+';white-space:nowrap;">'+(m.lastVisit?fmtShort(m.lastVisit):'Hiç ziyaret edilmedi')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+C.ink+';">'+esc(m.firma)+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+C.muted+';white-space:nowrap;">'+esc(m.bolge)+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;color:'+C.ink+';white-space:nowrap;" align="center">'+esc(m.techCode||'—')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(m.salesRep?C.ink:C.muted)+';">'+esc(m.salesRep||'—')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(m.lastVisit?C.muted:C.red)+';white-space:nowrap;">'+(m.lastVisit?fmtShort(m.lastVisit):'Hiç ziyaret edilmedi')+'</td>'
         +'</tr>';
     }).join('');
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid '+C.line+';">'+head+body+'</table>';
@@ -215,12 +236,12 @@
       +'<td class="stack" width="50%" valign="top" style="padding-left:6px;">'+scoreDistributionBlock(d,gradeFn)+'</td>'
       +'</tr></table></td></tr>'
 
-      +'<tr><td class="pad" style="padding:26px 30px 12px;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.ink+';">Dönem İçindeki Tüm Ziyaretler ('+topRows.length+')</div></td></tr>'
+      +sectionHeading('Dönem İçindeki Tüm Ziyaretler',topRows.length,C.ink,false)
       +'<tr><td class="pad" style="padding:0 30px 10px;overflow-x:auto;">'+summaryTable(topRows)+'</td></tr>'
       +emptyNote
-      +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Firma skoru; ilk ziyaretten bu döneme kadar geçen tüm haftaların ortalama uyum oranıdır (beklenen hafta sayısına göre kaç haftada gerçekten ziyaret edilmiş), buna açık numune sayısı ve son ziyaretlerdeki teknisyen sürekliliği düzeltme olarak eklenir. Hiç ziyaret edilmemiş firmalar sabit düşük puanla işaretlenir.</td></tr>'
+      +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Firma skoru; ilk ziyaretten bu döneme kadar geçen tüm haftaların ortalama uyum oranıdır (beklenen hafta sayısına göre kaç haftada gerçekten ziyaret edilmiş), buna açık numune sayısı ve son ziyaretlerdeki teknisyen sürekliliği düzeltme olarak eklenir. Not sütunu boşsa skorun neden düştüğü yazılır. Program dışı ziyaretler tarih fark etmeksizin en altta toplanır.</td></tr>'
 
-      +'<tr><td class="pad" style="padding:22px 30px 12px;border-top:1px solid '+C.line+';"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.red+';">Gidilmesi Gerekip Gidilmeyen Firmalar ('+d.missed.length+')</div><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:'+C.muted+';margin-top:3px;">Bu firmalar o hafta planlandığı halde hiç ziyaret edilmedi.</div></td></tr>'
+      +sectionHeading('Gidilmesi Gerekip Gidilmeyen Firmalar',d.missed.length,C.red,true)
       +'<tr><td class="pad" style="padding:0 30px 26px;overflow-x:auto;">'+missedTable(d.missed)+'</td></tr>'
 
       +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:'+C.blue+';">ServisDrama</strong> • Haftalık Rapor • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'

@@ -71,9 +71,14 @@
      - Hiç ziyaret edilmemiş firma (ilk ziyaret yok) → sabit düşük taban puan.
      - Açık numune ve teknisyen sürekliliği ek düzeltme olarak eklenir. */
   function scoreCompany(ctx,company,reportEnd){
-    if(!company)return null;
+    return scoreDetail(ctx,company,reportEnd).score;
+  }
+  /* Skoru ve NEDEN o skoru aldığını birlikte döner — rapor tablolarında not
+     alanı boşsa gerekçe metni gösterilebilsin diye. */
+  function scoreDetail(ctx,company,reportEnd){
+    if(!company)return{score:null,reason:''};
     var visits=allDoneVisits(ctx,company.id).filter(function(x){return x.d<=reportEnd;});
-    if(!visits.length)return 15;
+    if(!visits.length)return{score:15,reason:'Hiç ziyaret kaydı yok'};
     var firstVisit=visits[visits.length-1].d;
 
     var expectedWeeks=0,metWeeks=0;
@@ -89,12 +94,29 @@
       cursor=new Date(cursor);cursor.setDate(cursor.getDate()+7);
     }
     var score=expectedWeeks?Math.round(metWeeks/expectedWeeks*100):100;
+    var reasons=[];
+    var missedWeeks=expectedWeeks-metWeeks;
+    if(missedWeeks>0)reasons.push(missedWeeks+' planlı hafta atlandı ('+metWeeks+'/'+expectedWeeks+')');
 
     var open=samplesFor(ctx,company.id).filter(sampleOpen).length;
-    if(open)score-=Math.min(20,open*7);
+    if(open){var pen=Math.min(20,open*7);score-=pen;reasons.push(open+' açık numune (-'+pen+')');}
     var recent=visits.slice(0,4).map(function(x){return String(x.v.tc||x.v.techCode||x.v.techId||'');}).filter(Boolean);
-    if(recent.length>=3&&new Set(recent).size>=3)score-=8;
-    return Math.max(0,Math.min(100,Math.round(score)));
+    if(recent.length>=3&&new Set(recent).size>=3){score-=8;reasons.push('Ekip sürekliliği yok (-8)');}
+
+    score=Math.max(0,Math.min(100,Math.round(score)));
+    return{score:score,reason:reasons.length?reasons.join(' · '):'Tam uyum'};
+  }
+  /* Firmanın satış temsilcisi: önce doğrudan alan, yoksa salesRepId üzerinden
+     kullanıcı listesinden çözülür. Atanmamışsa boş döner. */
+  function salesRepOf(ctx,company){
+    if(!company)return'';
+    if(company.salesRepName)return company.salesRepName;
+    var id=company.salesRepId||company.salesRepUserId;
+    if(id){
+      var u=(ctx.users||[]).find(function(x){return String(x.id)===String(id);});
+      if(u&&u.name)return u.name;
+    }
+    return company.salesRepCode||'';
   }
   function grade(score){
     if(score==null)return{g:'-',label:'Kayıt yok',color:'#94A3B8'};
@@ -120,6 +142,7 @@
     ctx.technicians=ctx.SD.technicians||[];
     ctx.visits=ctx.SD.visits||{};
     ctx.extras=ctx.SD.extras||[];
+    ctx.users=ctx.SD.users||[];
     ctx.samples=(ctx.SD.load?ctx.SD.load('sd_samples',[]):[])||[];
 
     var rangeStart=new Date(startDate);rangeStart.setHours(0,0,0,0);
@@ -139,7 +162,7 @@
         if(!date||date<rangeStart||date>rangeEnd)return;
         var tech=ctx.technicians.find(function(t){return t.code===code;});
         var plan=company?(ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı'):'Plan Dışı';
-        rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
+        rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
       });
     });
 
@@ -148,10 +171,16 @@
       if(!date||date<rangeStart||date>rangeEnd)return;
       var company=ctx.companies.find(function(c){return c.id===e.firmaId;});
       var tech=ctx.technicians.find(function(t){return t.id===e.techId;});
-      rows.push({firmaId:e.firmaId||'',firma:company?company.name:(e.firmAdi||'Bilinmeyen Firma'),registered:!!company,techCode:tech?tech.code:(e.techCode||''),teknisyen:tech?tech.name:(e.techCode||''),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:'Program Dışı',not:e.not||''});
+      rows.push({firmaId:e.firmaId||'',firma:company?company.name:(e.firmAdi||'Bilinmeyen Firma'),registered:!!company,techCode:tech?tech.code:(e.techCode||''),teknisyen:tech?tech.name:(e.techCode||''),salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:'Program Dışı',not:e.not||''});
     });
 
-    rows.sort(function(a,b){return a.dateObj-b.dateObj;});
+    /* Program dışı ziyaretler tarih fark etmeksizin en alta toplanır; planlı
+       satırlar kendi içinde tarihe göre sıralanır. */
+    rows.sort(function(a,b){
+      var ap=a.plan==='Program Dışı'?1:0,bp=b.plan==='Program Dışı'?1:0;
+      if(ap!==bp)return ap-bp;
+      return a.dateObj-b.dateObj;
+    });
 
     var uniqueSet={},techCounts={},dayCounts={},uygun=0,planDisi=0,programDisi=0;
     rows.forEach(function(r){
@@ -167,11 +196,15 @@
     rows.forEach(function(r){
       if(!(r.firmaId in scoreCache)){
         var company=ctx.companies.find(function(c){return c.id===r.firmaId;});
-        scoreCache[r.firmaId]=scoreCompany(ctx,company,rangeEnd);
+        scoreCache[r.firmaId]=scoreDetail(ctx,company,rangeEnd);
       }
-      r.score=scoreCache[r.firmaId];
+      var sd=scoreCache[r.firmaId];
+      r.score=sd.score;
+      r.scoreReason=sd.reason;
       r.grade=grade(r.score);
       r.lastVisit=r.registered?lastVisitBefore(ctx,r.firmaId,r.dateObj):null;
+      /* Not alanı boşsa skorun gerekçesini göster — tablo satırı boş kalmasın. */
+      r.notOrReason=r.not||r.scoreReason||'-';
     });
 
     var total=rows.length,unique=Object.keys(uniqueSet).length;
@@ -194,7 +227,7 @@
       var c=activeCompanies.find(function(x){return x.id===id;});
       var tech=ctx.technicians.find(function(t){return t.id===c.techId;});
       var last=lastVisitBefore(ctx,id,rangeEnd);
-      return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',lastVisit:last};
+      return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',salesRep:salesRepOf(ctx,c),lastVisit:last};
     }).sort(function(a,b){return a.firma.localeCompare(b.firma,'tr');});
 
     return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,scheduledCount:Object.keys(scheduledIds).length};
@@ -215,11 +248,28 @@
     return{value:0,type:'flat'};
   }
 
-  function collectWeeklyDataWithTrend(startDate,endDate,ctxIn){
+  function collectWeeklyDataWithTrend(startDate,endDate,ctxIn,historyCount){
     var current=collectWeeklyData(startDate,endDate,ctxIn);
     var prevRange=previousPeriodRange(current.start,current.end);
     var previous=collectWeeklyData(prevRange.start,prevRange.end,ctxIn);
     current.previous=previous;
+
+    /* Sparkline'lar için GERÇEK geçmiş: son N dönem aynı uzunlukta geriye doğru
+       hesaplanır (uydurma seri çizilmez). Dizi eskiden yeniye, sonuncusu bu dönem. */
+    var n=typeof historyCount==='number'?historyCount:6;
+    var series=[],cursorStart=current.start,cursorEnd=current.end;
+    var periods=[{total:current.total,unique:current.unique,uygun:current.uygun,planDisi:current.planDisi,programDisi:current.programDisi,missed:current.missed.length,avgScore:current.avgScore,planRate:current.planRate}];
+    for(var i=1;i<n;i++){
+      var pr=previousPeriodRange(cursorStart,cursorEnd);
+      var pd=(i===1)?previous:collectWeeklyData(pr.start,pr.end,ctxIn);
+      periods.push({total:pd.total,unique:pd.unique,uygun:pd.uygun,planDisi:pd.planDisi,programDisi:pd.programDisi,missed:pd.missed.length,avgScore:pd.avgScore,planRate:pd.planRate});
+      cursorStart=pr.start;cursorEnd=pr.end;
+    }
+    periods.reverse();
+    ['total','unique','uygun','planDisi','programDisi','missed','avgScore','planRate'].forEach(function(k){
+      series[k]=periods.map(function(p){return p[k];});
+    });
+    current.history=series;
     current.trend={
       total:Object.assign({cur:current.total,prev:previous.total},pctChange(current.total,previous.total)),
       unique:Object.assign({cur:current.unique,prev:previous.unique},pctChange(current.unique,previous.unique)),
