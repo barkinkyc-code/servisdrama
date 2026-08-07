@@ -1003,10 +1003,9 @@ function sendHaftalikRapor(){
     return;
   }
   var cfg=SD.config;
-  var to=['esra.onur@dramamakine.com','ersin.ertugen@dramamakine.com','yagiz.erel@dramamakine.com','suleyman.kucuk@dramamakine.com','semih.aglan@dramamakine.com'];
-  var cc=['emin.ertas@dramamakine.com','barkin.kayaci@dramamakine.com','ibrahim.nuhoglu@dramakimya.com'];
-  to=to.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
-  cc=cc.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+  /* 2. bir emre kadar haftalık rapor sadece barkin.kayaci'ye gidiyor — başka alıcı/CC yok. */
+  var to=['barkin.kayaci@dramamakine.com'];
+  var cc=[];
   var r=haftalikRaporRange();
   var fmt=function(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();};
   var subject='ServisDrama - Haftalık Servis Raporu ('+fmt(r.start)+' - '+fmt(r.end)+')';
