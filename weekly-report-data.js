@@ -62,33 +62,37 @@
   function sampleOpen(s){
     return !/(kapandı|kapandi|iptal|sonuç geldi|sonuc geldi|tamamlandı|tamamlandi)/i.test(String(s.status||s.durum||s.sonuc||''));
   }
-  /* Firma skoru — firmanın KENDİ beklenen ziyaret sıklığına göre hesaplanır
-     (weeks pattern: [1,2,3,4]=haftalık ~7 gün, [1,3]=2 haftada bir ~14 gün,
-     [1]=4 haftada bir ~28 gün). Sabit gün eşiği kullanmak yanlıştı çünkü
-     firmaların beklenen sıklığı çok farklı — o yüzden pratikte hemen hiç
-     tetiklenmiyor, herkes 100 çıkıyordu.
-     - Hiç ziyaret edilmemiş firma → sabit düşük taban puan (kritik, dikkat çeker).
-     - Süresi geçmiş firma, kendi döngüsüne göre ne kadar aştıysa o kadar düşer.
+  /* Firma skoru — "şu an ne kadar gecikmiş" anlık bakışı yerine, firmanın İLK
+     ziyaretinden bu rapor dönemine kadar geçen TÜM haftaların ortalama uyum
+     oranını kullanır: ilk ziyaretten itibaren firmanın kendi planına göre
+     (BL.scheduled) beklenen her hafta için, o hafta gerçekten ziyaret edilmiş
+     mi diye bakılır. Skor = karşılanan hafta / beklenen hafta × 100.
+     Bu, tek bir gecikme anını değil, firmanın GEÇMİŞTEKİ genel düzenini yansıtır.
+     - Hiç ziyaret edilmemiş firma (ilk ziyaret yok) → sabit düşük taban puan.
      - Açık numune ve teknisyen sürekliliği ek düzeltme olarak eklenir. */
   function scoreCompany(ctx,company,reportEnd){
     if(!company)return null;
-    var patternCount=(company.weeks||[1,2,3,4]).length||4;
-    var expectedDays=Math.round((4/patternCount)*7);
-    var last=lastVisitBefore(ctx,company.id,new Date(reportEnd.getTime()+86400000));
-    var score;
-    if(!last){
-      score=15;
-    }else{
-      var days=Math.max(0,Math.floor((reportEnd-last)/86400000));
-      var ratio=days/expectedDays;
-      if(ratio<=1)score=100-ratio*10;
-      else if(ratio<=2)score=90-(ratio-1)*30;
-      else if(ratio<=3)score=60-(ratio-2)*20;
-      else score=Math.max(10,40-(ratio-3)*10);
+    var visits=allDoneVisits(ctx,company.id).filter(function(x){return x.d<=reportEnd;});
+    if(!visits.length)return 15;
+    var firstVisit=visits[visits.length-1].d;
+
+    var expectedWeeks=0,metWeeks=0;
+    var cursor=ctx.DT.monday(firstVisit),endMonday=ctx.DT.monday(reportEnd);
+    while(cursor<=endMonday){
+      var wi=weekIndexOf(ctx,cursor);
+      if(ctx.BL.scheduled(company,wi)){
+        expectedWeeks++;
+        var weekEnd=new Date(cursor);weekEnd.setDate(weekEnd.getDate()+6);weekEnd.setHours(23,59,59,999);
+        var metThisWeek=visits.some(function(x){return x.d>=cursor&&x.d<=weekEnd;});
+        if(metThisWeek)metWeeks++;
+      }
+      cursor=new Date(cursor);cursor.setDate(cursor.getDate()+7);
     }
+    var score=expectedWeeks?Math.round(metWeeks/expectedWeeks*100):100;
+
     var open=samplesFor(ctx,company.id).filter(sampleOpen).length;
     if(open)score-=Math.min(20,open*7);
-    var recent=allDoneVisits(ctx,company.id).slice(0,4).map(function(x){return String(x.v.tc||x.v.techCode||x.v.techId||'');}).filter(Boolean);
+    var recent=visits.slice(0,4).map(function(x){return String(x.v.tc||x.v.techCode||x.v.techId||'');}).filter(Boolean);
     if(recent.length>=3&&new Set(recent).size>=3)score-=8;
     return Math.max(0,Math.min(100,Math.round(score)));
   }
