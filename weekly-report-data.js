@@ -62,17 +62,35 @@
   function sampleOpen(s){
     return !/(kapandı|kapandi|iptal|sonuç geldi|sonuc geldi|tamamlandı|tamamlandi)/i.test(String(s.status||s.durum||s.sonuc||''));
   }
+  /* Firma skoru — firmanın KENDİ beklenen ziyaret sıklığına göre hesaplanır
+     (weeks pattern: [1,2,3,4]=haftalık ~7 gün, [1,3]=2 haftada bir ~14 gün,
+     [1]=4 haftada bir ~28 gün). Sabit gün eşiği kullanmak yanlıştı çünkü
+     firmaların beklenen sıklığı çok farklı — o yüzden pratikte hemen hiç
+     tetiklenmiyor, herkes 100 çıkıyordu.
+     - Hiç ziyaret edilmemiş firma → sabit düşük taban puan (kritik, dikkat çeker).
+     - Süresi geçmiş firma, kendi döngüsüne göre ne kadar aştıysa o kadar düşer.
+     - Açık numune ve teknisyen sürekliliği ek düzeltme olarak eklenir. */
   function scoreCompany(ctx,company,reportEnd){
     if(!company)return null;
+    var patternCount=(company.weeks||[1,2,3,4]).length||4;
+    var expectedDays=Math.round((4/patternCount)*7);
     var last=lastVisitBefore(ctx,company.id,new Date(reportEnd.getTime()+86400000));
-    var days=last?Math.max(0,Math.floor((reportEnd-last)/86400000)):null;
-    var score=100;
-    if(days===null)score-=25;else if(days>90)score-=35;else if(days>60)score-=20;
+    var score;
+    if(!last){
+      score=15;
+    }else{
+      var days=Math.max(0,Math.floor((reportEnd-last)/86400000));
+      var ratio=days/expectedDays;
+      if(ratio<=1)score=100-ratio*10;
+      else if(ratio<=2)score=90-(ratio-1)*30;
+      else if(ratio<=3)score=60-(ratio-2)*20;
+      else score=Math.max(10,40-(ratio-3)*10);
+    }
     var open=samplesFor(ctx,company.id).filter(sampleOpen).length;
-    if(open)score-=Math.min(25,open*8);
-    var recent=allDoneVisits(ctx,company.id).slice(0,3).map(function(x){return String(x.v.tc||x.v.techCode||x.v.techId||'');});
-    if(new Set(recent).size>=3)score-=10;
-    return Math.max(0,Math.min(100,score));
+    if(open)score-=Math.min(20,open*7);
+    var recent=allDoneVisits(ctx,company.id).slice(0,4).map(function(x){return String(x.v.tc||x.v.techCode||x.v.techId||'');}).filter(Boolean);
+    if(recent.length>=3&&new Set(recent).size>=3)score-=8;
+    return Math.max(0,Math.min(100,Math.round(score)));
   }
   function grade(score){
     if(score==null)return{g:'-',label:'Kayıt yok',color:'#94A3B8'};
@@ -117,7 +135,7 @@
         if(!date||date<rangeStart||date>rangeEnd)return;
         var tech=ctx.technicians.find(function(t){return t.code===code;});
         var plan=company?(ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı'):'Plan Dışı';
-        rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),techCode:code,teknisyen:tech?tech.name:code,dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
+        rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
       });
     });
 
@@ -126,7 +144,7 @@
       if(!date||date<rangeStart||date>rangeEnd)return;
       var company=ctx.companies.find(function(c){return c.id===e.firmaId;});
       var tech=ctx.technicians.find(function(t){return t.id===e.techId;});
-      rows.push({firmaId:e.firmaId||'',firma:company?company.name:(e.firmAdi||'Bilinmeyen Firma'),techCode:tech?tech.code:(e.techCode||''),teknisyen:tech?tech.name:(e.techCode||''),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:'Program Dışı',not:e.not||''});
+      rows.push({firmaId:e.firmaId||'',firma:company?company.name:(e.firmAdi||'Bilinmeyen Firma'),registered:!!company,techCode:tech?tech.code:(e.techCode||''),teknisyen:tech?tech.name:(e.techCode||''),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:'Program Dışı',not:e.not||''});
     });
 
     rows.sort(function(a,b){return a.dateObj-b.dateObj;});
@@ -149,7 +167,7 @@
       }
       r.score=scoreCache[r.firmaId];
       r.grade=grade(r.score);
-      r.lastVisit=lastVisitBefore(ctx,r.firmaId,r.dateObj);
+      r.lastVisit=r.registered?lastVisitBefore(ctx,r.firmaId,r.dateObj):null;
     });
 
     var total=rows.length,unique=Object.keys(uniqueSet).length;
@@ -157,7 +175,25 @@
     var avgScore=scoreVals.length?Math.round(scoreVals.reduce(function(a,b){return a+b;},0)/scoreVals.length*10)/10:0;
     var planRate=total?Math.round(uygun/total*100):0;
 
-    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate};
+    /* Bu dönemde gidilmesi gereken (BL.scheduled) ama hiç ziyaret edilmeyen aktif firmalar. */
+    var activeCompanies=ctx.companies.filter(function(c){return c.aktif!==false;});
+    var scheduledIds={};
+    var mondayCursor=ctx.DT.monday(rangeStart);
+    while(mondayCursor<=rangeEnd){
+      var wi=weekIndexOf(ctx,mondayCursor);
+      activeCompanies.forEach(function(c){if(ctx.BL.scheduled(c,wi))scheduledIds[c.id]=true;});
+      mondayCursor=new Date(mondayCursor);mondayCursor.setDate(mondayCursor.getDate()+7);
+    }
+    var visitedIds={};
+    rows.forEach(function(r){if(r.firmaId)visitedIds[r.firmaId]=true;});
+    var missed=Object.keys(scheduledIds).filter(function(id){return !visitedIds[id];}).map(function(id){
+      var c=activeCompanies.find(function(x){return x.id===id;});
+      var tech=ctx.technicians.find(function(t){return t.id===c.techId;});
+      var last=lastVisitBefore(ctx,id,rangeEnd);
+      return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',lastVisit:last};
+    }).sort(function(a,b){return a.firma.localeCompare(b.firma,'tr');});
+
+    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,scheduledCount:Object.keys(scheduledIds).length};
   }
 
   function previousPeriodRange(start,end){
@@ -186,6 +222,7 @@
       uygun:Object.assign({cur:current.uygun,prev:previous.uygun},pctChange(current.uygun,previous.uygun)),
       planDisi:Object.assign({cur:current.planDisi,prev:previous.planDisi},pctChange(current.planDisi,previous.planDisi)),
       programDisi:Object.assign({cur:current.programDisi,prev:previous.programDisi},pctChange(current.programDisi,previous.programDisi)),
+      missed:Object.assign({cur:current.missed.length,prev:previous.missed.length},pctChange(current.missed.length,previous.missed.length)),
       avgScore:Object.assign({cur:current.avgScore,prev:previous.avgScore},pctChange(current.avgScore,previous.avgScore)),
       planRate:Object.assign({cur:current.planRate,prev:previous.planRate},pctChange(current.planRate,previous.planRate))
     };
