@@ -1009,7 +1009,10 @@ function sendHaftalikRapor(){
   var r=haftalikRaporRange();
   var fmt=function(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();};
   var subject='ServisDrama - Haftalık Servis Raporu ('+fmt(r.start)+' - '+fmt(r.end)+')';
-  var html=haftalikRaporPreviewHTML();
+  /* ÖNEMLİ: gerçek mailde ham (cid: referanslı) HTML kullanılmalı — haftalikRaporPreviewHTML()
+     sadece admin panelindeki iframe önizlemesi için cid: yerine yerel dosya yoluna çevirir;
+     o yollar alıcının mail istemcisinde çözümlenemez ve tüm görseller kırık gelir. */
+  var html=buildWeeklyReportMailHTML(haftalikRaporData(),weeklyReportGrade);
   var attachmentNames=['drama-makine-logo','stat-visits','stat-companies','stat-check','stat-alert','stat-calendar','stat-score','stat-target'];
 
   fetch('/api/send-test-mail',{

@@ -55,14 +55,14 @@
       statCard('stat-check',C.green,d.uygun,'PLANA UYGUN',t.uygun,false),
       statCard('stat-alert',C.orange,d.planDisi,'PLAN DIŞI',t.planDisi,true),
       statCard('stat-calendar',C.purple,d.programDisi,'PROGRAM DIŞI',t.programDisi,true),
-      statCard('stat-score',C.navy,d.avgScore,'ORTALAMA FİRMA SKORU',t.avgScore,false),
+      statCard('stat-score',C.navy,d.avgScore,'ORT. FİRMA SKORU',t.avgScore,false),
       statCard('stat-target',C.blue,'%'+d.planRate,'PLAN UYUM ORANI',t.planRate,false)
     ];
     function row(items){
       var cells=items.map(function(c){return '<td width="25%" valign="top" style="padding:0 4px 8px 0;">'+(c||'')+'</td>';}).join('');
       return '<tr>'+cells+'</tr>';
     }
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;"><colgroup><col width="25%"><col width="25%"><col width="25%"><col width="25%"></colgroup>'
       +row(cards.slice(0,4))+row(cards.slice(4,7).concat(['']))
       +'</table>';
   }
@@ -160,7 +160,7 @@
   function buildWeeklyReportMailHTML(d,gradeFn){
     var reportDate=trDate(new Date());
     var period=fmtShort(d.start)+' – '+fmtShort(d.end);
-    var topRows=d.rows.slice().sort(function(a,b){return b.dateObj-a.dateObj;}).slice(0,10);
+    var topRows=d.rows.slice().sort(function(a,b){return b.dateObj-a.dateObj;});
     var emptyNote=d.rows.length?'':'<tr><td class="pad" style="padding:0 30px 18px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:'+C.muted+';">Seçilen dönemde tamamlanmış ziyaret bulunmuyor.</td></tr>';
 
     return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>ServisDrama Haftalık Rapor</title>'
@@ -196,10 +196,10 @@
       +'<td class="stack" width="50%" valign="top" style="padding-left:6px;">'+scoreDistributionBlock(d,gradeFn)+'</td>'
       +'</tr></table></td></tr>'
 
-      +'<tr><td class="pad" style="padding:20px 30px 10px;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.ink+';">Son Ziyaretler — Özet</div></td></tr>'
+      +'<tr><td class="pad" style="padding:20px 30px 10px;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:bold;color:'+C.ink+';">Dönem İçindeki Tüm Ziyaretler ('+topRows.length+')</div></td></tr>'
       +'<tr><td class="pad" style="padding:0 30px 8px;overflow-x:auto;">'+summaryTable(topRows)+'</td></tr>'
       +emptyNote
-      +'<tr><td class="pad" style="padding:0 30px 20px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Bu özet tablo dönemdeki son 10 ziyareti listeler. Firma skoru; ziyaret düzenliliği, açık numune ve ekip sürekliliğine göre hesaplanır.</td></tr>'
+      +'<tr><td class="pad" style="padding:0 30px 20px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Firma skoru; ziyaret düzenliliği, açık numune ve ekip sürekliliğine göre hesaplanır.</td></tr>'
 
       +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:'+C.blue+';">ServisDrama</strong> • Haftalık Rapor • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
 
