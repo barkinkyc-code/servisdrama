@@ -71,49 +71,106 @@
   function sampleOpen(s){
     return !/(kapandı|kapandi|iptal|sonuç geldi|sonuc geldi|tamamlandı|tamamlandi)/i.test(String(s.status||s.durum||s.sonuc||''));
   }
-  /* Firma skoru — "şu an ne kadar gecikmiş" anlık bakışı yerine, firmanın İLK
-     ziyaretinden bu rapor dönemine kadar geçen TÜM haftaların ortalama uyum
-     oranını kullanır: ilk ziyaretten itibaren firmanın kendi planına göre
-     (BL.scheduled) beklenen her hafta için, o hafta gerçekten ziyaret edilmiş
-     mi diye bakılır. Skor = karşılanan hafta / beklenen hafta × 100.
-     Bu, tek bir gecikme anını değil, firmanın GEÇMİŞTEKİ genel düzenini yansıtır.
-     - Hiç ziyaret edilmemiş firma (ilk ziyaret yok) → sabit düşük taban puan.
-     - Açık numune ve teknisyen sürekliliği ek düzeltme olarak eklenir. */
-  function scoreCompany(ctx,company,reportEnd){
-    return scoreDetail(ctx,company,reportEnd).score;
+  /* Firmanın kendi planına (co.weeks) göre iki ziyaret arasında beklenen hafta
+     sayısı: [1,2,3,4] → her hafta, [1,3] → 2 haftada bir, [2] → 4 haftada bir.
+     "Gecikmiş mi" sorusu firmanın kendi temposuna göre sorulmalı; her firmayı
+     tek bir sabit gün eşiğiyle ölçmek seyrek planlı firmaları haksız yere düşürür. */
+  function cadenceWeeks(company){
+    var n=(company&&company.weeks&&company.weeks.length)?company.weeks.length:4;
+    return Math.max(1,Math.min(4,Math.round(4/n)));
   }
-  /* Skoru ve NEDEN o skoru aldığını birlikte döner — rapor tablolarında not
-     alanı boşsa gerekçe metni gösterilebilsin diye. */
-  function scoreDetail(ctx,company,reportEnd){
-    if(!company)return{score:null,reason:''};
-    var visits=allDoneVisits(ctx,company.id).filter(function(x){return x.d<=reportEnd;});
-    if(!visits.length)return{score:15,reason:'Hiç ziyaret kaydı yok'};
-    var firstVisit=visits[visits.length-1].d;
 
-    var expectedWeeks=0,metWeeks=0;
-    var cursor=ctx.DT.monday(firstVisit),endMonday=ctx.DT.monday(reportEnd);
+  /* [from,to] aralığında firmanın planlı (BL.scheduled) hafta sayısı ve bu
+     haftaların kaçında gerçekten ziyaret olduğu. Hem "ömür boyu" hem "bu dönem"
+     istatistiği AYNI kuralı kullansın diye tek yerde hesaplanır. */
+  function weekCompliance(ctx,company,visits,from,to){
+    var expected=0,met=0,cursor=ctx.DT.monday(from),endMonday=ctx.DT.monday(to);
     while(cursor<=endMonday){
-      var wi=weekIndexOf(ctx,cursor);
-      if(ctx.BL.scheduled(company,wi)){
-        expectedWeeks++;
-        var weekEnd=new Date(cursor);weekEnd.setDate(weekEnd.getDate()+6);weekEnd.setHours(23,59,59,999);
-        var metThisWeek=visits.some(function(x){return x.d>=cursor&&x.d<=weekEnd;});
-        if(metThisWeek)metWeeks++;
+      if(ctx.BL.scheduled(company,weekIndexOf(ctx,cursor))){
+        expected++;
+        var wkStart=cursor,wkEnd=new Date(cursor);
+        wkEnd.setDate(wkEnd.getDate()+6);wkEnd.setHours(23,59,59,999);
+        if(visits.some(function(x){return x.d>=wkStart&&x.d<=wkEnd;}))met++;
       }
       cursor=new Date(cursor);cursor.setDate(cursor.getDate()+7);
     }
-    var score=expectedWeeks?Math.round(metWeeks/expectedWeeks*100):100;
-    var reasons=[];
-    var missedWeeks=expectedWeeks-metWeeks;
-    if(missedWeeks>0)reasons.push(missedWeeks+' planlı hafta atlandı');
+    return{expected:expected,met:met,missed:expected-met};
+  }
 
+  /* Güncellik: son ziyaretin üzerinden geçen süre, firmanın KENDİ plan aralığına
+     oranlanır. Planı aşmadıysa tam puan; aştıkça doğrusal düşer (2 kat gecikme
+     → 40, ~2.7 kat → 0). */
+  function recencyScore(daysSince,cadence){
+    if(daysSince==null)return 0;
+    var ratio=daysSince/(cadence*7);
+    if(ratio<=1)return 100;
+    return Math.max(0,Math.round(100-(ratio-1)*60));
+  }
+
+  /* Az veriyi nötre çeken önsel (Laplace yumuşatma) ve skor ağırlıkları. */
+  var SMOOTH_K=3,SMOOTH_PRIOR=0.7,W_UYUM=0.65,W_GUNCEL=0.35;
+
+  /* Firma skoru = %65 geçmiş uyum + %35 güncellik − düzeltmeler.
+
+     UYUM: ilk ziyaretten rapor sonuna kadar firmanın planlı olduğu her hafta
+     için "o hafta gidilmiş mi" bakılır. Ham oran (met/expected) küçük paydada
+     çöker: tek planlı haftası olan ve onu kaçıran firma 0 alır, 7 haftanın 5'ini
+     kaçıran firma 29 alır — yani BİR kez atlayan, sürekli atlayandan kötü
+     görünür. Bu yüzden ham oran ile önsele çekilmiş oranın İYİ olanı kullanılır:
+     veri azken firma cezalandırılmaz, veri arttıkça iki değer birbirine yakınsar
+     ve tam uyumlu firma yumuşatma yüzünden 100'ün altına düşmez.
+
+     GÜNCELLİK: geçmişi iyi ama aylardır gidilmemiş firma ile dün gidilmiş firma
+     aynı skoru almasın diye eklenir.
+
+     Hiç ziyaret kaydı olmayan firma 0 alır — herhangi bir ziyaret edilmiş
+     firmadan daha kötü olduğu garanti edilir (eski sabit 15 puan, tek haftasını
+     kaçıran firmanın 0'ından yüksek kalıyordu). */
+  function scoreCompany(ctx,company,reportEnd){
+    return scoreDetail(ctx,company,reportEnd).score;
+  }
+  /* Skoru, NEDEN o skoru aldığını ve skorun bileşenlerini birlikte döner —
+     rapor tablolarında rozetin altına "uyum 2/7 · 16g" gibi detay yazılabilsin
+     ve not alanı boşsa gerekçe metni gösterilebilsin diye. */
+  function scoreDetail(ctx,company,reportEnd){
+    if(!company)return{score:null,reason:'',reasons:[],parts:null};
+    var visits=allDoneVisits(ctx,company.id).filter(function(x){return x.d<=reportEnd;});
+    var cadence=cadenceWeeks(company);
+    if(!visits.length){
+      return{score:0,reason:'Hiç ziyaret kaydı yok',reasons:['Hiç ziyaret kaydı yok'],
+        parts:{expected:0,met:0,missed:0,uyum:0,guncellik:0,daysSince:null,cadence:cadence,
+          planDays:cadence*7,overdue:true,neverVisited:true,lowData:true,penalties:[]}};
+    }
+    var firstVisit=visits[visits.length-1].d;
+    var life=weekCompliance(ctx,company,visits,firstVisit,reportEnd);
+
+    var raw=life.expected?life.met/life.expected:1;
+    var smoothed=(life.met+SMOOTH_K*SMOOTH_PRIOR)/(life.expected+SMOOTH_K);
+    var uyum=Math.round(Math.max(raw,smoothed)*100);
+
+    var daysSince=Math.max(0,Math.round((reportEnd-visits[0].d)/86400000));
+    var planDays=cadence*7,overdue=daysSince>planDays;
+    var guncellik=recencyScore(daysSince,cadence);
+
+    var score=W_UYUM*uyum+W_GUNCEL*guncellik;
+    var penalties=[];
     var open=samplesFor(ctx,company.id).filter(sampleOpen).length;
-    if(open){var pen=Math.min(20,open*7);score-=pen;reasons.push(open+' açık numune (-'+pen+')');}
+    if(open){var pen=Math.min(15,open*5);score-=pen;penalties.push(open+' açık numune (-'+pen+')');}
     var recent=visits.slice(0,4).map(function(x){return String(x.v.tc||x.v.techCode||x.v.techId||'');}).filter(Boolean);
-    if(recent.length>=3&&new Set(recent).size>=3){score-=8;reasons.push('Ekip sürekliliği yok (-8)');}
-
+    if(recent.length>=3&&new Set(recent).size>=3){score-=8;penalties.push('Ekip sürekliliği yok (-8)');}
     score=Math.max(0,Math.min(100,Math.round(score)));
-    return{score:score,reason:reasons.length?reasons.join(' · '):'Tam uyum'};
+
+    var reasons=[];
+    if(life.missed>0)reasons.push(life.met+'/'+life.expected+' planlı hafta karşılandı');
+    else reasons.push('Tam uyum ('+life.met+'/'+life.expected+' hafta)');
+    if(overdue)reasons.push('Son ziyaret '+daysSince+' gün önce (plan '+planDays+' gün)');
+    if(life.expected<3)reasons.push('Az veri — skor geçici');
+    reasons=reasons.concat(penalties);
+
+    return{score:score,reason:reasons.join(' · '),reasons:reasons,
+      parts:{expected:life.expected,met:life.met,missed:life.missed,uyum:uyum,guncellik:guncellik,
+        daysSince:daysSince,cadence:cadence,planDays:planDays,overdue:overdue,
+        neverVisited:false,lowData:life.expected<3,penalties:penalties}};
   }
   /* Satış temsilcisi kayıtları SD.users'ta DEĞİL, ayrı `sd_st` deposunda tutulur
      (id: s1, code: S01 ...). Firma `salesRepId` (s-id) ya da `salesRepUserId`
@@ -163,6 +220,12 @@
     var rangeStart=new Date(startDate);rangeStart.setHours(0,0,0,0);
     var rangeEnd=new Date(endDate);rangeEnd.setHours(23,59,59,999);
     var rows=[];
+    /* Program dışı ziyaret kaydedilirken kayıtlı bir firma seçilmişse admin.js
+       ziyareti HEM SD.visits'e HEM SD.extras'a yazar (biri haftalık ızgarayı
+       işaretlemek, diğeri program dışı listesini beslemek için). Rapor ikisini de
+       okuduğu için tek ziyaret iki satır oluyordu. Aynı firma + aynı gün ikilisi
+       burada tek satıra indirilir; extras'taki not planlı satıra taşınır. */
+    var plannedByKey={},duplicates=0;
 
     Object.keys(ctx.visits).forEach(function(key){
       var companyId=visitCompanyId(key),weekKey=visitWeekKey(key);
@@ -178,7 +241,9 @@
           var date=parseDate(ds,weekKey);
           if(!date||date<rangeStart||date>rangeEnd)return;
           var plan=company?(ctx.BL.scheduled(company,weekIndexOf(ctx,date))?'Plana Uygun':'Plan Dışı'):'Plan Dışı';
-          rows.push({firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''});
+          var row={firmaId:companyId,firma:company?company.name:('Bilinmeyen Firma ('+companyId+')'),registered:!!company,techCode:code,teknisyen:tech?tech.name:code,salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:plan,not:''};
+          rows.push(row);
+          plannedByKey[companyId+'|'+row.tarih]=row;
         });
       });
     });
@@ -186,6 +251,8 @@
     ctx.extras.forEach(function(e){
       var date=parseDate(e.date,e.wk);
       if(!date||date<rangeStart||date>rangeEnd)return;
+      var twin=e.firmaId?plannedByKey[e.firmaId+'|'+ctx.DT.ddmmyyyy(date)]:null;
+      if(twin){duplicates++;if(e.not&&!twin.not){twin.not=e.not;}return;}
       var company=ctx.companies.find(function(c){return c.id===e.firmaId;});
       var tech=ctx.technicians.find(function(t){return t.id===e.techId;});
       rows.push({firmaId:e.firmaId||'',firma:company?company.name:(e.firmAdi||'Bilinmeyen Firma'),registered:!!company,techCode:tech?tech.code:(e.techCode||''),teknisyen:tech?tech.name:(e.techCode||''),salesRep:salesRepOf(ctx,company),dateObj:date,tarih:ctx.DT.ddmmyyyy(date),plan:'Program Dışı',not:e.not||''});
@@ -199,9 +266,16 @@
       return a.dateObj-b.dateObj;
     });
 
-    var uniqueSet={},techCounts={},dayCounts={},uygun=0,planDisi=0,programDisi=0;
+    /* "ZİYARET EDİLEN FİRMA" yalnızca firma listesinde KAYITLI firmaları sayar —
+       kart "kaç müşterimize gidildi" sorusunu cevaplasın diye. Serbest metinle
+       girilmiş program dışı isimler (kargo, OSGB, tedarikçi…) ve artık silinmiş
+       firma id'leri ayrı sayılır; kartın altında "+N kayıt dışı" olarak görünür.
+       Serbest metin isimler baştaki/sondaki boşluk ve büyük-küçük harf farkından
+       ötürü aynı firmayı iki kez saymasın diye normalize edilir. */
+    var uniqueSet={},unregSet={},techCounts={},dayCounts={},uygun=0,planDisi=0,programDisi=0;
     rows.forEach(function(r){
-      uniqueSet[r.firmaId||r.firma]=true;
+      if(r.registered&&r.firmaId)uniqueSet[r.firmaId]=true;
+      else unregSet[r.firmaId||String(r.firma||'').trim().toLocaleUpperCase('tr')]=true;
       techCounts[r.teknisyen]=(techCounts[r.teknisyen]||0)+1;
       dayCounts[r.tarih]=(dayCounts[r.tarih]||0)+1;
       if(r.plan==='Plana Uygun')uygun++;
@@ -218,15 +292,14 @@
       var sd=scoreCache[r.firmaId];
       r.score=sd.score;
       r.scoreReason=sd.reason;
+      r.scoreParts=sd.parts;
       r.grade=grade(r.score);
       r.lastVisit=r.registered?lastVisitBefore(ctx,r.firmaId,r.dateObj):null;
       /* Not alanı boşsa skorun gerekçesini göster — tablo satırı boş kalmasın. */
       r.notOrReason=r.not||r.scoreReason||'-';
     });
 
-    var total=rows.length,unique=Object.keys(uniqueSet).length;
-    var scoreVals=rows.map(function(r){return r.score;}).filter(function(s){return typeof s==='number';});
-    var avgScore=scoreVals.length?Math.round(scoreVals.reduce(function(a,b){return a+b;},0)/scoreVals.length*10)/10:0;
+    var total=rows.length,unique=Object.keys(uniqueSet).length,unregistered=Object.keys(unregSet).length;
     var planRate=total?Math.round(uygun/total*100):0;
 
     /* Bu dönemde gidilmesi gereken (BL.scheduled) ama hiç ziyaret edilmeyen aktif firmalar. */
@@ -245,16 +318,47 @@
       var tech=ctx.technicians.find(function(t){return t.id===c.techId;});
       var last=lastVisitBefore(ctx,id,rangeEnd);
       var sd=scoreDetail(ctx,c,rangeEnd);
-      /* Ziyaret tablosuyla AYNI sütunları taşıyabilmesi için skor/gerekçe ve
-         "kaç gün önce" bilgisi burada da üretilir. */
+      /* Skorun gerekçesi ÖMÜR BOYU pencereye aittir ("2/7 planlı hafta"); haftalık
+         raporda yanına BU DÖNEME ait sayı da yazılmazsa okuyucu 7 haftanın bu
+         dönemde kaçırıldığını sanır. Bu yüzden dönem uyumu ayrıca hesaplanır. */
+      var visitsAll=allDoneVisits(ctx,id).filter(function(x){return x.d<=rangeEnd;});
+      var period=weekCompliance(ctx,c,visitsAll,rangeStart,rangeEnd);
+      var neverVisited=!visitsAll.length;
+      var overdue=!!(sd.parts&&sd.parts.overdue);
+      /* Aksiyon listesi en kötüden başlamalı: hiç gidilmemiş → plan aralığını
+         aşmış → sadece bu dönem atlanmış. Alfabetik sıra aciliyeti gizliyordu. */
+      var severity=neverVisited?'Hiç Gidilmedi':(overdue?'Gecikmiş':'Bu Dönem Atlandı');
+      var severityRank=neverVisited?0:(overdue?1:2);
+      var periodNote='Bu dönem '+period.expected+' planlı hafta kaçırıldı';
       return {firmaId:id,firma:c.name,bolge:c.bolge||'-',teknisyen:tech?tech.name:'-',techCode:tech?tech.code:'-',
         salesRep:salesRepOf(ctx,c),lastVisit:last,registered:true,
-        score:sd.score,scoreReason:sd.reason,grade:grade(sd.score),
-        notOrReason:sd.reason||'-',
+        score:sd.score,scoreReason:sd.reason,scoreParts:sd.parts,grade:grade(sd.score),
+        neverVisited:neverVisited,overdue:overdue,severity:severity,severityRank:severityRank,
+        periodScheduledWeeks:period.expected,periodMissedWeeks:period.missed,
+        notOrReason:neverVisited?(periodNote+' · Hiç ziyaret kaydı yok'):(periodNote+' · '+sd.reasons[0]),
         daysSince:last?Math.max(0,Math.round((rangeEnd-last)/86400000)):null};
-    }).sort(function(a,b){return a.firma.localeCompare(b.firma,'tr');});
+    }).sort(function(a,b){
+      if(a.severityRank!==b.severityRank)return a.severityRank-b.severityRank;
+      if(a.score!==b.score)return a.score-b.score;
+      return a.firma.localeCompare(b.firma,'tr');
+    });
 
-    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,scheduledCount:Object.keys(scheduledIds).length};
+    /* Ortalama skor ve skor dağılımı FİRMA başına hesaplanır, ziyaret satırı
+       başına değil: 3 kez gidilen firma dağılımda 3 kez sayılıyor, gidilmeyen
+       firmalar ise hiç sayılmıyordu — yani ortalama, en kötü firmaları dışarıda
+       bırakıp iyi firmaları çoklayarak şişiyordu. */
+    var companyScores={};
+    /* Kayıt dışı satırların (serbest metin isim, silinmiş firma id'si) planı
+       olmadığı için skoru da yok; dağılıma girerlerse anlamsız bir "Kayıt yok"
+       bandı oluşturur ve ortalamayı bozarlar — tekil firma sayımıyla aynı
+       kuralla dışarıda bırakılırlar. */
+    rows.forEach(function(r){if(r.firmaId&&r.registered&&!(r.firmaId in companyScores))companyScores[r.firmaId]={score:r.score,grade:r.grade};});
+    missed.forEach(function(m){if(!(m.firmaId in companyScores))companyScores[m.firmaId]={score:m.score,grade:m.grade};});
+    var scored=Object.keys(companyScores).map(function(k){return companyScores[k];});
+    var scoreVals=scored.map(function(s){return s.score;}).filter(function(s){return typeof s==='number';});
+    var avgScore=scoreVals.length?Math.round(scoreVals.reduce(function(a,b){return a+b;},0)/scoreVals.length*10)/10:0;
+
+    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,unregistered:unregistered,duplicates:duplicates,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,companyScores:scored,scheduledCount:Object.keys(scheduledIds).length};
   }
 
   function previousPeriodRange(start,end){

@@ -252,23 +252,28 @@ function donutChartSvg(d,w,h){
   return panelSvg('PLAN DURUMU DAĞILIMI',inner,w,h);
 }
 
+/* Bantlar weeklyReportGrade() ile AYNI eşikleri kullanır — eskiden PDF kendi
+   (B 70-79, C 60-69, D 0-59) eşiklerini taşıyordu ve aynı firma tabloda D,
+   dağılımda C görünebiliyordu. Sayım da firma başınadır (d.companyScores):
+   çok ziyaret alan firma çoklanmaz, gidilmeyen firmalar dağılıma dahildir. */
 function scoreDistSvg(d,w,h){
-  const bands=[['A+',90,100,C.green],['A',80,89,'#46A758'],['B',70,79,'#EAB308'],['C',60,69,C.orange],['D',0,59,C.red]];
+  const bands=[['A+',90,100,C.green],['A',80,89,'#46A758'],['B+',70,79,'#EAB308'],['B',60,69,C.orange],['C',40,59,'#EA580C'],['D',0,39,C.red]];
   const counts={};bands.forEach(b=>counts[b[0]]=0);let unknown=0;
-  d.rows.forEach(r=>{
+  const src=d.companyScores||d.rows;
+  src.forEach(r=>{
     if(r.score==null){unknown++;return;}
     const s=r.score;
-    if(s>=90)counts['A+']++;else if(s>=80)counts['A']++;else if(s>=70)counts['B']++;else if(s>=60)counts['C']++;else counts['D']++;
+    if(s>=90)counts['A+']++;else if(s>=80)counts['A']++;else if(s>=70)counts['B+']++;else if(s>=60)counts['B']++;else if(s>=40)counts['C']++;else counts['D']++;
   });
-  const scored=d.rows.length-unknown;
+  const scored=src.length-unknown;
   const rows=unknown>0?bands.concat([['-',0,0,'#94A3B8']]):bands;
-  const top=28,rowH=17,barX=88,barW=w-barX-56;
+  const top=26,rowH=14,barX=88,barW=w-barX-56;
   let inner='';
   rows.forEach((b,i)=>{
     const y=top+i*rowH;
     const isUnknown=b[0]==='-';
     const cnt=isUnknown?unknown:counts[b[0]];
-    const denom=isUnknown?d.rows.length:(scored||1);
+    const denom=isUnknown?(src.length||1):(scored||1);
     const pct=denom?Math.round(cnt/denom*100):0;
     const rangeText=isUnknown?'Kayıt yok':('('+b[1]+'-'+b[2]+')');
     inner+=`<rect x="12" y="${y}" width="20" height="11" rx="2.6" fill="${b[3]}"/>`
@@ -435,7 +440,7 @@ async function buildPdf(d){
     {text:m.salesRep||'—',fontSize:6.6,bold:true,color:m.salesRep?C.ink:'#9AA7B8',alignment:'center'},
     daysAgoCell(m,true),
     scoreBadge(m),
-    {text:'Gidilmedi',fontSize:6.4,bold:true,color:C.red,alignment:'center'},
+    {text:m.severity||'Gidilmedi',fontSize:6.4,bold:true,color:m.severityRank===2?C.orange:C.red,alignment:'center'},
     {text:m.notOrReason||'-',fontSize:6,color:C.muted}
   ]);
 
@@ -445,9 +450,9 @@ async function buildPdf(d){
     ['Plana Uygun','Firmanın kendi periyoduna denk gelen haftada yapılan ziyarettir.'],
     ['Plan Dışı','Firma o hafta planlı olmadığı halde yapılan ziyarettir.'],
     ['Program Dışı','Sisteme kayıtlı planı olmayan, sahada anlık eklenen ziyaretlerdir; tabloların en altında toplanır.'],
-    ['Gidilmeyen Firma','O hafta planlandığı halde hiç ziyaret edilmeyen aktif firma sayısıdır.'],
+    ['Gidilmeyen Firma','O hafta planlandığı halde hiç ziyaret edilmeyen aktif firma sayısıdır. Aciliyete göre sıralanır: Hiç Gidilmedi → Gecikmiş (plan aralığı aşılmış) → Bu Dönem Atlandı.'],
     ['Plan Uyum Oranı','Plana uygun ziyaretlerin toplam ziyaretlere oranıdır.'],
-    ['Firma Skoru','İlk ziyaretten bu döneme kadar geçen tüm planlı haftaların ortalama uyum oranıdır (kaç haftada gerçekten gidilmiş). Açık numune ve ekip sürekliliği puanı düşürür. A+ (90-100) mükemmel, D (0-59) kritik.'],
+    ['Firma Skoru','%65 uyum + %35 güncellik − düzeltmeler. Uyum: ilk ziyaretten bu döneme kadar firmanın planlı olduğu haftaların kaçında gerçekten gidildiği; planlı hafta sayısı azken tek bir atlama skoru dibe vurmasın diye oran yumuşatılır. Güncellik: son ziyaretin üzerinden geçen sürenin firmanın kendi plan aralığına oranı. Açık numune ve ekip sürekliliği puanı düşürür; hiç ziyaret kaydı yoksa 0. A+ (90-100) mükemmel, D (0-39) kritik.'],
     ['Skor Seviyesi','Firma skorunun 5 üzerinden yıldız karşılığıdır.'],
     ['Kaç Gün Önce','Bu ziyaretten bir önceki tamamlanmış ziyaretten bu yana geçen gün sayısıdır.'],
     ['Not','Saha notu girilmişse o gösterilir; girilmemişse skorun neden düştüğü özetlenir.']

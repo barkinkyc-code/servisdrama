@@ -42,12 +42,15 @@
 
   /* Kartlar SABİT yükseklikte (height + fixed satır yükseklikleri): etiket bir
      ya da iki satıra sarsa da tüm kartlar aynı boyda kalır, alt kenarlar
-     hizalanır. Outlook masaüstü height niteliğine uyar. */
-  function statCard(icon,color,value,label,trend,invert){
-    return '<table role="presentation" width="100%" height="132" cellpadding="0" cellspacing="0" border="0" style="height:132px;border:1px solid '+C.line+';"><tr><td valign="top" style="padding:14px 13px;font-family:Arial,Helvetica,sans-serif;">'
+     hizalanır. Outlook masaüstü height niteliğine uyar.
+     `note` satırı BOŞ olsa da her kartta yer kaplar — yalnızca dolu olduğu kartta
+     çizilirse o kart diğerlerinden uzun olur ve alt kenarlar kayar. */
+  function statCard(icon,color,value,label,trend,invert,note){
+    return '<table role="presentation" width="100%" height="146" cellpadding="0" cellspacing="0" border="0" style="height:146px;border:1px solid '+C.line+';"><tr><td valign="top" style="padding:14px 13px;font-family:Arial,Helvetica,sans-serif;">'
       +'<table role="presentation" width="28" height="28" cellpadding="0" cellspacing="0" border="0" bgcolor="'+color+'" style="width:28px;height:28px;background-color:'+color+';"><tr><td align="center" valign="middle"><img src="cid:'+icon+'" width="15" height="15" alt="" style="display:block;width:15px;height:15px;"></td></tr></table>'
       +'<div style="height:34px;line-height:34px;font-size:25px;font-weight:bold;color:'+C.ink+';margin-top:8px;">'+esc(value)+'</div>'
       +'<div style="height:28px;font-size:10.5px;line-height:14px;font-weight:bold;color:'+C.muted+';">'+esc(label)+'</div>'
+      +'<div style="height:13px;line-height:13px;font-size:9px;color:'+C.blue+';white-space:nowrap;overflow:hidden;">'+(note?esc(note):'&nbsp;')+'</div>'
       +trendLine(trend,invert)
       +'</td></tr></table>';
   }
@@ -55,8 +58,8 @@
   function statCardsGrid(d){
     var t=d.trend;
     var cards=[
-      statCard('stat-visits',C.blue,d.total,'TOPLAM ZİYARET',t.total,false),
-      statCard('stat-companies',C.green,d.unique,'ZİYARET EDİLEN FİRMA',t.unique,false),
+      statCard('stat-visits',C.blue,d.total,'TOPLAM ZİYARET',t.total,false,d.duplicates?d.duplicates+' mükerrer ayıklandı':''),
+      statCard('stat-companies',C.green,d.unique,'ZİYARET EDİLEN FİRMA',t.unique,false,d.unregistered?'+'+d.unregistered+' kayıt dışı':''),
       statCard('stat-check',C.green,d.uygun,'PLANA UYGUN',t.uygun,false),
       statCard('stat-alert',C.orange,d.planDisi,'PLAN DIŞI',t.planDisi,true),
       statCard('stat-calendar',C.purple,d.programDisi,'PROGRAM DIŞI',t.programDisi,true),
@@ -122,10 +125,14 @@
       +'</td></tr></table>';
   }
 
+  /* Dağılım FİRMA başına sayılır (d.companyScores): ziyaret edilen firmalar +
+     bu dönem gidilmeyen firmalar, her biri bir kez. Eskiden d.rows üzerinden
+     sayılıyordu; çok ziyaret alan firma dağılımda çoklanıyor, gidilmeyen firmalar
+     ise hiç görünmüyordu. */
   function scoreDistributionBlock(d,gradeFn){
     var bands=[['A+',90,100],['A',80,89],['B+',70,79],['B',60,69],['C',40,59],['D',0,39]];
     var counts={},unknown=0;bands.forEach(function(b){counts[b[0]]=0;});
-    d.rows.forEach(function(r){if(r.grade&&r.grade.g!=='-')counts[r.grade.g]=(counts[r.grade.g]||0)+1;else unknown++;});
+    (d.companyScores||d.rows).forEach(function(r){if(r.grade&&r.grade.g!=='-')counts[r.grade.g]=(counts[r.grade.g]||0)+1;else unknown++;});
     var rows=bands.map(function(b){
       var g=gradeFn(b[1]);
       return '<tr><td width="34" style="padding:6px 0;"><table role="presentation" width="30" height="16" cellpadding="0" cellspacing="0" border="0" bgcolor="'+g.color+'" style="width:30px;height:16px;background-color:'+g.color+';"><tr><td align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;color:#ffffff;">'+b[0]+'</td></tr></table></td>'
@@ -164,6 +171,18 @@
       +'<div style="margin-top:3px;font-size:8.5px;line-height:12px;letter-spacing:.6px;font-weight:bold;color:#A9B4C4;">SON ZİYARET</div>'
       +'<div style="font-size:10px;line-height:14px;font-weight:bold;color:'+subColor+';">'+sub+'</div>';
   }
+  /* Skor hücresi iki kademeli: üstte rozet (harf + puan), altında rozetin NEDEN
+     o değerde olduğunu tek bakışta veren özet — "uyum 2/7 · 16g".
+     Rozetin tek başına anlamı yok; 29 ile 60 arasındaki farkın kaç planlı
+     haftadan ve kaç gün gecikmeden geldiği ancak burada görülüyor. */
+  function scoreCellHtml(r){
+    if(!r.grade)return '-';
+    var badge='<span style="display:inline-block;padding:4px 8px;background-color:'+r.grade.color+';color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;white-space:nowrap;">'+r.grade.g+(r.score==null?'':' '+r.score)+'</span>';
+    var p=r.scoreParts;
+    if(!p)return badge;
+    var sub=p.neverVisited?'kayıt yok':('uyum '+p.met+'/'+p.expected+(p.overdue&&p.daysSince!=null?' · '+p.daysSince+'g':''));
+    return badge+'<div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:8.5px;line-height:11px;color:'+(p.overdue?C.red:C.muted)+';white-space:nowrap;">'+esc(sub)+'</div>';
+  }
   /* Ziyaret tablosu ile "gidilmeyen firmalar" tablosu AYNI sütun düzenini
      kullanır; sadece başlık rengi ve plan durumu etiketi değişir. */
   function visitTable(rows,opts){
@@ -179,15 +198,18 @@
       var bg=i%2===0?'#ffffff':zebra;
       var cell='background-color:'+bg+';padding:10px 9px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;';
       var days=missed?(r.daysSince==null?'—':r.daysSince+' gün'):daysAgoText(r);
-      var planText=missed?'Gidilmedi':r.plan;
-      var planCol=missed?C.red:planColor(r.plan);
+      /* Gidilmeyen firmalarda hepsi "Gidilmedi" yazıyordu — hiç gidilmemiş firma
+         ile bu dönem bir kez atlanan firma aynı görünüyordu. Artık aciliyet
+         seviyesi yazılır ve renk de ona göre değişir. */
+      var planText=missed?(r.severity||'Gidilmedi'):r.plan;
+      var planCol=missed?(r.severityRank===2?C.orange:C.red):planColor(r.plan);
       return '<tr>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+C.ink+';">'+esc(r.firma)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;color:'+C.ink+';white-space:nowrap;" align="center">'+esc(r.techCode||'—')+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'white-space:nowrap;">'+dateCellHtml(r,missed)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+(r.salesRep?C.ink:'#9AA7B8')+';white-space:nowrap;" align="center">'+esc(r.salesRep||'—')+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+C.muted+';white-space:nowrap;" align="center">'+esc(days)+'</td>'
-        +'<td bgcolor="'+bg+'" style="'+cell+'" align="center">'+(r.grade?'<span style="display:inline-block;padding:4px 8px;background-color:'+r.grade.color+';color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;white-space:nowrap;">'+r.grade.g+(r.score==null?'':' '+r.score)+'</span>':'-')+'</td>'
+        +'<td bgcolor="'+bg+'" style="'+cell+'" align="center">'+scoreCellHtml(r)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:11px;font-weight:bold;color:'+planCol+';white-space:nowrap;" align="center">'+esc(planText)+'</td>'
         +'<td bgcolor="'+bg+'" style="'+cell+'font-size:10.5px;color:'+(r.not?C.ink:C.muted)+';">'+esc(r.notOrReason||'-')+'</td>'
         +'</tr>';
@@ -246,7 +268,11 @@
       +sectionHeading('Dönem İçindeki Tüm Ziyaretler',topRows.length,C.ink,true)
       +'<tr><td class="pad" style="padding:0 30px 10px;overflow-x:auto;">'+summaryTable(topRows)+'</td></tr>'
       +emptyNote
-      +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">Not: Firma skoru; ilk ziyaretten bu döneme kadar geçen tüm haftaların ortalama uyum oranıdır (beklenen hafta sayısına göre kaç haftada gerçekten ziyaret edilmiş), buna açık numune sayısı ve son ziyaretlerdeki teknisyen sürekliliği düzeltme olarak eklenir. Not sütunu boşsa skorun neden düştüğü yazılır. Program dışı ziyaretler tarih fark etmeksizin en altta toplanır.</td></tr>'
+      +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">'
+      +'Not: Firma skoru = %65 <strong>uyum</strong> + %35 <strong>güncellik</strong> − düzeltmeler. Uyum, ilk ziyaretten bu döneme kadar firmanın planlı olduğu haftaların kaçında gerçekten gidildiğidir — rozetin altında “uyum karşılanan/planlı” olarak yazar. Planlı hafta sayısı azken skor tek bir atlamayla dibe vurmasın diye oran yumuşatılır; bu firmalarda not sütununda “az veri — skor geçici” yazar. Güncellik, son ziyaretin üzerinden geçen sürenin firmanın kendi plan aralığına oranıdır (haftalık planlı firmada 7 gün, 2 haftalıkta 14 gün…); aşıldığında rozetin altındaki gün sayısı kırmızıya döner. Açık numune ve son ziyaretlerde teknisyen sürekliliğinin bozulması puan düşürür. Hiç ziyaret kaydı olmayan firma 0 alır. '
+      +'Gidilmeyen firmalar aciliyete göre sıralanır: <strong>Hiç Gidilmedi</strong> → <strong>Gecikmiş</strong> (plan aralığı aşılmış) → <strong>Bu Dönem Atlandı</strong> (plan aralığı içinde ama bu dönemki planlı haftada gidilmemiş); not sütununda bu dönemde kaç planlı haftanın kaçırıldığı yazar. Skor dağılımı ve ortalama, ziyaret satırı başına değil <strong>firma başına</strong> hesaplanır ve gidilmeyen firmaları da kapsar. '
+      +'“Ziyaret edilen firma” yalnızca firma listesinde <strong>kayıtlı</strong> firmaları sayar; serbest metinle girilmiş program dışı isimler (kargo, OSGB, tedarikçi…) ve silinmiş firma kayıtları kartın altında “+N kayıt dışı” olarak ayrı gösterilir. Aynı firmaya aynı gün hem planlı hem program dışı kayıt açılmışsa tek ziyaret sayılır; ayıklanan mükerrer sayısı toplam ziyaret kartının altında yazar. Program dışı ziyaretler tarih fark etmeksizin en altta toplanır.'
+      +'</td></tr>'
 
       +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:'+C.blue+';">ServisDrama</strong> • Haftalık Rapor • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
 
