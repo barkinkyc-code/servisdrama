@@ -215,9 +215,14 @@
 </head>
 <body>
 
+  <!-- ?v= ZORUNLU: Vercel'in kenar önbelleği Range isteklerini (video elemanının
+       kullandığı yöntem) tam-dosya yanıtlarından AYRI önbelleğe alıyor; dosya
+       değişince eski Range yanıtı bayat kalıp Range header'ını yok sayarak eski
+       içeriği döndürebiliyor (canlıda doğrulandı). Video dosyası her
+       değiştirildiğinde bu sürüm etiketi de değişmeli. -->
   <div class="video-layer" aria-hidden="true">
-    <video id="bgBlur" class="bg-blur" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm"></video>
-    <video id="bgA" class="bg-main" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm"></video>
+    <video id="bgBlur" class="bg-blur" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm?v=20260810-trim1"></video>
+    <video id="bgA" class="bg-main" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm?v=20260810-trim1"></video>
     <div class="video-scrim"></div>
   </div>
 
