@@ -187,8 +187,11 @@
          ana video TAM ÇERÇEVE gösterilir (contain, hiçbir şey kesilmez);
          üstte/altta açığa çıkan boşluk aynı videonun bulanık, büyütülmüş bir
          kopyasıyla dolduruluyor — tam ekran/immersif his korunur. */
-      .bg-main{object-fit:contain;z-index:1;}
-      .bg-blur{
+      /* NOT: ".bg-main" tek başına ".video-layer video" taban kuralını (1 sınıf+1
+         eleman) özgüllükte yenemiyordu — cover hep kazanıyordu. ".video-layer
+         video.bg-main" ile özgüllüğü kesin olarak üstüne çıkarıyoruz. */
+      .video-layer video.bg-main{object-fit:contain;z-index:1;}
+      .video-layer video.bg-blur{
         display:block;object-fit:cover;z-index:0;
         filter:blur(38px) saturate(1.25) brightness(.6);
         transform:scale(1.18); /* blur kenarındaki keskin/şeffaf sınırı kadraj dışına it */
