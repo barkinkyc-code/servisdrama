@@ -2,328 +2,373 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>ServisDrama — Giriş</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html{font-size:14px;-webkit-text-size-adjust:100%;}
+    /* Panel genişliği tek yerden: video de tam bu kadar daralıyor. */
+    :root{--panel-w:430px;--slide:.42s cubic-bezier(.22,.75,.3,1);}
+
+    body{
+      font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      /* Video yüklenmezse (çevrimdışı, bozuk dosya, iOS düşük güç modu) ekran
+         boş kalmasın diye gövdenin kendi degrade zemini var. */
+      background:linear-gradient(135deg,#0b2f67 0%,#102b50 45%,#1a1040 100%);
+      height:100vh;height:100dvh;color:#fff;overflow:hidden;
+      -webkit-font-smoothing:antialiased;
     }
 
-    html {
-      font-size: 14px;
-      -webkit-text-size-adjust: 100%;
+    /* ═══ ARKA PLAN VİDEOSU ═══
+       1:28→1:31 dilimi TEK SEFER oynar ve son karede durur — döngü yok.
+
+       Panel açılınca katmanın SAĞ kenarı panel genişliği kadar içeri çekilir;
+       video panelin altında kalmak yerine sola doğru daralır. object-fit:cover
+       sayesinde video dar kutuya yeniden kırpılır. */
+    .video-layer{
+      position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;z-index:0;background:#08132b;
+      opacity:0;transition:opacity .9s ease,right var(--slide);
+    }
+    body.video-ready .video-layer{opacity:1;}
+    body.panel-open .video-layer{right:var(--panel-w);}
+    .video-layer video{
+      position:absolute;inset:0;width:100%;height:100%;
+      object-fit:cover;pointer-events:none;
+      opacity:0;transition:opacity 1.2s ease-in-out;
+    }
+    .video-layer video.on{opacity:1;}
+    /* Video artık metin taşımıyor; tam ekran karartma kaldırıldı ki görüntü
+       parlak kalsın. Yalnızca üst şeritteki logo ve düğme okunsun diye ince bir
+       degrade var. Katmanın İÇİNDE durur, böylece video ile birlikte daralır. */
+    .video-scrim{
+      position:absolute;inset:0;z-index:1;pointer-events:none;
+      background:linear-gradient(180deg,rgba(4,12,28,.58) 0%,rgba(4,12,28,.16) 20%,rgba(4,12,28,0) 42%);
     }
 
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      color: #333;
-      -webkit-font-smoothing: antialiased;
+    /* ═══ ÜST BAR ═══ */
+    .topbar{
+      position:fixed;top:0;left:0;right:0;z-index:4;
+      display:flex;align-items:center;justify-content:space-between;gap:16px;
+      padding:calc(18px + env(safe-area-inset-top)) clamp(16px,4vw,40px) 18px;
+    }
+    .brand-mark{display:none;}
+    .brand-mark img{
+      width:46px;height:46px;object-fit:contain;flex-shrink:0;
+      background:rgba(255,255,255,.94);border-radius:11px;padding:6px;
+    }
+    .brand-mark span{
+      font-size:13px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;
+      text-shadow:0 2px 12px rgba(0,0,0,.5);white-space:nowrap;
     }
 
-    .login-container {
-      width: 100%;
-      max-width: 420px;
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
-      animation: slideUp 0.4s ease;
+    /* Hamburger — sağ üst köşede sabit durur, "GİRİŞ" yazılı. */
+    .menu-btn{
+      position:fixed;top:calc(18px + env(safe-area-inset-top));right:clamp(16px,4vw,40px);
+      display:flex;align-items:center;justify-content:center;gap:11px;z-index:7;flex-shrink:0;
+      min-height:44px;padding:11px 18px;border:1px solid rgba(255,255,255,.32);border-radius:999px;
+      background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+      color:#fff;font-family:inherit;font-size:12px;font-weight:800;letter-spacing:1.6px;
+      cursor:pointer;transition:background .25s ease,border-color .25s ease,transform .2s ease;
+    }
+    .menu-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.55);}
+    .menu-btn:active{transform:scale(.96);}
+    .menu-btn:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+    .menu-bars{display:flex;flex-direction:column;gap:4.5px;width:20px;}
+    .menu-bars i{display:block;height:2px;border-radius:2px;background:#fff;transition:transform .3s ease,opacity .2s ease;}
+    body.panel-open .menu-bars i:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+    body.panel-open .menu-bars i:nth-child(2){opacity:0;}
+    body.panel-open .menu-bars i:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+
+    /* ═══ GİRİŞ PANELİ ═══
+       Masaüstünde panel videonun ÜSTÜNE binmiyor, video yanında daralıyor —
+       bu yüzden karartma da yok, sadece dışarı tıklayınca kapatan görünmez bir
+       katman. Mobilde panel tam ekran kapladığı için karartma geri geliyor. */
+    .backdrop{
+      position:fixed;inset:0;z-index:5;background:transparent;
+      opacity:0;visibility:hidden;transition:opacity .35s ease,visibility .35s;
+    }
+    body.panel-open .backdrop{opacity:1;visibility:visible;}
+
+    .login-panel{
+      position:fixed;top:0;right:0;bottom:0;z-index:6;
+      width:min(var(--panel-w),100%);
+      display:flex;flex-direction:column;
+      background:#fff;color:#333;
+      box-shadow:-24px 0 70px rgba(0,0,0,.42);
+      transform:translateX(100%);transition:transform var(--slide);
+      overflow-y:auto;overscroll-behavior:contain;
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    body.panel-open .login-panel{transform:translateX(0);}
+
+    .panel-hd{
+      background:linear-gradient(135deg,#0b2f67 0%,#1565d8 100%);
+      padding:calc(26px + env(safe-area-inset-top)) 26px 26px;
+      color:#fff;position:relative;
+    }
+    .panel-close{
+      position:absolute;top:calc(20px + env(safe-area-inset-top));right:18px;
+      width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+      border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;
+      font-size:22px;line-height:1;cursor:pointer;transition:background .2s ease;
+    }
+    .panel-close:hover{background:rgba(255,255,255,.3);}
+    .panel-close:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+    .panel-logo{
+      width:66px;height:66px;margin-bottom:14px;padding:10px;
+      background:rgba(255,255,255,.14);border-radius:14px;
+    }
+    .panel-logo img{width:100%;height:100%;object-fit:contain;}
+    .panel-hd h2{font-size:21px;font-weight:700;letter-spacing:-.4px;}
+    .panel-hd p{margin-top:5px;font-size:12.5px;opacity:.85;font-weight:500;}
+
+    .panel-body{padding:28px 26px;flex:1;}
+    .form-group{margin-bottom:18px;}
+    label{
+      display:block;font-size:11.5px;font-weight:700;color:#333;
+      text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;
+    }
+    input[type="text"],input[type="password"]{
+      width:100%;padding:13px 14px;border:1.5px solid #e0e0e0;border-radius:9px;
+      font-size:14px;font-family:inherit;background:#f8f9fa;transition:all .2s ease;
+    }
+    input[type="text"]:focus,input[type="password"]:focus{
+      outline:none;border-color:#1565d8;background:#fff;box-shadow:0 0 0 3px rgba(21,101,216,.12);
+    }
+    .remember-me{display:flex;align-items:center;gap:9px;margin:16px 0 22px;font-size:13px;color:#555;}
+    .remember-me input[type="checkbox"]{width:18px;height:18px;cursor:pointer;accent-color:#1565d8;}
+    .remember-me label{margin:0;cursor:pointer;user-select:none;text-transform:none;font-size:13px;letter-spacing:0;}
+    .login-button{
+      width:100%;padding:15px;border:0;border-radius:9px;cursor:pointer;
+      background:linear-gradient(135deg,#0b2f67 0%,#1565d8 100%);color:#fff;
+      font-family:inherit;font-size:14.5px;font-weight:700;
+      box-shadow:0 6px 18px rgba(21,101,216,.3);transition:all .28s ease;
+    }
+    .login-button:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(21,101,216,.42);}
+    .login-button:active{transform:translateY(0);}
+    .login-button:disabled{opacity:.7;cursor:not-allowed;transform:none;}
+    .message{
+      margin-top:16px;padding:12px 14px;border-radius:9px;
+      font-size:13px;font-weight:500;text-align:center;display:none;
+    }
+    .message.show{display:block;animation:fadeIn .3s ease;}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .message.success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;}
+    .message.error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;}
+    .message.loading{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;}
+    .panel-ft{
+      padding:18px 26px;background:#f8f9fa;border-top:1px solid #e8e8e8;
+      text-align:center;font-size:12px;color:#666;
     }
 
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* Dar masaüstü/tablet: sabit 430px ekranın yarısından fazlasını yiyip
+       videoyu şeride çevirmesin. */
+    @media (max-width:900px){
+      :root{--panel-w:min(430px,52vw);}
     }
-
-    .login-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 32px 24px;
-      text-align: center;
-      color: #fff;
+    /* ═══ MOBİL ═══
+       Panel TAM EKRAN açıldığı için video daralmaz (daralsa genişliği sıfırlanır);
+       panel videonun üstüne biner ve karartma geri gelir. */
+    @media (max-width:600px){
+      :root{--panel-w:100%;}
+      .login-panel{width:100%;}
+      body.panel-open .video-layer{right:0;}
+      .backdrop{background:rgba(4,10,24,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+      .menu-btn{padding:10px 15px;font-size:11px;letter-spacing:1.2px;}
+      /* iOS'ta 16px altı yazı alanı odaklanınca sayfayı zoomlar. */
+      input[type="text"],input[type="password"]{font-size:16px;padding:14px;}
+      .login-button{padding:16px;font-size:15px;}
     }
-
-    .login-logo {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 16px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 800;
-      padding: 12px;
-    }
-
-    .login-logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .login-header h1 {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      letter-spacing: -0.5px;
-    }
-
-    .login-header p {
-      font-size: 13px;
-      opacity: 0.9;
-      font-weight: 500;
-    }
-
-    .login-body {
-      padding: 32px 24px;
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-group:last-of-type {
-      margin-bottom: 24px;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 700;
-      color: #333;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1.5px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      transition: all 0.2s ease;
-      background: #f8f9fa;
-    }
-
-    input[type="text"]:focus,
-    input[type="password"]:focus {
-      outline: none;
-      border-color: #667eea;
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .login-button {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .login-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .login-button:active {
-      transform: translateY(0);
-    }
-
-    .login-button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .message {
-      margin-top: 16px;
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      text-align: center;
-      display: none;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-
-    .message.show {
-      display: block;
-    }
-
-    .message.success {
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-    }
-
-    .message.error {
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-    }
-
-    .message.loading {
-      background: #eff6ff;
-      color: #1e40af;
-      border: 1px solid #bfdbfe;
-    }
-
-    .remember-me {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 16px 0 24px;
-      font-size: 13px;
-      color: #555;
-    }
-
-    .remember-me input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: #667eea;
-    }
-
-    .remember-me label {
-      margin: 0;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .login-footer {
-      padding: 20px 24px;
-      background: #f8f9fa;
-      border-top: 1px solid #e0e0e0;
-      text-align: center;
-      font-size: 12px;
-      color: #666;
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 480px) {
-      .login-container {
-        border-radius: 12px;
-      }
-
-      .login-header {
-        padding: 24px 20px;
-      }
-
-      .login-header h1 {
-        font-size: 20px;
-      }
-
-      .login-body {
-        padding: 24px 20px;
-      }
-
-      input[type="text"],
-      input[type="password"] {
-        font-size: 16px; /* Prevents zoom on iOS */
-        padding: 14px;
-      }
-
-      .login-button {
-        padding: 16px;
-        font-size: 15px;
-      }
+    /* Hareket hassasiyeti açık olan cihazlarda video oynatılmaz. */
+    @media (prefers-reduced-motion:reduce){
+      .video-layer{display:none;}
+      .login-panel,.backdrop,.menu-bars i{transition:none;}
     }
   </style>
 
-<meta name="theme-color" content="#1D4ED8">
+<meta name="theme-color" content="#0b2f67">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ServisDrama">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="manifest" href="/manifest.webmanifest?v=20260804-pwa-v1">
 </head>
 <body>
-  <div class="login-container">
-    <div class="login-header">
-      <div class="login-logo">
-        <img src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine Logo">
-      </div>
-      <h1>ServisDrama</h1>
+
+  <div class="video-layer" aria-hidden="true">
+    <video id="bgA" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm"></video>
+    <div class="video-scrim"></div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand-mark">
+      <img src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine">
+      <span>ServisDrama</span>
+    </div>
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Giriş panelini aç" aria-expanded="false" aria-controls="loginPanel">
+      <span class="menu-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      GİRİŞ
+    </button>
+  </header>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <aside class="login-panel" id="loginPanel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+    <div class="panel-hd">
+      <button class="panel-close" id="panelClose" type="button" aria-label="Kapat">&times;</button>
+      <div class="panel-logo"><img src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine"></div>
+      <h2 id="panelTitle">ServisDrama</h2>
       <p>Teknik Servis Yönetim Sistemi</p>
     </div>
 
-    <div class="login-body">
+    <div class="panel-body">
       <form id="loginForm">
         <div class="form-group">
           <label for="user">Kullanıcı Adı</label>
-          <input
-            type="text"
-            id="user"
-            placeholder="örn: barkin.kayaci"
-            value="barkin.kayaci"
-            autocomplete="username"
-          >
+          <input type="text" id="user" placeholder="örn: barkin.kayaci" value="barkin.kayaci" autocomplete="username">
         </div>
-
         <div class="form-group">
           <label for="pass">Şifre</label>
-          <input
-            type="password"
-            id="pass"
-            placeholder="Şifrenizi girin"
-            autocomplete="current-password"
-          >
+          <input type="password" id="pass" placeholder="Şifrenizi girin" autocomplete="current-password">
         </div>
-
         <div class="remember-me">
           <input type="checkbox" id="remember" name="remember">
           <label for="remember">Beni Hatırla</label>
         </div>
-
-        <button type="submit" class="login-button" id="loginBtn">
-          Giriş Yap
-        </button>
-
+        <button type="submit" class="login-button" id="loginBtn">Giriş Yap</button>
         <div id="msg" class="message"></div>
       </form>
     </div>
 
-    <div class="login-footer">
-      © 2026 Drama Makine - Teknik Servis Yönetimi
-    </div>
-  </div>
+    <div class="panel-ft">© 2026 Drama Makine - Teknik Servis Yönetimi</div>
+  </aside>
 
   <script>
+    /* ═══ ARKA PLAN VİDEOSU — TEK SEFER OYNAR, SONRA DURUR ═══
+       LOOP_START'tan başlar, LOOP_END'e gelince duraklar ve orada KALIR — döngü
+       yok, tekrar başa sarma yok. Tek video elemanı yeterli; çapraz geçiş/ikinci
+       video artık gerekmiyor çünkü gizlenecek bir dikiş yeri (sarma anı) yok.
+
+       Bitiş kontrolü setInterval ile yapılır: timeupdate saniyede ~4 kez
+       tetiklenir ve LOOP_END'i birkaç yüz ms aşabilir; requestAnimationFrame ise
+       sayfa çizim yapmadığında (arka plan sekmesi) hiç tetiklenmez. */
+    var LOOP_START=88;   /* 1:28 */
+    var LOOP_END=91;     /* 1:31 */
+
+    var vid=document.getElementById('bgA');
+    var bittiMi=false,started=false,endTimer=null;
+
+    function metadataReady(v){
+      return v.readyState>=1?Promise.resolve():new Promise(function(res){
+        v.addEventListener('loadedmetadata',res,{once:true});
+        v.addEventListener('error',res,{once:true});
+      });
+    }
+
+    function checkEnd(){
+      if(bittiMi)return;
+      if(vid.currentTime>=LOOP_END){
+        bittiMi=true;
+        clearInterval(endTimer);
+        vid.pause();
+        /* Tam LOOP_END karesinde dursun; setInterval'in kaçırdığı fazlalığı geri al. */
+        try{vid.currentTime=LOOP_END;}catch(_){}
+      }
+    }
+
+    (function startBackgroundVideo(){
+      if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+
+      /* Açılış, play()'in döndürdüğü promise'e DEĞİL 'playing' olayına bağlı:
+         devam eden bir arama (seek) play() promise'ini AbortError ile
+         reddedebiliyor — oysa oynatma gerçekte başlıyor. */
+      vid.addEventListener('playing',function onFirstPlay(){
+        if(started)return;
+        started=true;
+        vid.classList.add('on');
+        document.body.classList.add('video-ready');
+        clearInterval(endTimer);
+        endTimer=setInterval(checkEnd,150);
+      });
+
+      function tryStart(){
+        if(bittiMi)return;
+        /* Dosya bozuk/eksikse (readyState 0 kalır) degrade zemin görünür kalsın. */
+        if(vid.readyState<1)return;
+        vid.playbackRate=0.43;
+        try{vid.currentTime=LOOP_START;}catch(_){}
+        vid.play().catch(function(){});
+      }
+      metadataReady(vid).then(tryStart);
+
+      /* Sayfa GÖRÜNMEZKEN açılmışsa oynatma hiç başlamaz: Chrome ses kanalı
+         olmayan arka plan videosunu güç tasarrufu için duraklatır. Görünür
+         olunca, video henüz BİTMEDİYSE yeniden denenir. */
+      document.addEventListener('visibilitychange',function(){
+        if(document.hidden||bittiMi)return;
+        if(!started){tryStart();return;}
+        if(vid.paused)vid.play().catch(function(){});
+      });
+      /* Aynı güç tasarrufu duraklatması sayfa açıkken de olabilir; video henüz
+         BİTMEDEN duraklatıldıysa devam ettir. Bitince zaten kasıtlı duruyor,
+         bu durumda dokunma. Tarayıcı ısrarla duraklatırsa play→pause→play
+         kısır döngüsü kurulmasın diye saniyede bir denenir. */
+      var sonDeneme=0;
+      vid.addEventListener('pause',function(){
+        if(!started||bittiMi||document.hidden)return;
+        var now=Date.now();
+        if(now-sonDeneme<1000)return;
+        sonDeneme=now;
+        vid.play().catch(function(){});
+      });
+
+      /* Otomatik oynatma engellendiyse donmuş kare yerine degrade zeminde kal. */
+      setTimeout(function(){
+        if(!started)document.body.classList.remove('video-ready');
+      },3000);
+    })();
+
+    /* ═══ GİRİŞ PANELİ ═══ */
+    var menuBtn=document.getElementById('menuBtn');
+    var panel=document.getElementById('loginPanel');
+    var backdrop=document.getElementById('backdrop');
+    var panelClose=document.getElementById('panelClose');
+
+    function openPanel(){
+      document.body.classList.add('panel-open');
+      menuBtn.setAttribute('aria-expanded','true');
+      menuBtn.setAttribute('aria-label','Giriş panelini kapat');
+      /* Kullanıcı adı hazır geliyorsa doğrudan şifreye odaklan. */
+      var u=document.getElementById('user'),p=document.getElementById('pass');
+      setTimeout(function(){(u.value?p:u).focus();},420);
+    }
+    function closePanel(){
+      document.body.classList.remove('panel-open');
+      menuBtn.setAttribute('aria-expanded','false');
+      menuBtn.setAttribute('aria-label','Giriş panelini aç');
+      menuBtn.focus();
+    }
+    function togglePanel(){
+      document.body.classList.contains('panel-open')?closePanel():openPanel();
+    }
+    menuBtn.addEventListener('click',togglePanel);
+    panelClose.addEventListener('click',closePanel);
+    backdrop.addEventListener('click',closePanel);
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'&&document.body.classList.contains('panel-open'))closePanel();
+    });
+    /* Panel açıkken Tab odağı paneli terk etmesin (role="dialog" gereği). */
+    panel.addEventListener('keydown',function(e){
+      if(e.key!=='Tab')return;
+      var f=panel.querySelectorAll('button,input,[href]');
+      if(!f.length)return;
+      var first=f[0],last=f[f.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    });
+
+    /* ═══ GİRİŞ İŞLEMİ ═══ */
     const form = document.getElementById('loginForm');
     const userInput = document.getElementById('user');
     const passInput = document.getElementById('pass');
@@ -336,7 +381,6 @@
       const savedUser = localStorage.getItem('savedUser');
       const wasRemembered = localStorage.getItem('userRemembered');
       const savedPass = localStorage.getItem('savedPass');
-      const persistedSession = localStorage.getItem('sd_session_persist');
       if (savedUser && wasRemembered === 'true') {
         userInput.value = savedUser;
         rememberCheckbox.checked = true;
@@ -344,7 +388,6 @@
       }
     });
 
-    // Focus effects
     userInput.addEventListener('focus', () => userInput.select());
 
     form.addEventListener('submit', async function(e) {

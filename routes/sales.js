@@ -100,6 +100,11 @@ router.put('/:id', auth, async (req, res) => {
       phone: clean(req.body?.phone ?? profile.phone, 40), status: req.body?.status === 'inactive' ? 'inactive' : 'active'
     };
     if (!patch.code || !patch.name || !patch.username) return res.status(400).json({ error: 'Kod, ad ve kullanıcı adı zorunlu' });
+    // Kod artık panelden düzenlenebiliyor; POST'taki benzersizlik kontrolünün
+    // aynısı burada da olmalı, yoksa iki satışçı aynı kodu taşıyabilir ve
+    // raporlardaki "Satış Temsilcisi" sütunu ayırt edilemez hale gelir.
+    if ((state.sd_st || []).some(x => String(x.id) !== String(profile.id) && String(x.code || '').toLowerCase() === patch.code.toLowerCase()))
+      return res.status(400).json({ error: 'Bu satışçı kodu başka bir satışçıda kullanılıyor' });
     const password = String(req.body?.password || '');
     const params = [patch.username, patch.name, patch.email, patch.status];
     let sql = 'UPDATE users SET username=?,name=?,email=?,status=?,updated_at=CURRENT_TIMESTAMP';

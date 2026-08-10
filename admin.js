@@ -1254,26 +1254,124 @@ function saveTech(){
    eşlemesi (sessionSalesRep / routes/state.js) bu alan üzerinden yapılır. */
 function salesEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
 function salesApiHeaders(){return {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||sessionStorage.getItem('token')||'')};}
+/* Düzenleme SATIR İÇİNDE yapılır — eskiden arka arkaya açılan prompt() kutuları
+   vardı; hem kaç adım kaldığı görünmüyor hem de yanlış yazılan bir alan
+   düzeltilemeden zincir ilerliyordu. Ayrıca satışçı KODU o akışta hiç
+   düzenlenemiyordu (s.code olduğu gibi geri gönderiliyordu), yani yanlış atanan
+   bir kod panelden düzeltilemiyordu.
+   salesEditId: o an düzenlenen satır (aynı anda tek satır açılır).
+   salesCache: sunucudan gelen son liste — Vazgeç'te yeniden istek atmamak için. */
+var salesEditId=null,salesCache=[];
+function salesCompanyCount(s){
+  return (SD.companies||[]).filter(function(c){
+    return String(c.salesRepId||'')===String(s.id)||String(c.salesRepUserId||'')===String(s.userId||'');
+  }).length;
+}
 async function renderSalesAdmin(){
   var list=document.getElementById('salesAdminList');if(!list)return;
   list.innerHTML='<div style="padding:14px;color:var(--text3)">Satışçılar yükleniyor…</div>';
   try{
     var r=await fetch('/api/sales',{headers:salesApiHeaders(),cache:'no-store'}),j=await r.json();if(!r.ok)throw new Error(j.error||'Satışçılar alınamadı');
-    var sts=j.sales||[],cos=SD.companies||[];try{localStorage.setItem('sd_st',JSON.stringify(sts));}catch(_){}
-    if(!sts.length){list.innerHTML='<div style="padding:18px;color:var(--text3)">Henüz satışçı yok.</div>';return;}
-    list.innerHTML=sts.map(function(s){var count=cos.filter(function(c){return String(c.salesRepId||'')===String(s.id)||String(c.salesRepUserId||'')===String(s.userId||'');}).length;return '<div class="settings-row" style="align-items:flex-start;gap:12px"><div style="flex:1"><div style="font-weight:700">'+salesEsc(s.name)+' <span class="badge">'+salesEsc(s.code||'—')+'</span></div><div style="font-size:12px;color:var(--text3);margin-top:3px">'+salesEsc(s.username)+' · '+salesEsc(s.email||'e-posta yok')+' · '+count+' firma · '+(s.status==='inactive'?'Pasif':'Aktif')+'</div></div><button class="btn btn-ghost btn-sm" onclick="editSalesPrompt(\''+salesEsc(s.id)+'\')">Düzenle</button><button class="btn btn-ghost btn-sm" onclick="deactivateSales(\''+salesEsc(s.id)+'\')">Pasif Yap</button></div>';}).join('');
+    salesCache=j.sales||[];try{localStorage.setItem('sd_st',JSON.stringify(salesCache));}catch(_){}
+    paintSalesAdmin();
     renderFirmaFilterOptions();
   }catch(e){list.innerHTML='<div style="padding:14px;color:var(--danger)">'+salesEsc(e.message)+'</div>';}
 }
+/* Yeniden çizim sunucuya gitmez — düzenleme aç/kapa anında olur. */
+function paintSalesAdmin(){
+  var list=document.getElementById('salesAdminList');if(!list)return;
+  if(!salesCache.length){list.innerHTML='<div style="padding:18px;color:var(--text3)">Henüz satışçı yok.</div>';return;}
+  list.innerHTML=salesCache.map(function(s){
+    return String(s.id)===String(salesEditId)?salesEditRowHtml(s):salesViewRowHtml(s);
+  }).join('');
+  var f=document.getElementById('salesEditCode');if(f){f.focus();f.select();}
+}
+function salesViewRowHtml(s){
+  var pasif=s.status==='inactive',id=salesEsc(s.id);
+  return '<div class="settings-row" style="align-items:flex-start;gap:12px;'+(pasif?'opacity:.62;':'')+'">'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-weight:700">'+salesEsc(s.name)+' <span class="badge">'+salesEsc(s.code||'KOD YOK')+'</span>'
+    +(pasif?' <span class="badge" style="background:var(--red-l);color:var(--danger);">Pasif</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-top:3px">'+salesEsc(s.username)+' · '+salesEsc(s.email||'e-posta yok')
+    +' · '+salesEsc(s.phone||'telefon yok')+' · '+salesCompanyCount(s)+' firma</div></div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="openSalesEdit(\''+id+'\')">Düzenle</button>'
+    +(pasif
+      ?'<button class="btn btn-ghost btn-sm" onclick="reactivateSales(\''+id+'\')">Aktif Yap</button>'
+      :'<button class="btn btn-ghost btn-sm" onclick="deactivateSales(\''+id+'\')">Pasif Yap</button>')
+    +'</div>';
+}
+function salesEditRowHtml(s){
+  var id=salesEsc(s.id);
+  var fld=function(lbl,inputId,val,type,ph){
+    return '<div style="flex:1;min-width:150px"><label class="form-lbl" style="font-size:11px">'+lbl+'</label>'
+      +'<input class="inp inp-sm" id="'+inputId+'" type="'+(type||'text')+'" value="'+salesEsc(val||'')+'"'
+      +(ph?' placeholder="'+salesEsc(ph)+'"':'')+'></div>';
+  };
+  return '<div class="settings-row" style="flex-direction:column;align-items:stretch;gap:10px;background:var(--surface2);">'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    +fld('Satışçı Kodu','salesEditCode',s.code,'text','örn. S01')
+    +fld('Ad Soyad','salesEditName',s.name)
+    +fld('Giriş Kullanıcı Adı','salesEditUsername',s.username)
+    +'</div>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    +fld('E-posta','salesEditEmail',s.email,'email')
+    +fld('Telefon','salesEditPhone',s.phone)
+    +fld('Yeni Şifre','salesEditPassword','','password','boş bırakılırsa değişmez')
+    +'</div>'
+    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+    +'<span style="flex:1;min-width:180px;font-size:11.5px;color:var(--text3)">'
+    +salesCompanyCount(s)+' firma bu satışçıya bağlı. Kod değişse de firma atamaları korunur.</span>'
+    +'<button class="btn btn-ghost btn-sm" onclick="cancelSalesEdit()">Vazgeç</button>'
+    +'<button class="btn btn-primary btn-sm" id="salesEditSaveBtn" onclick="saveSalesEdit(\''+id+'\')">Kaydet</button>'
+    +'</div></div>';
+}
+function openSalesEdit(id){salesEditId=id;paintSalesAdmin();}
+function cancelSalesEdit(){salesEditId=null;paintSalesAdmin();}
 async function saveSales(){
   var payload={code:(document.getElementById('newSalesCode')||{}).value.trim(),name:(document.getElementById('newSalesName')||{}).value.trim(),phone:(document.getElementById('newSalesPhone')||{}).value.trim(),email:(document.getElementById('newSalesEmail')||{}).value.trim(),username:(document.getElementById('newSalesUsername')||{}).value.trim(),password:(document.getElementById('newSalesPassword')||{}).value};
   if(!payload.code||!payload.name||!payload.username||!payload.password){UI.toast('Kod, ad, kullanıcı adı ve şifre zorunlu.','warning');return;}
   try{var r=await fetch('/api/sales',{method:'POST',headers:salesApiHeaders(),body:JSON.stringify(payload)}),j=await r.json();if(!r.ok)throw new Error(j.error||j.details||'Satışçı oluşturulamadı');['newSalesCode','newSalesName','newSalesPhone','newSalesEmail','newSalesUsername','newSalesPassword'].forEach(function(i){var e=document.getElementById(i);if(e)e.value='';});UI.closeModal('addSalesModal');await SD.remoteReady({force:true});await renderSalesAdmin();UI.toast('Satışçı hesabı ve giriş şifresi oluşturuldu.','success');}catch(e){UI.toast(e.message,'error');}
 }
-async function editSalesPrompt(id){
-  var arr=SD.load('sd_st',[]),s=arr.find(function(x){return String(x.id)===String(id);});if(!s)return;
-  var name=prompt('Ad Soyad',s.name||'');if(name===null)return;var email=prompt('E-posta',s.email||'');if(email===null)return;var phone=prompt('Telefon',s.phone||'');if(phone===null)return;var password=prompt('Yeni şifre (değişmeyecekse boş bırakın)','');
-  try{var r=await fetch('/api/sales/'+encodeURIComponent(id),{method:'PUT',headers:salesApiHeaders(),body:JSON.stringify({name:name,email:email,phone:phone,code:s.code,username:s.username,password:password,status:s.status||'active'})}),j=await r.json();if(!r.ok)throw new Error(j.error||j.details);await SD.remoteReady({force:true});await renderSalesAdmin();UI.toast('Satışçı güncellendi.','success');}catch(e){UI.toast(e.message,'error');}
+/* Tek PUT ile hem profil (sd_st) hem giriş hesabı (users) güncellenir. */
+async function putSales(id,body,okMsg){
+  var btn=document.getElementById('salesEditSaveBtn');
+  if(btn){btn.disabled=true;btn.textContent='Kaydediliyor…';}
+  try{
+    var r=await fetch('/api/sales/'+encodeURIComponent(id),{method:'PUT',headers:salesApiHeaders(),body:JSON.stringify(body)});
+    var j=await r.json();
+    if(!r.ok)throw new Error(j.error||j.details||'Satışçı güncellenemedi');
+    salesEditId=null;
+    await SD.remoteReady({force:true});
+    await renderSalesAdmin();
+    UI.toast(okMsg,'success');
+  }catch(e){
+    UI.toast(e.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='Kaydet';}
+  }
+}
+async function saveSalesEdit(id){
+  var s=salesCache.find(function(x){return String(x.id)===String(id);});if(!s)return;
+  var g=function(i){var e=document.getElementById(i);return e?e.value.trim():'';};
+  var code=g('salesEditCode'),name=g('salesEditName'),username=g('salesEditUsername').toLowerCase();
+  var passEl=document.getElementById('salesEditPassword'),password=passEl?passEl.value:'';
+  if(!code||!name||!username){UI.toast('Kod, ad ve kullanıcı adı zorunlu.','warning');return;}
+  if(password&&password.length<6){UI.toast('Şifre en az 6 karakter olmalı.','warning');return;}
+  /* Kod firma atamasında kullanılmaz (bağ salesRepId üzerinden kurulur) ama
+     raporlarda "Satış Temsilcisi" sütununda GÖSTERİLEN değer budur — iki
+     satışçı aynı kodu taşırsa rapor satırları ayırt edilemez. Sunucu da aynı
+     kontrolü yapar; buradaki kopya sadece anında geri bildirim için. */
+  if(salesCache.some(function(x){return String(x.id)!==String(id)&&String(x.code||'').toLowerCase()===code.toLowerCase();})){
+    UI.toast('Bu kod başka bir satışçıda kullanılıyor.','warning');return;
+  }
+  await putSales(id,{code:code,name:name,username:username,email:g('salesEditEmail'),phone:g('salesEditPhone'),
+    password:password,status:s.status||'active'},'Satışçı güncellendi.');
+}
+/* Pasif yapılan satışçıyı geri açar — eskiden panelde bunun yolu yoktu,
+   yanlışlıkla pasife alınan hesap kalıcı olarak kapalı kalıyordu. */
+async function reactivateSales(id){
+  var s=salesCache.find(function(x){return String(x.id)===String(id);});if(!s)return;
+  await putSales(id,{code:s.code,name:s.name,username:s.username,email:s.email,phone:s.phone,
+    password:'',status:'active'},'Satışçı yeniden aktif edildi.');
 }
 async function deactivateSales(id){if(!confirm('Satışçı hesabı pasif yapılacak. Firma atamaları korunacak. Devam edilsin mi?'))return;try{var r=await fetch('/api/sales/'+encodeURIComponent(id),{method:'DELETE',headers:salesApiHeaders()}),j=await r.json();if(!r.ok)throw new Error(j.error||j.details);await SD.remoteReady({force:true});await renderSalesAdmin();UI.toast('Satışçı pasif yapıldı.','success');}catch(e){UI.toast(e.message,'error');}}
 /* ═══ AYARLAR ═══ */
