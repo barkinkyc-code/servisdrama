@@ -357,7 +357,12 @@ function initNavAvatar(cu){
     if(dd)dd.innerHTML='<img src="'+cu.avatar+'" alt="">';
   }
 }
-function toggleUserMenu(){
+function toggleUserMenu(event){
+  /* stopPropagation: bu tıklama aynı anda document'a da kabarcıklanıp
+     "dışarı tıklama kapat" dinleyicisini de tetikliyordu (satır ~246);
+     iki mantık aynı anda dd.classList üzerinde çalışınca sıralamaya göre
+     panel açılır açılmaz kapanabiliyor ya da tekrar açılmış gibi görünüyordu. */
+  if(event)event.stopPropagation();
   var topbar=document.getElementById('topbar');
   if(topbar&&topbar.classList.contains('nav-open')){
     closeMobileMenu();
@@ -381,6 +386,13 @@ function goto(p){
   if(p==='raporlar'&&typeof renderDetailedReports==='function')renderDetailedReports();
   if(p==='numune'&&typeof renderSamples==='function')renderSamples();
   var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
+}
+/* Ayarlar sayfası içinde belirli bir alt-sekmeye atlar (ör. dropdown'daki
+   "Profilim" kısayolu) — .stab tıklamasıyla AYNI şeyi yapar: aktif buton
+   sınıfını günceller, o sekmenin içeriğini render eder. */
+function openSettingsSubTab(tab){
+  document.querySelectorAll('.stab').forEach(function(x){x.classList.toggle('active',x.dataset.stab===tab);});
+  renderSettingsTab(tab);
 }
 
 function updateRaporButtonState(){
@@ -1525,7 +1537,45 @@ function renderSettingsTab(tab){
     });
   }else if(tab==='veri'){
     content.innerHTML='<div class="settings-card"><div class="settings-ttl">💾 Veri Yönetimi</div><div style="display:flex;flex-direction:column;gap:10px;"><button class="btn btn-outline btn-sm" onclick="exportAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke-linecap="round"/></svg>Tüm Veriyi İndir (JSON)</button><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'importAll\').click()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0l-4 4m4-4l4 4" stroke-linecap="round"/></svg>Yedekten Geri Yükle</button><input type="file" id="importAll" accept=".json" hidden onchange="importAll(event)"><button class="btn btn-danger btn-sm" onclick="if(confirm(\'Tüm ziyaret geçmişi silinecek!\'))clearVisits()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>Ziyaret Geçmişini Temizle</button></div></div>';
+  }else if(tab==='profil'){
+    var cu=SD.currentUser||{};
+    var rolLbl=cu.role==='admin'?'Yönetici · Admin':(cu.role||'—');
+    content.innerHTML='<div class="settings-card">'
+      +'<div class="settings-ttl">👤 Profil Bilgileri</div>'
+      +'<div class="settings-row"><label class="form-lbl">Ad Soyad</label><input class="inp" value="'+(cu.name||'')+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">Kullanıcı Adı</label><input class="inp" value="'+(cu.username||'')+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">E-posta</label><input class="inp" value="'+(cu.email||'—')+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">Rol</label><input class="inp" value="'+rolLbl+'" disabled></div>'
+      +'</div>'
+      +'<div class="settings-card" style="margin-top:0;">'
+      +'<div class="settings-ttl">🔒 Şifre Değiştir</div>'
+      +'<div class="settings-row"><label class="form-lbl">Mevcut Şifre</label><input class="inp" type="password" id="pfCurrentPw" autocomplete="current-password"></div>'
+      +'<div class="settings-row"><label class="form-lbl">Yeni Şifre</label><input class="inp" type="password" id="pfNewPw" minlength="6" autocomplete="new-password"></div>'
+      +'<div class="settings-row"><label class="form-lbl">Yeni Şifre (Tekrar)</label><input class="inp" type="password" id="pfNewPw2" minlength="6" autocomplete="new-password"></div>'
+      +'<div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="changeMyPassword()">Şifreyi Güncelle</button></div>'
+      +'</div>';
   }
+}
+
+/* /api/auth/change-password zaten sunucuda vardı (sales.js'te kullanılıyordu,
+   admin tarafında hiç bağlanmamıştı) — sunucu tarafında değişiklik gerekmedi. */
+function changeMyPassword(){
+  var cur=document.getElementById('pfCurrentPw'),nw=document.getElementById('pfNewPw'),nw2=document.getElementById('pfNewPw2');
+  if(!cur||!nw||!nw2)return;
+  if(!cur.value||!nw.value){UI.toast('Mevcut ve yeni şifre gerekli.','error');return;}
+  if(nw.value.length<6){UI.toast('Yeni şifre en az 6 karakter olmalı.','error');return;}
+  if(nw.value!==nw2.value){UI.toast('Yeni şifreler eşleşmiyor.','error');return;}
+  fetch('/api/auth/change-password',{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||sessionStorage.getItem('token')||'')},
+    body:JSON.stringify({currentPassword:cur.value,newPassword:nw.value})
+  }).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+    .then(function(res){
+      if(!res.ok){UI.toast(res.j.error||'Şifre güncellenemedi.','error');return;}
+      UI.toast('Şifreniz güncellendi.','success');
+      cur.value='';nw.value='';nw2.value='';
+    })
+    .catch(function(e){UI.toast('Sunucu hatası: '+e.message,'error');});
 }
 
 function saveGenelCfg(){
