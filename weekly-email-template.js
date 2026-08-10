@@ -224,7 +224,15 @@
   function buildWeeklyReportMailHTML(d,gradeFn){
     var reportDate=trDate(new Date());
     var period=fmtShort(d.start)+' – '+fmtShort(d.end);
-    var topRows=d.rows.slice().sort(function(a,b){return b.dateObj-a.dateObj;});
+    /* Program dışı ziyaretler TARİH GÖZETMEKSİZİN en altta toplanır; planlı
+       satırlar kendi içinde en yeniden eskiye sıralanır. Burada yalnızca tarihe
+       göre sıralamak, veri katmanının program dışı satırları en alta iten
+       düzenini bozuyordu — o satırlar tarihlerine göre listeye dağılıyordu. */
+    var topRows=d.rows.slice().sort(function(a,b){
+      var ap=a.plan==='Program Dışı'?1:0,bp=b.plan==='Program Dışı'?1:0;
+      if(ap!==bp)return ap-bp;
+      return b.dateObj-a.dateObj;
+    });
     var emptyNote=d.rows.length?'':'<tr><td class="pad" style="padding:0 30px 18px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:'+C.muted+';">Seçilen dönemde tamamlanmış ziyaret bulunmuyor.</td></tr>';
 
     return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>ServisDrama Haftalık Rapor</title>'
@@ -268,11 +276,6 @@
       +sectionHeading('Dönem İçindeki Tüm Ziyaretler',topRows.length,C.ink,true)
       +'<tr><td class="pad" style="padding:0 30px 10px;overflow-x:auto;">'+summaryTable(topRows)+'</td></tr>'
       +emptyNote
-      +'<tr><td class="pad" style="padding:0 30px 26px;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;font-style:italic;color:'+C.muted+';">'
-      +'Not: Firma skoru = %65 <strong>uyum</strong> + %35 <strong>güncellik</strong> − düzeltmeler. Uyum, ilk ziyaretten bu döneme kadar firmanın planlı olduğu haftaların kaçında gerçekten gidildiğidir — rozetin altında “uyum karşılanan/planlı” olarak yazar. Planlı hafta sayısı azken skor tek bir atlamayla dibe vurmasın diye oran yumuşatılır; bu firmalarda not sütununda “az veri — skor geçici” yazar. Güncellik, son ziyaretin üzerinden geçen sürenin firmanın kendi plan aralığına oranıdır (haftalık planlı firmada 7 gün, 2 haftalıkta 14 gün…); aşıldığında rozetin altındaki gün sayısı kırmızıya döner. Açık numune ve son ziyaretlerde teknisyen sürekliliğinin bozulması puan düşürür. Hiç ziyaret kaydı olmayan firma 0 alır. '
-      +'Gidilmeyen firmalar aciliyete göre sıralanır: <strong>Hiç Gidilmedi</strong> → <strong>Gecikmiş</strong> (plan aralığı aşılmış) → <strong>Bu Dönem Atlandı</strong> (plan aralığı içinde ama bu dönemki planlı haftada gidilmemiş); not sütununda bu dönemde kaç planlı haftanın kaçırıldığı yazar. Skor dağılımı ve ortalama, ziyaret satırı başına değil <strong>firma başına</strong> hesaplanır ve gidilmeyen firmaları da kapsar. '
-      +'“Ziyaret edilen firma” yalnızca firma listesinde <strong>kayıtlı</strong> firmaları sayar; serbest metinle girilmiş program dışı isimler (kargo, OSGB, tedarikçi…) ve silinmiş firma kayıtları kartın altında “+N kayıt dışı” olarak ayrı gösterilir. Aynı firmaya aynı gün hem planlı hem program dışı kayıt açılmışsa tek ziyaret sayılır; ayıklanan mükerrer sayısı toplam ziyaret kartının altında yazar. Program dışı ziyaretler tarih fark etmeksizin en altta toplanır.'
-      +'</td></tr>'
 
       +'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid '+C.line+';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:'+C.blue+';">ServisDrama</strong> • Haftalık Rapor • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
 
