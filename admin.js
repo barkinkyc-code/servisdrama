@@ -899,11 +899,11 @@ function buildRaporText(){
 }
 function sendRapor(){
   var cfg=SD.config;
-  // TO/CC listesi doğrudan hardcode
-  var to=['esra.onur@dramamakine.com','ersin.ertugen@dramamakine.com','yagiz.erel@dramamakine.com','suleyman.kucuk@dramamakine.com','semih.aglan@dramamakine.com'];
-  var cc=['emin.ertas@dramamakine.com','barkin.kayaci@dramamakine.com','ibrahim.nuhoglu@dramakimya.com'];
-  to=to.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
-  cc=cc.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+  /* Listeler RAPOR_TO_LIST/RAPOR_CC_LIST'ten okunur — haftalık rapor da aynı
+     listeyi kullandığı için adresler tek yerde tutulur. Davranış değişmedi:
+     günlük rapor her zaman tüm alıcılara gider. */
+  var to=uniqMails(RAPOR_TO_LIST.slice());
+  var cc=uniqMails(RAPOR_CC_LIST.slice());
   var tarih=new Date();
   var subject='ServisDrama - Günlük Ziyaret Raporu ('+DT.ddmmyyyy(tarih)+')';
   var attachmentNames=['drama-makine-logo','icon-star','servisdrama-calendar-white'];
@@ -997,6 +997,7 @@ function openHaftalikRapor(){
   }
   haftalikRaporRange();
   refreshHaftalikRaporPreview();
+  syncWeeklyMailAllToggles();
   UI.openModal('haftalikRaporModal');
 }
 function haftalikRaporPdfFilename(r){
@@ -1023,9 +1024,8 @@ async function sendHaftalikRapor(startId,endId,skipPdf){
     return;
   }
   var cfg=SD.config;
-  /* 2. bir emre kadar haftalık rapor sadece barkin.kayaci'ye gidiyor — başka alıcı/CC yok. */
-  var to=['barkin.kayaci@dramamakine.com'];
-  var cc=[];
+  var mc=weeklyMailToCc();
+  var to=mc.to,cc=mc.cc;
   var r=haftalikRaporRange(startId,endId);
   var fmt=function(dt){return String(dt.getDate()).padStart(2,'0')+'.'+String(dt.getMonth()+1).padStart(2,'0')+'.'+dt.getFullYear();};
   var subject='ServisDrama - Haftalık Servis Raporu ('+fmt(r.start)+' - '+fmt(r.end)+')';
@@ -1661,7 +1661,9 @@ function renderDetailedReports(){
       +'<button class="btn btn-outline btn-sm" onclick="sendHaftalikRapor(\'raporlarPageStart\',\'raporlarPageEnd\',true)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg> Mail Gönder (PDF\'siz)</button>'
       +'<button class="btn btn-primary btn-sm" id="mailDetailedReportsBtn" onclick="sendHaftalikRapor(\'raporlarPageStart\',\'raporlarPageEnd\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg> Mail Gönder (PDF ekiyle)</button>'
       +'</div>'
+      +'<div style="display:flex;margin-bottom:14px;">'+weeklyMailAllToggleHtml('raporlar')+'</div>'
       +'<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;height:75vh;"><iframe id="raporlarPageIframe" src="" style="width:100%;height:100%;border:none;background:#f3f6fa;"></iframe></div>';
+    syncWeeklyMailAllToggles();
     refreshDetailedReportsPreview();
   }
 }
@@ -1785,6 +1787,8 @@ function getEmailsForSending(){
 
 var RAPOR_TO_LIST=['esra.onur@dramamakine.com','ersin.ertugen@dramamakine.com','yagiz.erel@dramamakine.com','suleyman.kucuk@dramamakine.com','semih.aglan@dramamakine.com'];
 var RAPOR_CC_LIST=['emin.ertas@dramamakine.com','barkin.kayaci@dramamakine.com','ibrahim.nuhoglu@dramakimya.com'];
+var RAPOR_SOLO_TO='barkin.kayaci@dramamakine.com';
+function uniqMails(list){return list.filter(function(v,i,a){return v&&a.indexOf(v)===i;});}
 function getMailToCc(){
   var mode=loadMailRecipientsMode();
   if(mode){
@@ -1792,8 +1796,49 @@ function getMailToCc(){
     return {to:RAPOR_TO_LIST.slice(), cc:RAPOR_CC_LIST.slice()};
   }else{
     /* Seçili değilse: sadece barkin.kayaci@dramamakine.com, CC yok */
-    return {to:['barkin.kayaci@dramamakine.com'], cc:[]};
+    return {to:[RAPOR_SOLO_TO], cc:[]};
   }
+}
+
+/* ═══ HAFTALIK RAPOR ALICILARI ═══
+   Haftalık rapor artık GÜNLÜK raporla AYNI TO/CC listesini kullanır
+   (RAPOR_TO_LIST / RAPOR_CC_LIST) — iki rapor farklı adres kümesine gitmesin.
+   Hangi kümeye gideceğini modaldeki "Tüm alıcılara gönder" kutusu belirler.
+   Kutu GÜNLÜK maildeki "Manuel Harici" anahtarından AYRI tutulur: haftalık
+   raporun alıcısını değiştirmek günlük raporu sessizce etkilememeli.
+   Varsayılan KAPALI — mail yanlışlıkla tüm ekibe gitmesin. */
+var WEEKLY_MAIL_ALL_KEY='haftalikRaporTumAlicilar';
+function loadWeeklyMailAllMode(){return localStorage.getItem(WEEKLY_MAIL_ALL_KEY)==='true';}
+function saveWeeklyMailAllMode(enabled){
+  localStorage.setItem(WEEKLY_MAIL_ALL_KEY,String(!!enabled));
+  syncWeeklyMailAllToggles();
+}
+function weeklyMailToCc(){
+  if(!loadWeeklyMailAllMode())return{to:[RAPOR_SOLO_TO],cc:[]};
+  return{to:uniqMails(RAPOR_TO_LIST.slice()),cc:uniqMails(RAPOR_CC_LIST.slice())};
+}
+/* Aynı kutu hem haftalık rapor modalında hem Raporlar sayfasında duruyor; biri
+   değişince diğeri de güncellenmeli, yoksa kullanıcı hangisinin geçerli olduğunu
+   bilemez. Yanındaki ipucu satırı mailin GERÇEKTE kime gideceğini yazar. */
+function syncWeeklyMailAllToggles(){
+  var on=loadWeeklyMailAllMode(),mc=weeklyMailToCc();
+  var hint=on?('TO: '+mc.to.join(', ')+'  |  CC: '+mc.cc.join(', ')):('Yalnızca '+RAPOR_SOLO_TO);
+  ['haftalikTumAliciToggle','raporlarTumAliciToggle'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.checked=on;
+  });
+  ['haftalikTumAliciHint','raporlarTumAliciHint'].forEach(function(id){
+    var el=document.getElementById(id);if(el){el.textContent=hint;el.title=hint;}
+  });
+}
+/* Kutunun HTML'i modalda ve Raporlar sayfasında birebir aynı olsun diye tek
+   yerden üretilir. */
+function weeklyMailAllToggleHtml(idPrefix){
+  return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-right:auto;">'
+    +'<input type="checkbox" id="'+idPrefix+'TumAliciToggle" style="width:17px;height:17px;cursor:pointer;flex-shrink:0;" onchange="saveWeeklyMailAllMode(this.checked)">'
+    +'<span style="display:flex;flex-direction:column;line-height:1.35;min-width:0;">'
+    +'<span style="font-size:12.5px;font-weight:600;color:var(--text);">Tüm alıcılara gönder (TO + CC)</span>'
+    +'<span id="'+idPrefix+'TumAliciHint" style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px;">Yalnızca '+RAPOR_SOLO_TO+'</span>'
+    +'</span></label>';
 }
 
 function renderMailList(){
