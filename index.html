@@ -280,8 +280,13 @@
        Bitiş kontrolü setInterval ile yapılır: timeupdate saniyede ~4 kez
        tetiklenir ve LOOP_END'i birkaç yüz ms aşabilir; requestAnimationFrame ise
        sayfa çizim yapmadığında (arka plan sekmesi) hiç tetiklenmez. */
-    var LOOP_START=88;   /* 1:28 */
-    var LOOP_END=91;     /* 1:31 */
+    /* Dosyanın kendisi artık 4 saniyelik önceden kırpılmış bir klip (eski
+       23MB'lık ~93sn'lik kaynağın 87.5–91.5sn aralığı, ffmpeg ile yeniden
+       kodlanıp 275KB'a indirildi — Vercel'de büyük dosyanın Range istekleriyle
+       güvenilmez servis edilmesi sorununu da çözüyor). 0.5–3.5 bu klibin KENDİ
+       zaman çizelgesinde eski 88–91sn'ye denk gelen pencere. */
+    var LOOP_START=0.5;
+    var LOOP_END=3.5;
 
     var vid=document.getElementById('bgA');
     var vidBlur=document.getElementById('bgBlur');
