@@ -215,6 +215,9 @@ document.addEventListener('DOMContentLoaded',async function(){
   initAutocomplete('extraFirmaInp','extraFirmaAC',function(co){
     A.extraFirmaId=co.id;A.extraFirmaAdi=co.name;
     var sel=document.getElementById('extraFirmaSelected');if(sel)sel.textContent=co.name;
+  },function(manuelAdi){
+    A.extraFirmaId='';A.extraFirmaAdi=manuelAdi;
+    var sel=document.getElementById('extraFirmaSelected');if(sel)sel.textContent=manuelAdi+' (yeni)';
   });
   setupUppercaseInput('extraFirmaInp');
 
@@ -297,7 +300,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   if(lastPage==='dashboard')lastPage='ziyaret';
   goto(lastPage);
 
-  /* Arka planda bekleyen sekme/PWA öne geldiğinde ve her 15 dakikada bir
+  /* Arka planda bekleyen sekme/PWA öne geldiğinde ve her 15 saniyede bir
      ortak veriyi sunucudan tazele — kullanıcı elle "yenile" yapmasa da
      ekrandaki veri güncel kalsın. */
   function adminEditingInProgress(){
@@ -307,7 +310,20 @@ document.addEventListener('DOMContentLoaded',async function(){
   }
   function autoRefreshData(){
     if(SD.syncBusy()||adminEditingInProgress())return;
-    SD.remoteReady().then(function(){if(!adminEditingInProgress()){SD.seed();goto(A.page||lastPage);}});
+    SD.remoteReady().then(function(){
+      if(adminEditingInProgress())return;
+      SD.seed();
+      var p=A.page||lastPage;
+      goto(p);
+      /* goto() yalnızca istatistik/numune/ayarlar/raporlar sekmelerini render
+         eder (bkz. goto tanımı). ziyaret ve firmalar için hiç render çağrısı
+         yoktu — arka planda taze veri gelse de ekran donmuş kalıyordu, kullanıcı
+         sekme değiştirmeden yeni veriyi göremiyordu. Yalnızca bu otomatik
+         yenileme akışında ekleniyor; normal sekme tıklamasının davranışı
+         (goto'nun kendisi) değişmiyor. */
+      if(p==='ziyaret')renderVisit();
+      if(p==='firmalar')renderFirma();
+    });
   }
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible')autoRefreshData();
@@ -559,14 +575,23 @@ function saveFirma(){
 function exportFirmalar(){if(!isSuperAdmin()){UI.toast('Bu işlem için yetkiniz yok.','error');return;}var d=JSON.stringify({firmalar:SD.companies,teknisyenler:SD.technicians},null,2);var a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(d);a.download='firmalar.json';a.click();UI.toast('İndirildi.','success');}
 function importFirmalar(e){if(!isSuperAdmin()){UI.toast('Bu işlem için yetkiniz yok.','error');e.target.value='';return;}var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.firmalar){SD.companies=d.firmalar;SD.save('sd_co',SD.companies);}renderFirma();renderVisit();UI.toast('Yüklendi!','success');}catch(err){UI.toast('Dosya okunamadı.','error');}};r.readAsText(f);e.target.value='';}
 
-/* ═══ AUTOCOMPLETE YARDIMCISI ═══ */
-function initAutocomplete(inputId,listId,onSelect){
+/* ═══ AUTOCOMPLETE YARDIMCISI ═══
+   onNoMatch (opsiyonel) verilirse, eşleşme yokken "listede yok, ekle" seçeneği
+   gösterir — extraFirmaInp bunu kullanır, diğer çağıranlar (varsa) etkilenmez. */
+function initAutocomplete(inputId,listId,onSelect,onNoMatch){
   var inp=document.getElementById(inputId),lst=document.getElementById(listId);
   if(!inp||!lst)return;
   inp.addEventListener('input',function(){
     var q=inp.value.toLocaleLowerCase('tr');lst.innerHTML='';
     if(!q){lst.style.display='none';return;}
     var m=SD.companies.filter(function(c){return c.name.toLocaleLowerCase('tr').indexOf(q)>=0;}).slice(0,8);
+    if(!m.length&&onNoMatch){
+      lst.style.display='block';
+      var item=document.createElement('div');item.className='ac-item';item.style.fontStyle='italic';item.style.color='var(--text3)';
+      item.textContent='↵ "'+inp.value+'" olarak ekle (listede yok)';
+      item.addEventListener('click',function(){lst.style.display='none';onNoMatch(inp.value);});
+      lst.appendChild(item);return;
+    }
     lst.style.display=m.length?'block':'none';
     m.forEach(function(c){var item=document.createElement('div');item.className='ac-item';item.textContent=c.name;item.addEventListener('click',function(){inp.value=c.name;lst.style.display='none';onSelect(c);});lst.appendChild(item);});
   });
@@ -731,27 +756,11 @@ function openExtraVisitModal(){
   var nt=document.getElementById('extraNot');if(nt)nt.value='';
   var nowExtra=new Date();
   var ac=document.getElementById('extraFirmaAC');if(ac)ac.innerHTML='';
-  /* Firma autocomplete + manuel giriş */
-  var fInp=document.getElementById('extraFirmaInp'),fAc=document.getElementById('extraFirmaAC');
-  if(fInp&&fAc){
-    fInp.addEventListener('input',function(){
-      var q=fInp.value.toLocaleLowerCase('tr');fAc.innerHTML='';
-      if(!q){fAc.style.display='none';return;}
-      var m=SD.companies.filter(function(c){return c.name.toLocaleLowerCase('tr').indexOf(q)>=0;}).slice(0,8);
-      fAc.style.display='block';
-      if(!m.length){
-        var item=document.createElement('div');item.className='ac-item';item.style.fontStyle='italic';item.style.color='var(--text3)';
-        item.textContent='↵ "'+fInp.value+'" olarak ekle (listede yok)';
-        item.addEventListener('click',function(){A.extraFirmaId='';A.extraFirmaAdi=fInp.value;var s=document.getElementById('extraFirmaSelected');if(s)s.textContent=fInp.value+' (yeni)';fAc.style.display='none';});
-        fAc.appendChild(item);return;
-      }
-      m.forEach(function(c){
-        var item=document.createElement('div');item.className='ac-item';item.textContent=c.name;
-        item.addEventListener('click',function(){A.extraFirmaId=c.id;A.extraFirmaAdi=c.name;fInp.value=c.name;fAc.style.display='none';var s=document.getElementById('extraFirmaSelected');if(s)s.textContent=c.name;});
-        fAc.appendChild(item);
-      });
-    });
-  }
+  /* Firma autocomplete + manuel giriş: initAutocomplete('extraFirmaInp',...)
+     ile sayfa açılışında BİR KEZ kuruldu (bkz. yukarıda ~215. satır civarı).
+     Burada tekrar addEventListener yapmıyoruz — eskiden her modal açılışında
+     input'a yeni bir 'input' dinleyicisi ekleniyordu (eskisi hiç silinmeden),
+     modal N kez açılınca her tuş vuruşu N kez işleniyordu. */
   UI.openModal('extraVisitModal');
 }
 function saveExtraVisit(){
@@ -1755,8 +1764,12 @@ function openDatePicker(type){
     var o=document.createElement('option');o.value=i;o.textContent=a;if(i===dpTempMonth)o.selected=true;msel.appendChild(o);
   });
 
-  ysel.addEventListener('change',function(){dpTempYear=parseInt(this.value);});
-  msel.addEventListener('change',function(){dpTempMonth=parseInt(this.value);});
+  /* select'in kendisi her açılışta yeniden kullanılıyor (yalnızca <option>'lar
+     yenileniyor) — addEventListener yerine .onchange=: yeni atama eskisinin
+     ÜZERİNE yazar, eskiden olduğu gibi her açılışta bir tane daha eklenip
+     birikmez. */
+  ysel.onchange=function(){dpTempYear=parseInt(this.value);};
+  msel.onchange=function(){dpTempMonth=parseInt(this.value);};
 
   UI.openModal('datePickerModal');
 }
