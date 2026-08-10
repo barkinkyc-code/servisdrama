@@ -215,14 +215,12 @@
 </head>
 <body>
 
-  <!-- ?v= ZORUNLU: Vercel'in kenar önbelleği Range isteklerini (video elemanının
-       kullandığı yöntem) tam-dosya yanıtlarından AYRI önbelleğe alıyor; dosya
-       değişince eski Range yanıtı bayat kalıp Range header'ını yok sayarak eski
-       içeriği döndürebiliyor (canlıda doğrulandı). Video dosyası her
-       değiştirildiğinde bu sürüm etiketi de değişmeli. -->
+  <!-- src BİLEREK YOK: video JS'te fetch()+Blob ile yükleniyor (bkz. aşağıdaki
+       script, VIDEO_URL). src konulsaydı tarayıcı KENDİ native Range tabanlı
+       yüklemesini de paralelde deneyip aynı Vercel sorununu geri getirirdi. -->
   <div class="video-layer" aria-hidden="true">
-    <video id="bgBlur" class="bg-blur" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm?v=20260810-trim1"></video>
-    <video id="bgA" class="bg-main" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm?v=20260810-trim1"></video>
+    <video id="bgBlur" class="bg-blur" muted playsinline disablepictureinpicture></video>
+    <video id="bgA" class="bg-main" muted playsinline disablepictureinpicture></video>
     <div class="video-scrim"></div>
   </div>
 
@@ -285,13 +283,22 @@
        Bitiş kontrolü setInterval ile yapılır: timeupdate saniyede ~4 kez
        tetiklenir ve LOOP_END'i birkaç yüz ms aşabilir; requestAnimationFrame ise
        sayfa çizim yapmadığında (arka plan sekmesi) hiç tetiklenmez. */
-    /* Dosyanın kendisi artık 4 saniyelik önceden kırpılmış bir klip (eski
-       23MB'lık ~93sn'lik kaynağın 87.5–91.5sn aralığı, ffmpeg ile yeniden
-       kodlanıp 275KB'a indirildi — Vercel'de büyük dosyanın Range istekleriyle
-       güvenilmez servis edilmesi sorununu da çözüyor). 0.5–3.5 bu klibin KENDİ
-       zaman çizelgesinde eski 88–91sn'ye denk gelen pencere. */
+    /* Dosyanın kendisi 4 saniyelik önceden kırpılmış bir klip (eski 23MB'lık
+       ~93sn'lik kaynağın 87.5–91.5sn aralığı, ffmpeg ile yeniden kodlanıp
+       275KB'a indirildi). 0.5–3.5 bu klibin KENDİ zaman çizelgesinde eski
+       88–91sn'ye denk gelen pencere.
+
+       ÖNEMLİ: video <video src="..."> ile DEĞİL, aşağıda fetch()+Blob ile
+       yükleniyor. Kanıtlandı: Vercel'in kenar önbelleği bu video için Range
+       istekli yanıtları (video elemanının src ile DOĞRUDAN yüklemede
+       kullandığı yöntem) tam-dosya yanıtından ayrı tutuyor ve bozuk/bayat
+       veri dönebiliyor — canlıda MEDIA_ELEMENT_ERROR (format hatası) ile
+       doğrulandı, dosyanın kendisi sağlamdı (aynı bayt'lar fetch+Blob ile
+       kusursuz oynadı). fetch() Range HİÇ kullanmaz (tek parça iner), bu da
+       sorunu platform tarafını beklemeden kesin olarak atlatıyor. */
     var LOOP_START=0.5;
     var LOOP_END=3.5;
+    var VIDEO_URL='assets/video/login-bg.webm?v=20260810-trim1';
 
     var vid=document.getElementById('bgA');
     var vidBlur=document.getElementById('bgBlur');
@@ -343,7 +350,23 @@
           v.play().catch(function(){});
         });
       }
-      metadataReady(vid).then(tryStart);
+
+      /* Dosya TEK sefer fetch() ile (Range YOK) iniyor; ortaya çıkan tek Blob
+         URL her iki <video>'ya da atanıyor (blob URL'ler paylaşılabilir,
+         ikinci kez indirmeye gerek yok). Bundan sonrası tamamen yerel bellekten
+         oynatıldığı için ağ/CDN ile ilgili hiçbir sorun yaşanmaz. */
+      fetch(VIDEO_URL).then(function(r){
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        return r.blob();
+      }).then(function(blob){
+        var url=URL.createObjectURL(blob);
+        vid.src=url;
+        vidBlur.src=url;
+        return metadataReady(vid);
+      }).then(tryStart).catch(function(){
+        /* fetch tamamen başarısız oldu (ör. gerçekten çevrimdışı) — degrade
+           zeminde kal, donmuş/bozuk bir kare göstermeye çalışma. */
+      });
 
       /* Sayfa GÖRÜNMEZKEN açılmışsa oynatma hiç başlamaz: Chrome ses kanalı
          olmayan arka plan videosunu güç tasarrufu için duraklatır. Görünür
