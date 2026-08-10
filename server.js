@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
@@ -13,6 +14,9 @@ const app = express();
 // Security Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
+// admin.js/data.js gibi metin yanıtlarını küçültür; compression paketi video/webm
+// gibi zaten sıkıştırılmış içerikleri kendi filtresiyle otomatik atlar.
+app.use(compression());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 

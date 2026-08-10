@@ -382,7 +382,30 @@ function sectionTitle(title,count,color){
   ],margin:[0,0,0,6]};
 }
 
+/* pdfmake (~1,4 MB) + vfs_fonts (~0,8 MB) admin.html açılışında DEĞİL, PDF ilk
+   istendiğinde yüklenir — bu iki dosya sayfa ziyaretlerinin çoğunda hiç
+   kullanılmıyordu. __pdfMakeLoading aynı promise'i döndürerek eşzamanlı/tekrar
+   çağrılarda script'i iki kez eklemeyi önler; başarısızlıkta sıfırlanır ki
+   kullanıcı (ör. bağlantı gelince) tekrar deneyebilsin. */
+let __pdfMakeLoading=null;
+function loadScriptOnce(src){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('PDF motoru yüklenemedi. İnternet bağlantısını kontrol edin.'));
+    document.head.appendChild(s);
+  });
+}
+function ensurePdfMake(){
+  if(typeof pdfMake!=='undefined')return Promise.resolve();
+  if(__pdfMakeLoading)return __pdfMakeLoading;
+  __pdfMakeLoading=loadScriptOnce('https://cdn.jsdelivr.net/npm/pdfmake@0.2.9/build/pdfmake.min.js')
+    .then(()=>loadScriptOnce('https://cdn.jsdelivr.net/npm/pdfmake@0.2.9/build/vfs_fonts.js'))
+    .catch(e=>{__pdfMakeLoading=null;throw e;});
+  return __pdfMakeLoading;
+}
+
 async function buildPdf(d){
+  await ensurePdfMake();
   if(typeof pdfMake==='undefined')throw new Error('PDF motoru yüklenemedi. İnternet bağlantısını kontrol edin.');
   const H=d.history||{};
   const period=fmt(d.start)+' - '+fmt(d.end);

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ServisDrama — Yönetici</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<!-- leaflet.css/js artık burada değil: admin.js "Haritadan Seç" ilk
+     tıklandığında dinamik olarak yüklüyor (ensureLeaflet). -->
 <link rel="stylesheet" href="style.css?v=20260804-sync-v4">
 
 <meta name="theme-color" content="#1D4ED8">
@@ -610,18 +611,17 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=20260804-sync-v6"></script>
-<script src="companies.js?v=20260804-sync-v4"></script>
-<script src="email-template.js?v=20260804-sync-v4"></script>
-<script src="weekly-report-data.js?v=20260807-v11"></script>
-<script src="weekly-email-template.js?v=20260807-v14"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.9/build/pdfmake.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.9/build/vfs_fonts.js"></script>
-<script src="weekly-report-pdf.js?v=20260807-v9"></script>
-<script src="admin.js?v=20260807-weekly-rapor-v9"></script>
-<script src="numune.js?v=20260804-sync-v4"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="enhancements.js?v=20260804-mail-1900"></script>
-<script src="/pwa-update.js?v=20260804-pwa-v1"></script>
+<script src="data.js?v=20260804-sync-v6" defer></script>
+<script src="companies.js?v=20260804-sync-v4" defer></script>
+<script src="email-template.js?v=20260804-sync-v4" defer></script>
+<script src="weekly-report-data.js?v=20260807-v11" defer></script>
+<script src="weekly-email-template.js?v=20260807-v14" defer></script>
+<!-- pdfmake + vfs_fonts (~2,17 MB) artık burada değil: weekly-report-pdf.js
+     kendi içinde PDF ilk istendiğinde dinamik olarak yüklüyor (ensurePdfMake). -->
+<script src="weekly-report-pdf.js?v=20260807-v9" defer></script>
+<script src="admin.js?v=20260807-weekly-rapor-v9" defer></script>
+<script src="numune.js?v=20260804-sync-v4" defer></script>
+<script src="enhancements.js?v=20260804-mail-1900" defer></script>
+<script src="/pwa-update.js?v=20260804-pwa-v1" defer></script>
 </body>
 </html>

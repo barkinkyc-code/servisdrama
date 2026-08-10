@@ -26,6 +26,24 @@
       ]
     },
     {
+      "source": "/(admin|data|companies|email-template|enhancements|numune|weekly-report-data|weekly-report-pdf|weekly-email-template|sales).js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(style|sales).css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/sw.js",
       "headers": [
         {

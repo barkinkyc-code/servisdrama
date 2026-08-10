@@ -573,15 +573,50 @@ function initAutocomplete(inputId,listId,onSelect){
   document.addEventListener('click',function(e){if(!inp.contains(e.target)&&!lst.contains(e.target))lst.style.display='none';});
 }
 
-/* ═══ HARİTA ═══ */
+/* ═══ HARİTA ═══
+   leaflet.css+js (~162 KB) admin.html açılışında DEĞİL, "Haritadan Seç" ilk
+   tıklandığında yüklenir — sayfa ziyaretlerinin çoğunda hiç açılmıyordu.
+   __leafletLoading aynı promise'i döndürerek tekrar tıklamada script'i iki kez
+   eklemeyi önler; başarısızlıkta sıfırlanır ki tekrar denenebilsin. CSS
+   yüklenemezse (örn. reklam engelleyici) harita yine de çalışsın diye CSS
+   hatası sessizce yutulur — asıl işlevi engelleyen JS'tir. */
+var __leafletLoading=null;
+function loadCssOnce(href){
+  return new Promise(function(res){
+    var l=document.createElement('link');l.rel='stylesheet';l.href=href;
+    l.onload=function(){res();};l.onerror=function(){res();};
+    document.head.appendChild(l);
+  });
+}
+function loadScriptOnce(src){
+  return new Promise(function(res,rej){
+    var s=document.createElement('script');s.src=src;
+    s.onload=function(){res();};s.onerror=function(){rej(new Error('Harita motoru yüklenemedi'));};
+    document.head.appendChild(s);
+  });
+}
+function ensureLeaflet(){
+  if(typeof L!=='undefined')return Promise.resolve();
+  if(__leafletLoading)return __leafletLoading;
+  __leafletLoading=Promise.all([
+    loadCssOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'),
+    loadScriptOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js')
+  ]).catch(function(e){__leafletLoading=null;throw e;});
+  return __leafletLoading;
+}
 function openMapModal(){
   UI.closeModal('firmaModal');
   var si=document.getElementById('mapSearchInp');if(si)si.value='';
   var sr=document.getElementById('mapSearchResults');if(sr){sr.innerHTML='';sr.style.display='none';}
-  setTimeout(function(){UI.openModal('mapModal');setTimeout(function(){
+  setTimeout(function(){UI.openModal('mapModal');setTimeout(async function(){
     var c=document.getElementById('mapPickerContainer');if(!c)return;
     if(A._mapPicker){try{A._mapPicker.remove();}catch(e){}A._mapPicker=null;}
+    if(typeof L==='undefined'){
+      c.innerHTML='<div style="padding:16px;font-size:13px;">Harita yükleniyor...</div>';
+      try{await ensureLeaflet();}catch(e){c.innerHTML='<div style="padding:16px;font-size:13px;">İnternet bağlantısı gerekli.</div>';return;}
+    }
     if(typeof L==='undefined'){c.innerHTML='<div style="padding:16px;font-size:13px;">İnternet bağlantısı gerekli.</div>';return;}
+    c.innerHTML='';
     var lat=A.mapLat||40.1826,lng=A.mapLng||29.0665;
     var map=L.map(c).setView([lat,lng],A.mapLat?15:11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
