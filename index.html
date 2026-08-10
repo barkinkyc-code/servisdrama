@@ -38,6 +38,8 @@
       opacity:0;transition:opacity 1.2s ease-in-out;
     }
     .video-layer video.on{opacity:1;}
+    /* Yalnızca mobilde devrede; bkz. aşağıdaki mobil sorgu. */
+    .bg-blur{display:none;}
     /* Video artık metin taşımıyor; tam ekran karartma kaldırıldı ki görüntü
        parlak kalsın. Yalnızca üst şeritteki logo ve düğme okunsun diye ince bir
        degrade var. Katmanın İÇİNDE durur, böylece video ile birlikte daralır. */
@@ -179,6 +181,18 @@
       /* iOS'ta 16px altı yazı alanı odaklanınca sayfayı zoomlar. */
       input[type="text"],input[type="password"]{font-size:16px;padding:14px;}
       .login-button{padding:16px;font-size:15px;}
+
+      /* Video 16:9; dar dikey ekranda "cover" kırpması kadrajın çoğunu (~%74)
+         kesip atıyor — bu dilimde logo/yazı varsa kenardan taşar. Bunun yerine
+         ana video TAM ÇERÇEVE gösterilir (contain, hiçbir şey kesilmez);
+         üstte/altta açığa çıkan boşluk aynı videonun bulanık, büyütülmüş bir
+         kopyasıyla dolduruluyor — tam ekran/immersif his korunur. */
+      .bg-main{object-fit:contain;z-index:1;}
+      .bg-blur{
+        display:block;object-fit:cover;z-index:0;
+        filter:blur(38px) saturate(1.25) brightness(.6);
+        transform:scale(1.18); /* blur kenarındaki keskin/şeffaf sınırı kadraj dışına it */
+      }
     }
     /* Hareket hassasiyeti açık olan cihazlarda video oynatılmaz. */
     @media (prefers-reduced-motion:reduce){
@@ -197,7 +211,8 @@
 <body>
 
   <div class="video-layer" aria-hidden="true">
-    <video id="bgA" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm"></video>
+    <video id="bgBlur" class="bg-blur" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm"></video>
+    <video id="bgA" class="bg-main" muted playsinline preload="auto" disablepictureinpicture src="assets/video/login-bg.webm"></video>
     <div class="video-scrim"></div>
   </div>
 
@@ -247,8 +262,15 @@
   <script>
     /* ═══ ARKA PLAN VİDEOSU — TEK SEFER OYNAR, SONRA DURUR ═══
        LOOP_START'tan başlar, LOOP_END'e gelince duraklar ve orada KALIR — döngü
-       yok, tekrar başa sarma yok. Tek video elemanı yeterli; çapraz geçiş/ikinci
-       video artık gerekmiyor çünkü gizlenecek bir dikiş yeri (sarma anı) yok.
+       yok, tekrar başa sarma yok.
+
+       İki video elemanı var ama biri (bgBlur) yalnızca GÖRSEL bir takipçi:
+       olay dinleyicisi yok, kendi mantığı yok. Tüm oynatma/duraklatma/zaman
+       kararları TEK yerden (vid = bgA) alınır; her karar anında aynı komut
+       vidBlur'a da uygulanır (applyBoth). Mobilde bgA tam çerçeveyi (contain)
+       gösterir, bgBlur aynı videonun bulanık+büyütülmüş cover kopyasıdır ve
+       kadraj dışında kalan üst/alt boşluğu doldurur (bkz. mobil CSS). Masaüstünde
+       bgBlur zaten display:none, komutlar zararsızca boşa gider.
 
        Bitiş kontrolü setInterval ile yapılır: timeupdate saniyede ~4 kez
        tetiklenir ve LOOP_END'i birkaç yüz ms aşabilir; requestAnimationFrame ise
@@ -257,7 +279,10 @@
     var LOOP_END=91;     /* 1:31 */
 
     var vid=document.getElementById('bgA');
+    var vidBlur=document.getElementById('bgBlur');
     var bittiMi=false,started=false,endTimer=null;
+
+    function applyBoth(fn){ fn(vid); try{fn(vidBlur);}catch(_){} }
 
     function metadataReady(v){
       return v.readyState>=1?Promise.resolve():new Promise(function(res){
@@ -271,9 +296,8 @@
       if(vid.currentTime>=LOOP_END){
         bittiMi=true;
         clearInterval(endTimer);
-        vid.pause();
         /* Tam LOOP_END karesinde dursun; setInterval'in kaçırdığı fazlalığı geri al. */
-        try{vid.currentTime=LOOP_END;}catch(_){}
+        applyBoth(function(v){ v.pause(); try{v.currentTime=LOOP_END;}catch(_){} });
       }
     }
 
@@ -282,11 +306,13 @@
 
       /* Açılış, play()'in döndürdüğü promise'e DEĞİL 'playing' olayına bağlı:
          devam eden bir arama (seek) play() promise'ini AbortError ile
-         reddedebiliyor — oysa oynatma gerçekte başlıyor. */
+         reddedebiliyor — oysa oynatma gerçekte başlıyor. Yalnızca ANA videoyu
+         (vid) dinler; vidBlur'a kendi dinleyicisi eklenmez. */
       vid.addEventListener('playing',function onFirstPlay(){
         if(started)return;
         started=true;
         vid.classList.add('on');
+        vidBlur.classList.add('on');
         document.body.classList.add('video-ready');
         clearInterval(endTimer);
         endTimer=setInterval(checkEnd,150);
@@ -296,9 +322,11 @@
         if(bittiMi)return;
         /* Dosya bozuk/eksikse (readyState 0 kalır) degrade zemin görünür kalsın. */
         if(vid.readyState<1)return;
-        vid.playbackRate=0.43;
-        try{vid.currentTime=LOOP_START;}catch(_){}
-        vid.play().catch(function(){});
+        applyBoth(function(v){
+          v.playbackRate=0.43;
+          try{v.currentTime=LOOP_START;}catch(_){}
+          v.play().catch(function(){});
+        });
       }
       metadataReady(vid).then(tryStart);
 
@@ -308,19 +336,21 @@
       document.addEventListener('visibilitychange',function(){
         if(document.hidden||bittiMi)return;
         if(!started){tryStart();return;}
-        if(vid.paused)vid.play().catch(function(){});
+        applyBoth(function(v){ if(v.paused)v.play().catch(function(){}); });
       });
       /* Aynı güç tasarrufu duraklatması sayfa açıkken de olabilir; video henüz
          BİTMEDEN duraklatıldıysa devam ettir. Bitince zaten kasıtlı duruyor,
          bu durumda dokunma. Tarayıcı ısrarla duraklatırsa play→pause→play
-         kısır döngüsü kurulmasın diye saniyede bir denenir. */
+         kısır döngüsü kurulmasın diye saniyede bir denenir. Yalnızca ANA
+         videonun 'pause' olayı dinlenir — vidBlur zaten applyBoth ile senkron
+         tutulduğu için ayrı bir dinleyici gerekmez ve çift tetiklemeyi önler. */
       var sonDeneme=0;
       vid.addEventListener('pause',function(){
         if(!started||bittiMi||document.hidden)return;
         var now=Date.now();
         if(now-sonDeneme<1000)return;
         sonDeneme=now;
-        vid.play().catch(function(){});
+        applyBoth(function(v){ if(v.paused)v.play().catch(function(){}); });
       });
 
       /* Otomatik oynatma engellendiyse donmuş kare yerine degrade zeminde kal. */
