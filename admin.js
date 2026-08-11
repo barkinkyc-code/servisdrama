@@ -930,7 +930,7 @@ function sendTruckMailsToAll(){
         smtpPass:cfg.smtpPass||'',
         smtpTls:cfg.smtpTls||'tls',
         from:(cfg.smtpSenderName||'Drama Makine')+' <'+(cfg.smtpSenderEmail||'servis@dramamakine.com')+'>',
-        attachmentNames:['drama-makine-logo','icon-phone','icon-mail','icon-linkedin','icon-youtube','icon-instagram']
+        attachmentNames:['drama-makine-logo','icon-phone','icon-mail','icon-linkedin','icon-youtube','icon-instagram','icon-web','icon-pin','icon-shield','icon-check','icon-headset']
       })
     })
     .then(function(r){return r.json();})
