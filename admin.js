@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   try{var s=JSON.parse(sess);}
   catch(e){location.href='index.html';return;}
 
-  await SD.remoteReady();
+  SD.remoteReady();
   SD.seed();
   var cfg=SD.config;cfg.mailAlicilar=loadMailRecipients();SD.config=cfg;
 

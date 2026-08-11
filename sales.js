@@ -7,7 +7,7 @@ async function initializeSalesPanel(){
   const user=SD.sessionUser();
   if(!user){location.href='index.html';return;}
   if(String(user.role||'').toLowerCase()!=='sales'){location.href='index.html';return;}
-  try{await SD.remoteReady();const rep=SD.sessionSalesRep();if(!rep||rep.status==='inactive'){alert('Aktif satışçı profili bulunamadı.');doLogout();return;}initializeUI(user);showPage('dashboard');}
+  try{SD.remoteReady();const rep=SD.sessionSalesRep();if(!rep||rep.status==='inactive'){alert('Aktif satışçı profili bulunamadı.');doLogout();return;}initializeUI(user);showPage('dashboard');}
   catch(e){console.error(e);alert('Satışçı paneli yüklenemedi: '+e.message);}
 }
 function initializeUI(user){
