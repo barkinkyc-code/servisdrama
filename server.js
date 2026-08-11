@@ -57,6 +57,8 @@ const REPORT_PNG_FILES = {
   'icon-shield': { file: 'icon-shield.png', dir: 'technical-service' },
   'icon-check': { file: 'icon-check.png', dir: 'technical-service' },
   'icon-headset': { file: 'icon-headset.png', dir: 'technical-service' },
+  'icon-calendar': { file: 'icon-calendar.png', dir: 'technical-service' },
+  'icon-clock': { file: 'icon-clock.png', dir: 'technical-service' },
   'icon-star': { file: 'icon-star.png', dir: 'servisdrama' },
   'servisdrama-calendar-white': { file: 'icon-calendar-white.png', dir: 'servisdrama' },
   'stat-visits': { file: 'stat-visits.png', dir: 'servisdrama/stat-icons' },
