@@ -129,6 +129,10 @@ document.addEventListener('DOMContentLoaded',async function(){
   var sessTech=SD.sessionTech();
   if(sessTech&&SD.activeTechId!==SD.ALL_TECH&&SD.activeTechId!==sessTech.id)SD.activeTechId=sessTech.id;
 
+  /* Haftalık Rapor teknisyenlere kapalı — sadece admin görür/kullanır. */
+  var haftalikBtn=document.getElementById('haftalikRaporBtn');
+  if(haftalikBtn)haftalikBtn.style.display=sessTech?'none':'';
+
   /* Logo */
   var nl=document.getElementById('navLogo');if(nl)nl.src='assets/email/servisdrama/drama-makine-logo.png';
 
@@ -1132,6 +1136,7 @@ function refreshHaftalikRaporPreview(){
   }
 }
 function openHaftalikRapor(){
+  if(SD.sessionTech()){UI.toast('Bu işlem için yetkiniz yok.','error');return;}
   var modal=document.getElementById('haftalikRaporModal');
   if(modal){
     var modalEl=modal.querySelector('.modal');
