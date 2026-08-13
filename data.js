@@ -843,36 +843,31 @@ function _buildCell(co,col,vd,vk,opts){
     }
     if(opts.editable){
       var _longPressTimer,_longPressActive=false;
-      var _clickCount=0,_clickTimer;
+      /* Tamamlanmış bir hücreye tıklamak HER ZAMAN yeni bir ziyaret ekler
+         (sayaç artar, o günün tarihi dates dizisine eklenir).
+         ÖNCEDEN: tek tıklama "pending"e geri alıyordu, yalnızca 500ms içinde
+         gelen İKİNCİ tıklama yeni ziyaret sayıyordu. Gerçek kullanıcı iki
+         tıklaması arasında neredeyse hiçbir zaman 500ms'den az geçmediği için
+         bu pencere kaçırılıyor, ilk tık sessizce ziyareti "beklemede"ye
+         düşürüyor, ikinci tık de orijinal tarihi koruyarak sadece "done"a geri
+         dönüyordu — aynı hafta içindeki ikinci ziyaretin tarihi hiç
+         kaydedilmiyordu (mailde/raporda "son ziyaret" hep ilk tarihte kalıyordu). */
       btn.addEventListener('click',function(){
         if(_longPressActive)return;
-        _clickCount++;
         /* Sarı flash */
         btn.style.opacity='.6';btn.style.background='#F59E0B';
-        clearTimeout(_clickTimer);
-        _clickTimer=setTimeout(function(){
+        setTimeout(function(){
           btn.style.opacity='';btn.style.background='';
           var vi=SD.visits;
           var myCode=(SD.actingTech(co)||{}).code||'—';
-          if(_clickCount===1){
-            /* 1x tıklama: pending yap, yerde kalır — sadece KENDİ girişini değiştirir */
-            var mine=SD.visitEntryFor(vi[vk],myCode);
-            if(mine){
-              var dn=(mine.dates||[]).slice();
-              if((mine.count||1)>1){dn.pop();vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,status:'done',count:mine.count-1,dates:dn});}
-              else vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:mine.date,saat:mine.saat,status:'pending',count:1,dates:dn});
-            }
-          }else if(_clickCount>=2){
-            /* 2+ tıklama: done yap, en alta taşı — kendi giriş sayacı artar */
-            var cur=SD.visitEntryFor(vi[vk],myCode)||{},n=new Date();
-            var dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));
-            vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:DT.ddmm(n),count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'});
-            UI.toast('2. ziyaret eklendi!','success');
-            /* Firmayı en alta taşı */
-            var allCompanies=SD.companies;var idx=-1;for(var i=0;i<allCompanies.length;i++){if(allCompanies[i].id===co.id){idx=i;break;}}if(idx>0){var item=allCompanies[idx];allCompanies.splice(idx,1);allCompanies.unshift(item);SD.save('sd_co',allCompanies);}
-          }
-          SD.visits=vi;var needsFirmaRender=_clickCount>=2;_clickCount=0;if(needsFirmaRender&&opts.onUpdate)opts.onUpdate(needsFirmaRender);
-        },500);
+          var cur=SD.visitEntryFor(vi[vk],myCode)||{},n=new Date();
+          var dA=(cur.dates||[cur.date||DT.ddmm(n)]).slice();dA.push(DT.ddmm(n));
+          vi[vk]=SD.putVisitEntry(vi[vk],myCode,{date:DT.ddmm(n),count:(cur.count||1)+1,dates:dA,saat:DT.hhii(n),status:'done'});
+          UI.toast((cur.count||1)+1<=2?'2. ziyaret eklendi!':((cur.count||1)+1)+'. ziyaret eklendi!','success');
+          /* Firmayı en alta taşı */
+          var allCompanies=SD.companies;var idx=-1;for(var i=0;i<allCompanies.length;i++){if(allCompanies[i].id===co.id){idx=i;break;}}if(idx>0){var item=allCompanies[idx];allCompanies.splice(idx,1);allCompanies.unshift(item);SD.save('sd_co',allCompanies);}
+          SD.visits=vi;if(opts.onUpdate)opts.onUpdate(true);
+        },200);
       });
       /* Long press silme (4 saniye) */
       btn.addEventListener('mousedown',function(){_startLongPress();});
