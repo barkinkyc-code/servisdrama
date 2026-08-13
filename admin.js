@@ -608,7 +608,12 @@ function saveGecmisZiyaret(){
   var timeStr=(saatInp&&saatInp.value)||'12:00';
   var cwk=DT.wkey(visitDate),dateShort=DT.ddmm(visitDate),dateFull=DT.ddmmyyyy(visitDate);
   var vi=SD.visits;
-  vi[A.editId+'_'+cwk]=SD.putVisitEntry(vi[A.editId+'_'+cwk],tech.code,{date:dateShort,count:1,status:'done',saat:timeStr,startDate:dateFull,startTime:timeStr,endDate:dateFull,endTime:timeStr,manualEntry:true});
+  /* startTime/endTime KASITLI olarak set edilmez: hücre bunlar doluysa
+     "12:00–12:00" gibi bir saat ARALIĞI gösterir (teknisyenin normal
+     başlat/bitir akışına özgü). Admin'in geçmişe dönük girişi tek bir an
+     (tarih+saat) olduğundan, normal "tıklayıp tamamlanan" bir ziyaretle
+     AYNI görünüme sahip olsun diye yalnızca date+saat set edilir. */
+  vi[A.editId+'_'+cwk]=SD.putVisitEntry(vi[A.editId+'_'+cwk],tech.code,{date:dateShort,count:1,status:'done',saat:timeStr,dates:[dateShort],startDate:dateFull,endDate:dateFull,manualEntry:true});
   SD.visits=vi;
   renderVisit();
   updateGecmisZiyaretInfo(A.editId);
