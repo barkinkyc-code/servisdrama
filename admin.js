@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded',async function(){
     renderFirma();
   });
   on('firmaSaveBtn','click',saveFirma);
+  on('gzSaveBtn','click',saveGecmisZiyaret);
   on('indirBtn','click',exportFirmalar);
   on('yukleBtn','click',function(){var el=document.getElementById('yukleInput');if(el)el.click();});
   on('yukleInput','change',importFirmalar);
@@ -211,13 +212,27 @@ document.addEventListener('DOMContentLoaded',async function(){
   on('extraBtn','click',openExtraVisitModal);
   on('extraSaveBtn','click',saveExtraVisit);
 
-  /* Program dışı firma autocomplete */
+  /* Program dışı firma autocomplete — kayıtlı firmalara EK olarak, daha önce
+     manuel girilmiş (kayıtsız) program dışı firma adları da önerilir; aynı
+     yere tekrar gidildiğinde teknisyen adı yazmaya başlayınca eski kaydı
+     görüp seçebilsin diye. */
   initAutocomplete('extraFirmaInp','extraFirmaAC',function(co){
     A.extraFirmaId=co.id;A.extraFirmaAdi=co.name;
     var sel=document.getElementById('extraFirmaSelected');if(sel)sel.textContent=co.name;
   },function(manuelAdi){
     A.extraFirmaId='';A.extraFirmaAdi=manuelAdi;
     var sel=document.getElementById('extraFirmaSelected');if(sel)sel.textContent=manuelAdi+' (yeni)';
+  },function(){
+    var list=SD.companies.slice(),seen={};
+    list.forEach(function(c){seen[c.name.toLocaleUpperCase('tr')]=true;});
+    (SD.extras||[]).forEach(function(ex){
+      if(ex.firmaId)return;
+      var key=String(ex.firmAdi||'').toLocaleUpperCase('tr');
+      if(!key||seen[key])return;
+      seen[key]=true;
+      list.push({id:'',name:ex.firmAdi});
+    });
+    return list;
   });
   setupUppercaseInput('extraFirmaInp');
 
@@ -560,7 +575,44 @@ function openFirmaModal(id){
   }
   var pasifChk=document.getElementById('fPasif');
   if(pasifChk){pasifChk.disabled=!isSuperAdmin();var pasifRow=pasifChk.closest('.fbox');if(pasifRow)pasifRow.style.display=isSuperAdmin()?'':'none';}
+  /* Geçmişe dönük ziyaret ekleme yalnızca zaten var olan bir firmada anlamlı
+     (yeni firma henüz kaydedilmediği için id yok). */
+  var gzBox=document.getElementById('gecmisZiyaretBox');
+  if(gzBox){
+    gzBox.style.display=id?'':'none';
+    if(id){
+      var gzSel=document.getElementById('gzTeknisyen');
+      if(gzSel)gzSel.innerHTML=ts.map(function(t){return'<option value="'+t.id+'">'+t.code+' — '+t.name+'</option>';}).join('');
+      var gzT=document.getElementById('gzTarih'),today=new Date();
+      if(gzT)gzT.value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+      var gzS=document.getElementById('gzSaat');if(gzS)gzS.value='';
+      updateGecmisZiyaretInfo(id);
+    }
+  }
   renderWeekToggles();renderAMails();UI.openModal('firmaModal');
+}
+function updateGecmisZiyaretInfo(companyId){
+  var info=document.getElementById('gzLastInfo');if(!info)return;
+  var last=SD.getPreviousCompletedVisit(companyId,new Date());
+  info.textContent=last&&last.date&&last.date!=='Kayıt yok'?('Son kayıtlı ziyaret: '+last.date+(last.tc?' · '+last.tc:'')):'Bu firma için henüz kayıtlı ziyaret yok.';
+}
+function saveGecmisZiyaret(){
+  if(!A.editId){UI.toast('Önce firmayı kaydedin.','error');return;}
+  var techSel=document.getElementById('gzTeknisyen'),tarihInp=document.getElementById('gzTarih'),saatInp=document.getElementById('gzSaat');
+  var tech=SD.technicians.find(function(t){return t.id===(techSel&&techSel.value);});
+  if(!tech){UI.toast('Teknisyen seçin.','error');return;}
+  if(!tarihInp||!tarihInp.value){UI.toast('Tarih seçin.','error');return;}
+  var tp=tarihInp.value.split('-');
+  var visitDate=new Date(parseInt(tp[0],10),parseInt(tp[1],10)-1,parseInt(tp[2],10));
+  if(visitDate>new Date()){UI.toast('Gelecek bir tarih girilemez.','error');return;}
+  var timeStr=(saatInp&&saatInp.value)||'12:00';
+  var cwk=DT.wkey(visitDate),dateShort=DT.ddmm(visitDate),dateFull=DT.ddmmyyyy(visitDate);
+  var vi=SD.visits;
+  vi[A.editId+'_'+cwk]=SD.putVisitEntry(vi[A.editId+'_'+cwk],tech.code,{date:dateShort,count:1,status:'done',saat:timeStr,startDate:dateFull,startTime:timeStr,endDate:dateFull,endTime:timeStr,manualEntry:true});
+  SD.visits=vi;
+  renderVisit();
+  updateGecmisZiyaretInfo(A.editId);
+  UI.toast('Geçmiş ziyaret kaydedildi: '+dateFull+' — '+tech.code,'success');
 }
 function renderWeekToggles(){document.querySelectorAll('.week-tog').forEach(function(b){b.classList.toggle('on',A.selWeeks.indexOf(parseInt(b.dataset.w))>=0);});}
 function renderAMails(){
@@ -590,13 +642,14 @@ function importFirmalar(e){if(!isSuperAdmin()){UI.toast('Bu işlem için yetkini
 /* ═══ AUTOCOMPLETE YARDIMCISI ═══
    onNoMatch (opsiyonel) verilirse, eşleşme yokken "listede yok, ekle" seçeneği
    gösterir — extraFirmaInp bunu kullanır, diğer çağıranlar (varsa) etkilenmez. */
-function initAutocomplete(inputId,listId,onSelect,onNoMatch){
+function initAutocomplete(inputId,listId,onSelect,onNoMatch,sourceFn){
   var inp=document.getElementById(inputId),lst=document.getElementById(listId);
   if(!inp||!lst)return;
   inp.addEventListener('input',function(){
     var q=inp.value.toLocaleLowerCase('tr');lst.innerHTML='';
     if(!q){lst.style.display='none';return;}
-    var m=SD.companies.filter(function(c){return c.name.toLocaleLowerCase('tr').indexOf(q)>=0;}).slice(0,8);
+    var source=sourceFn?sourceFn():SD.companies;
+    var m=source.filter(function(c){return c.name.toLocaleLowerCase('tr').indexOf(q)>=0;}).slice(0,8);
     if(!m.length&&onNoMatch){
       lst.style.display='block';
       var item=document.createElement('div');item.className='ac-item';item.style.fontStyle='italic';item.style.color='var(--text3)';
@@ -767,7 +820,14 @@ function openExtraVisitModal(){
   var mn=document.getElementById('extraManuelAdi');if(mn)mn.value='';
   var nt=document.getElementById('extraNot');if(nt)nt.value='';
   var nowExtra=new Date();
+  var tarihInp=document.getElementById('extraTarih');
+  if(tarihInp)tarihInp.value=nowExtra.getFullYear()+'-'+String(nowExtra.getMonth()+1).padStart(2,'0')+'-'+String(nowExtra.getDate()).padStart(2,'0');
+  var saatInp=document.getElementById('extraSaat');
+  if(saatInp)saatInp.value=DT.hhii(nowExtra);
   var ac=document.getElementById('extraFirmaAC');if(ac)ac.innerHTML='';
+  /* Düzenleme modundan iptal edilip "Ekle" ile yeniden açılırsa eski kayıt
+     üzerine yazılmasın diye düzenleme işaretçisi burada da sıfırlanır. */
+  var editIdInput=document.getElementById('_editExtraIdx');if(editIdInput)editIdInput.value='';
   /* Firma autocomplete + manuel giriş: initAutocomplete('extraFirmaInp',...)
      ile sayfa açılışında BİR KEZ kuruldu (bkz. yukarıda ~215. satır civarı).
      Burada tekrar addEventListener yapmıyoruz — eskiden her modal açılışında
@@ -775,38 +835,43 @@ function openExtraVisitModal(){
      modal N kez açılınca her tuş vuruşu N kez işleniyordu. */
   UI.openModal('extraVisitModal');
 }
+/* Kayıtlı olmayan (manuel) program dışı firma adına, sonunda zaten bir şirket
+   türü ibaresi yoksa otomatik "LTD. ŞTİ." eklenir. */
+function ensureCompanySuffix(name){
+  var n=String(name||'').trim();
+  if(!n)return n;
+  var upper=n.toLocaleUpperCase('tr');
+  if(upper.indexOf('LTD')>=0||upper.indexOf('ŞTİ')>=0||upper.indexOf('STI')>=0||upper.indexOf('A.Ş')>=0||upper.indexOf('AŞ.')>=0)return n;
+  return n+' LTD. ŞTİ.';
+}
 function saveExtraVisit(){
   var fInp=document.getElementById('extraFirmaInp');
   if(!A.extraFirmaAdi&&fInp&&fInp.value.trim())A.extraFirmaAdi=fInp.value.trim();
   var manuelAdi=(document.getElementById('extraManuelAdi')||{}).value||'';
   var firmAdi=(A.extraFirmaAdi||manuelAdi).toUpperCase();
   if(!firmAdi){UI.toast('Firma adı veya seçimi gerekli.','error');return;}
+  if(!A.extraFirmaId)firmAdi=ensureCompanySuffix(firmAdi);
   var not=(document.getElementById('extraNot')||{}).value||'';
-  var dateISO='';
-  var dateStr=DT.ddmmyyyy(new Date());
-  var timeStr=DT.hhii(new Date());
+  var tarihInp=document.getElementById('extraTarih'),saatInp=document.getElementById('extraSaat');
+  var n=new Date();
   var extraCo=A.extraFirmaId?SD.companies.find(function(c){return c.id===A.extraFirmaId;}):null;
-  var ac=SD.actingTech(extraCo)||(SD.technicians||[])[0]||null,n=new Date();
+  var ac=SD.actingTech(extraCo)||(SD.technicians||[])[0]||null;
 
   /* Girilen tarih için hafta hesapla, yoksa bugünün haftası */
   var visitDate=n;
-  if(dateISO){
-    visitDate=new Date(dateISO+'T12:00:00');
-  }else if(dateStr){
-    var parts=dateStr.split('.');
-    if(parts.length>=2){
-      visitDate=new Date(parseInt(parts[2]||new Date().getFullYear()),parseInt(parts[1])-1,parseInt(parts[0]));
-    }
+  if(tarihInp&&tarihInp.value){
+    var tp=tarihInp.value.split('-');
+    if(tp.length===3)visitDate=new Date(parseInt(tp[0],10),parseInt(tp[1],10)-1,parseInt(tp[2],10));
   }
+  var timeStr=(saatInp&&saatInp.value)||DT.hhii(n);
   var cwk=DT.wkey(visitDate);
   var dateShort=DT.ddmm(visitDate);
 
-  /* Program dışı ziyaret normal listesine ekle (girilen tarihte) */
-  if(A.extraFirmaId){
-    var vi=SD.visits;
-    vi[A.extraFirmaId+'_'+cwk]=SD.putVisitEntry(vi[A.extraFirmaId+'_'+cwk],ac?ac.code:'—',{date:dateShort,count:1,status:'done',saat:timeStr||DT.hhii(n),startDate:dateStr||DT.ddmmyyyy(n),startTime:timeStr||DT.hhii(n),endDate:dateStr||DT.ddmmyyyy(n),endTime:timeStr||DT.hhii(n),extraNot:not});
-    SD.visits=vi;renderVisit();
-  }
+  /* Program dışı ziyaret KASITLI OLARAK SD.visits'e (normal ziyaret ızgarası)
+     yazılmaz — bu bir program dışı ziyarettir, planlı ziyaret sayılmamalı.
+     Eskiden kayıtlı firma seçilince hem SD.visits hem SD.extras'a yazılıyordu,
+     bu da "Ziyaret Takibi" ekranında aynı ziyaretin hem normal hem program
+     dışı olarak iki kez görünmesine yol açıyordu. */
   /* Extras listesine kaydet */
   var ex=SD.extras||[];
   var editIdx=document.getElementById('_editExtraIdx');

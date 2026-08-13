@@ -300,6 +300,10 @@
         <label class="form-lbl">Manuel Firma Adı (listede yoksa)</label>
         <input class="inp st-uppercase" id="extraManuelAdi" placeholder="ör: ABC Makine San. Ltd.">
       </div>
+      <div class="form-row2">
+        <div class="form-grp"><label class="form-lbl">Tarih</label><input class="inp" type="date" id="extraTarih"></div>
+        <div class="form-grp"><label class="form-lbl">Saat</label><input class="inp" type="time" id="extraSaat"></div>
+      </div>
       <div class="form-grp">
         <label class="form-lbl">Not (opsiyonel)</label>
         <input class="inp st-uppercase" id="extraNot" placeholder="ör: Cihaz arızası nedeniyle gidildi">
@@ -363,6 +367,19 @@
         <div class="fbox-ttl"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V19h-2.58v-1.29c-1.84-.29-2.75-1.16-2.77-2.93h1.9c.05 1.53.56 2.04 2.44 2.18V13.5c-1.44-.35-2.67-.93-2.67-2.69 0-1.32.93-2.26 2.25-2.46V6h2.58v2.41c1.77.37 2.44 1.17 2.49 2.32h-1.9c-.05-.56-.31-1.11-1.35-1.27v5.26c1.86.42 2.39 1.15 2.39 2.86 0 1.56-1.33 2.36-2.77 2.64zm0-8.1v-2.3c-.89.23-1.02.708-1.02 1.19 0 .52.13 1.11 1.02 1.11zm1.26 2.5v2.42c1.02-.21 1.14-.75 1.14-1.19 0-.73-.36-1.23-1.14-1.23z"/></svg> Konum <button class="link-btn" id="mapPickBtn" style="background:linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);padding:6px 12px;border-radius:6px;font-weight:500;color:#3b82f6;transition:all 0.2s ease;">Haritadan Seç</button></div>
         <input class="inp" id="fKonumNot" placeholder="Adres notu..." style="margin-top:7px;">
         <div class="form-hint" id="coordsLbl"></div>
+      </div>
+      <div class="fbox fbox-blue" id="gecmisZiyaretBox" style="margin-top:10px;display:none;">
+        <div class="fbox-ttl">🕘 Geçmişe Dönük Ziyaret Ekle</div>
+        <div class="form-hint" style="margin:2px 0 7px;">Teknisyenin daha önce (uygulama dışında) yaptığı bir ziyareti buradan kaydedin — "son ziyaretten X gün geçti" hesabı bu tarihi baz alır.</div>
+        <div class="form-row2">
+          <div class="form-grp"><label class="form-lbl">Teknisyen</label><select class="inp" id="gzTeknisyen"></select></div>
+          <div class="form-grp"><label class="form-lbl">Tarih</label><input class="inp" type="date" id="gzTarih"></div>
+        </div>
+        <div class="form-row2">
+          <div class="form-grp"><label class="form-lbl">Saat (opsiyonel)</label><input class="inp" type="time" id="gzSaat"></div>
+          <div class="form-grp" style="display:flex;align-items:flex-end;"><button type="button" class="btn btn-outline btn-sm" id="gzSaveBtn" style="width:100%;">Geçmiş Ziyareti Kaydet</button></div>
+        </div>
+        <div class="form-hint" id="gzLastInfo"></div>
       </div>
     </div>
     <div class="modal-ft"><button class="btn btn-ghost" onclick="UI.closeModal('firmaModal')">İptal</button><button class="btn btn-primary" id="firmaSaveBtn">Kaydet</button></div>
