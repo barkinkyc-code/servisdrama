@@ -172,7 +172,7 @@ router.get('/', auth, async (req, res) => {
     }
     // Tech user: satışçı veri anahtarları gizli
     else if (!isAdmin && String(req.user.role || '').toLowerCase() === 'tech') {
-      const hiddenForTech = ['sd_st', 'sd_notifications', 'sd_actions', 'sd_risk_events'];
+      const hiddenForTech = ['sd_st', 'sd_notifications', 'sd_actions', 'sd_risk_events', 'sd_audit'];
       hiddenForTech.forEach(k => {
         if (r.state && k in r.state) delete r.state[k];
       });

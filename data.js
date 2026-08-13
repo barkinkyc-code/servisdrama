@@ -8,7 +8,7 @@ var SD=(function(){
   /* sd_ac (seçili teknisyen/ALL kapsamı) bilinçli olarak listede DEĞİL: bu bir kullanıcı
      arayüz tercihi, ortak iş verisi değil. Paylaşılırsa bir teknisyenin ALL seçimi
      diğerinin ekranını da değiştirir. */
-  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples','sd_st','sd_notifications','sd_actions'];
+  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples','sd_st','sd_notifications','sd_actions','sd_audit'];
   var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false, remoteReadInFlight=null;
   var DIRTY_KEY='sd_sync_dirty_v2';
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}
@@ -56,7 +56,20 @@ var SD=(function(){
       .finally(function(){syncInFlight=false;if(syncPending){syncPending=false;pushRemote({force:true});}});
   }
   function scheduleSync(delay){clearTimeout(syncTimer);syncTimer=setTimeout(function(){pushRemote();},typeof delay==='number'?delay:350);}
-  function save(k,v,immediate){try{store.setItem(k,JSON.stringify(v));if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0){markDirty(k);if(immediate)pushRemote({force:true});else scheduleSync();}}catch(e){}}
+  function save(k,v,immediate){try{
+    var oldRaw=store.getItem(k);
+    store.setItem(k,JSON.stringify(v));
+    if(k!=='sd_audit'&&['sd_co','sd_vi','sd_ex','sd_samples','sd_actions','sd_st','sd_users','sd_te'].indexOf(k)>=0&&oldRaw!==JSON.stringify(v)){
+      try{
+        var logs=load('sd_audit',[]);if(!Array.isArray(logs))logs=[];
+        var u=load('sd_cur_user',null)||{};var labels={sd_co:'Firma',sd_vi:'Ziyaret',sd_ex:'Program dışı ziyaret',sd_samples:'Numune',sd_actions:'Aksiyon',sd_st:'Satışçı',sd_users:'Kullanıcı',sd_te:'Teknisyen'};
+        logs.unshift({id:'aud_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),at:new Date().toISOString(),userId:u.id||'',user:u.name||u.username||'Sistem',role:u.role||'',key:k,action:labels[k]+' verisi güncellendi'});
+        if(logs.length>1000)logs=logs.slice(0,1000);store.setItem('sd_audit',JSON.stringify(logs));
+        if(remoteLoaded&&SHARED_KEYS.indexOf('sd_audit')>=0)markDirty('sd_audit');
+      }catch(_auditErr){}
+    }
+    if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0){markDirty(k);if(immediate)pushRemote({force:true});else scheduleSync();}
+  }catch(e){}}
   function remove(k,immediate){try{store.removeItem(k);if(remoteLoaded&&SHARED_KEYS.indexOf(k)>=0){markDirty(k);if(immediate)pushRemote({force:true});else scheduleSync();}}catch(e){}}
   function remoteReady(options){
     options=options||{};
@@ -140,6 +153,7 @@ var SD=(function(){
     ]);
     if(!store.getItem('sd_notifications'))save('sd_notifications',[]);
     if(!store.getItem('sd_actions'))save('sd_actions',[]);
+    if(!store.getItem('sd_audit'))save('sd_audit',[]);
     patchVisitFrequencies();
     patchExactWeeks();
     patchVisitWeekMigration();
@@ -617,6 +631,24 @@ var SD=(function(){
           });changed=true;
         }
       }
+    });
+
+    /* Aksiyon ve numune eskalasyonları — mevcut kayıtları değiştirmez, yalnızca bildirim ekler. */
+    var actions=load('sd_actions',[]),samples=load('sd_samples',[]),todayKey=today.toISOString().slice(0,10);
+    (Array.isArray(actions)?actions:[]).forEach(function(a){
+      if(a.status==='done'||a.status==='cancelled'||!a.dueDate)return;
+      var due=new Date(a.dueDate+'T23:59:59');var diff=Math.ceil((due-today)/86400000);
+      var kind=diff<0?'action_overdue':(diff<=1?'action_due':null);if(!kind)return;
+      var id=kind+'_'+a.id+'_'+todayKey;if(notifs.some(function(n){return n.id===id;}))return;
+      var co=cos.find(function(c){return String(c.id)===String(a.companyId||'');});
+      notifs.push({id:id,type:kind,title:diff<0?'Gecikmiş Aksiyon':'Aksiyon Yaklaşıyor',message:(co?co.name+' · ':'')+(a.title||a.description||'Aksiyon')+(diff<0?' · '+Math.abs(diff)+' gün gecikmiş':' · yarın/bugün'),recipientUserId:a.assignedToUserId||a.createdByUserId||'',createdAt:today.toISOString(),read:false});changed=true;
+    });
+    (Array.isArray(samples)?samples:[]).forEach(function(s){
+      var st=String(s.status||'').toLowerCase();if(st==='done'||st==='completed'||st==='closed'||st==='tamamlandı')return;
+      var created=new Date(s.createdAt||s.date||s.ts||0);if(isNaN(created))return;var age=Math.floor((today-created)/86400000);if(age<7)return;
+      var id='sample_wait_'+s.id+'_'+todayKey;if(notifs.some(function(n){return n.id===id;}))return;
+      var co=cos.find(function(c){return String(c.id)===String(s.companyId||s.firmaId||'');});
+      notifs.push({id:id,type:'sample_wait',title:'Numune Bekliyor',message:(co?co.name+' · ':'')+'Numune '+age+' gündür açık',recipientUserId:s.salesRepId||'',createdAt:today.toISOString(),read:false});changed=true;
     });
 
     if(changed)save('sd_notifications',notifs);

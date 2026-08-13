@@ -108,6 +108,7 @@ function filterStateForSalesRep(state, salesRep) {
 
   delete filtered.sd_users;
   delete filtered.sd_risk_events;
+  delete filtered.sd_audit;
   delete filtered.sd_cfg;
 
   return filtered;
