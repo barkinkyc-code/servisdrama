@@ -737,16 +737,23 @@ function buildVisitTable(opts){
   var me=SD.sessionTech();
   var viewerCode=me?me.code:(at?at.code:null);
 
-  /* Tamamlanmış (yeşil) ziyaretleri alta al; pending (sarı) ve boş satırlar yerinde kalır.
+  /* Sıra: (0) bu hafta planı olan ve henüz gidilmeyenler — üstte, yerinde kalır;
+     (1) bu hafta planı OLMAYANLAR (vc-dash) — kendi aralarında toplu, ortada;
+     (2) tamamlanmış (yeşil) ziyaretler — en altta.
      !! şart: kayıt yokken "va&&..." false değil undefined döner, undefined===false yanlış
      olduğu için karşılaştırıcı tutarsızlaşır ve sarıya çevrilen satır da alta kayardı. */
   var cwk=DT.wkey(today),cwi=_weekOfMonth(todayMon);
+  function _sortBucket(co,viewerVd){
+    if(viewerVd&&viewerVd.status==='done')return 2;
+    if(!BL.scheduled(co,cwi))return 1;
+    return 0;
+  }
   filtered.sort(function(a,b){
     if(!isCurrentMonth)return 0;
     var va=SD.visitEntryFor(vis[a.id+'_'+cwk],viewerCode),vb=SD.visitEntryFor(vis[b.id+'_'+cwk],viewerCode);
-    var aDone=!!(va&&va.status==='done'),bDone=!!(vb&&vb.status==='done');
-    if(aDone===bDone)return 0;
-    return aDone?1:-1;
+    var ba=_sortBucket(a,va),bb=_sortBucket(b,vb);
+    if(ba===bb)return 0;
+    return ba-bb;
   });
 
   /* Progress — sadece bu haftaya ve izleyen teknisyenin kendi ziyaretlerine göre */
