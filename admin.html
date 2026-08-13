@@ -240,12 +240,20 @@
 <div class="pg hidden" id="pg-istatistik">
   <div class="pg-hd">
     <div><h1 class="pg-title">İstatistikler</h1><div class="pg-sub" id="istatSub"></div></div>
-    <div class="pg-acts">
+    <div class="pg-acts" id="istatMonthNavWrap">
       <div class="month-nav"><button id="statPrev"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round"/></svg></button><span id="statMonth"></span><button id="statNext"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6" stroke-linecap="round"/></svg></button></div>
     </div>
   </div>
-  <div class="kpi-row" id="kpiRow"></div>
-  <div class="two-col" id="techStatGrid"></div>
+  <div class="settings-tabs" id="istatTabs">
+    <button class="stab active" data-istat-tab="genel">Genel</button>
+    <!-- Saha Planı / Performans / Denetim sekmeleri yalnızca admin için ops-v2.js
+         tarafından buraya eklenir (bkz. ensureUI). Rolü admin olmayan kullanıcı
+         bu sekmeleri hiç görmez. -->
+  </div>
+  <div class="istat-tab-panel" id="istatPanelGenel">
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="two-col" id="techStatGrid"></div>
+  </div>
 </div>
 
 <!-- RAPORLAR (sadece barkin.kayaci) -->
@@ -647,10 +655,10 @@
 <!-- pdfmake + vfs_fonts (~2,17 MB) artık burada değil: weekly-report-pdf.js
      kendi içinde PDF ilk istendiğinde dinamik olarak yüklüyor (ensurePdfMake). -->
 <script src="weekly-report-pdf.js?v=20260807-v9" defer></script>
-<script src="admin.js?v=20260813-truck-konum-fix" defer></script>
+<script src="admin.js?v=20260813-istat-subtabs" defer></script>
 <script src="numune.js?v=20260804-sync-v4" defer></script>
 <script src="enhancements.js?v=20260804-mail-1900" defer></script>
-<script src="ops-v2.js?v=20260813-ops-v2" defer></script>
+<script src="ops-v2.js?v=20260813-istat-subtabs" defer></script>
 <script src="/pwa-update.js?v=20260804-pwa-v1" defer></script>
 </body>
 </html>

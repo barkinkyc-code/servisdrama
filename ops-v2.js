@@ -28,17 +28,28 @@ function priorityRows(){return (SD.companies||[]).filter(function(c){return c.ak
 function hav(a,b){var R=6371,toRad=Math.PI/180,dlat=(b.lat-a.lat)*toRad,dlon=(b.lng-a.lng)*toRad,la1=a.lat*toRad,la2=b.lat*toRad,x=Math.sin(dlat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dlon/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
 function routeOrder(rows){if(!rows.length)return[];var left=rows.slice(),out=[left.shift()];while(left.length){var cur=out[out.length-1].c,best=0,dist=Infinity;left.forEach(function(r,i){var d=hav(cur,r.c);if(d<dist){dist=d;best=i;}});out.push(left.splice(best,1)[0]);}return out;}
 function techName(code){var t=(SD.technicians||[]).find(function(x){return String(x.code)===String(code)||String(x.id)===String(code);});return t?t.code+' · '+t.name:(code||'—');}
-function ensureUI(){
-  if(document.getElementById('pg-saha'))return;
-  var side=document.querySelector('.sidebar-nav'),top=document.getElementById('navTabs');
-  var b='<button class="nav-tab ops-nav" data-ops-page="saha">🧭 <span>Saha Planı</span></button><button class="nav-tab ops-nav" data-ops-page="performans">📈 <span>Performans</span></button><button class="nav-tab ops-nav" data-ops-page="denetim">🛡️ <span>Denetim</span></button>';
-  if(side)side.insertAdjacentHTML('beforeend',b);if(top)top.insertAdjacentHTML('beforeend',b);
-  var main=document.getElementById('mainContent');
-  main.insertAdjacentHTML('beforeend','<div class="pg hidden ops-page" id="pg-saha"><div class="pg-hd"><div><h1 class="pg-title">Saha Planı</h1><div class="pg-sub">Akıllı ziyaret önceliği ve günlük rota</div></div></div><div id="opsPriority"></div></div><div class="pg hidden ops-page" id="pg-performans"><div class="pg-hd"><div><h1 class="pg-title">Personel Performansı</h1><div class="pg-sub">Ziyaret kapsamı, düzenlilik ve sonuç odaklı skor kartı</div></div></div><div id="opsPerformance"></div></div><div class="pg hidden ops-page" id="pg-denetim"><div class="pg-hd"><div><h1 class="pg-title">Değişiklik Geçmişi</h1><div class="pg-sub">Kim, ne zaman, hangi veri grubunda değişiklik yaptı</div></div></div><div id="opsAudit"></div></div>');
-  document.body.insertAdjacentHTML('beforeend','<div class="overlay hidden" id="company360Modal"><div class="modal modal-lg ops-360-modal"><div class="modal-hd"><h2 id="c360Title">Firma 360°</h2><button class="modal-x" onclick="UI.closeModal(\'company360Modal\')">×</button></div><div class="modal-body" id="c360Body"></div></div></div>');
-  document.querySelectorAll('[data-ops-page]').forEach(function(x){x.addEventListener('click',function(){showOpsPage(x.dataset.opsPage);});});
+/* Yalnızca role==='admin' olan oturum bu paneli görür — session() (enhancements.js)
+   ile aynı okuma deseni, admin.js'e bağımlı olmadan kendi başına çalışır. */
+function isAdminRole(){
+  try{
+    var sess=sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist');
+    var s=JSON.parse(sess);
+    return String((s&&s.userData&&s.userData.role)||'').toLowerCase()==='admin';
+  }catch(e){return false;}
 }
-function showOpsPage(p){document.querySelectorAll('.pg').forEach(function(x){x.classList.add('hidden');});document.querySelectorAll('.nav-tab').forEach(function(x){x.classList.remove('active');});document.getElementById('pg-'+p).classList.remove('hidden');document.querySelectorAll('[data-ops-page="'+p+'"]').forEach(function(x){x.classList.add('active');});if(p==='saha')renderSaha();if(p==='performans')renderPerformance();if(p==='denetim')renderAudit();closeMobileMenu&&closeMobileMenu();}
+/* Saha Planı/Performans/Denetim artık bağımsız üst-menü sayfaları DEĞİL,
+   İstatistikler sayfasının içindeki alt-sekmeler (bkz. admin.html #istatTabs,
+   admin.js switchIstatTab). Yalnızca admin rolündeki kullanıcı için eklenir. */
+function ensureUI(){
+  if(!isAdminRole())return;
+  if(document.getElementById('istatPanelSaha'))return;
+  var tabs=document.getElementById('istatTabs');
+  if(tabs)tabs.insertAdjacentHTML('beforeend','<button class="stab" data-istat-tab="saha">🧭 Saha Planı</button><button class="stab" data-istat-tab="performans">📈 Performans</button><button class="stab" data-istat-tab="denetim">🛡️ Denetim</button>');
+  var istatPg=document.getElementById('pg-istatistik');
+  if(istatPg)istatPg.insertAdjacentHTML('beforeend','<div class="istat-tab-panel hidden" id="istatPanelSaha"><div class="pg-hd"><div><h1 class="pg-title">Saha Planı</h1><div class="pg-sub">Akıllı ziyaret önceliği ve günlük rota</div></div></div><div id="opsPriority"></div></div><div class="istat-tab-panel hidden" id="istatPanelPerformans"><div class="pg-hd"><div><h1 class="pg-title">Personel Performansı</h1><div class="pg-sub">Ziyaret kapsamı, düzenlilik ve sonuç odaklı skor kartı</div></div></div><div id="opsPerformance"></div></div><div class="istat-tab-panel hidden" id="istatPanelDenetim"><div class="pg-hd"><div><h1 class="pg-title">Değişiklik Geçmişi</h1><div class="pg-sub">Kim, ne zaman, hangi veri grubunda değişiklik yaptı</div></div></div><div id="opsAudit"></div></div>');
+  document.body.insertAdjacentHTML('beforeend','<div class="overlay hidden" id="company360Modal"><div class="modal modal-lg ops-360-modal"><div class="modal-hd"><h2 id="c360Title">Firma 360°</h2><button class="modal-x" onclick="UI.closeModal(\'company360Modal\')">×</button></div><div class="modal-body" id="c360Body"></div></div></div>');
+  window.onIstatTabShow=function(tab){if(tab==='saha')renderSaha();if(tab==='performans')renderPerformance();if(tab==='denetim')renderAudit();};
+}
 function renderSaha(){var rows=priorityRows(),host=document.getElementById('opsPriority');if(!host)return;var top=rows.slice(0,12);O.routeRows=top.filter(function(r){return Number(r.c.lat)&&Number(r.c.lng);});
   host.innerHTML='<div class="ops-grid"><section class="ops-card"><div class="ops-card-hd"><div><h3>Bugün Öncelikli Firmalar</h3><p>Skor; ziyaret gecikmesi, haftalık plan, açık numune ve aksiyonlardan hesaplanır.</p></div><span class="ops-pill">'+rows.length+' aktif firma</span></div><div class="ops-priority-list">'+top.map(function(r,i){return'<div class="ops-pr-row"><div class="ops-rank">'+(i+1)+'</div><div class="ops-pr-main"><button class="ops-link" onclick="openCompany360(\''+esc(r.c.id)+'\')">'+esc(r.c.name)+'</button><div class="ops-reason">'+esc(r.p.reasons.slice(0,3).join(' · ')||'normal takip')+'</div></div><div class="ops-score '+(r.p.score>=70?'danger':r.p.score>=45?'warn':'ok')+'">'+r.p.score+'</div></div>';}).join('')+'</div></section><section class="ops-card"><div class="ops-card-hd"><div><h3>Günlük Rota Önerisi</h3><p>Koordinatı kayıtlı öncelikli firmaları seçin; sistem yakınlığa göre sıralar.</p></div></div><div id="opsRouteBox"></div></section></div>';renderRouteBox();}
 function renderRouteBox(){var h=document.getElementById('opsRouteBox');if(!h)return;var rows=O.routeRows;h.innerHTML=rows.length?'<div class="ops-route-select">'+rows.map(function(r){var checked=O.routeSelection.includes(String(r.c.id));return'<label><input type="checkbox" data-route-id="'+esc(r.c.id)+'" '+(checked?'checked':'')+'> <span>'+esc(r.c.name)+'</span><b>'+r.p.score+'</b></label>';}).join('')+'</div><div class="ops-route-actions"><button class="btn btn-primary" id="opsBuildRoute">Rotayı Oluştur</button><button class="btn btn-ghost" id="opsSelectTop">İlk 6’yı Seç</button></div><div id="opsRouteResult"></div>':'<div class="ops-empty">Öncelikli firmalarda kayıtlı koordinat bulunamadı. Firma kartından konum ekleyin.</div>';

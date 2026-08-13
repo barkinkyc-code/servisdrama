@@ -257,6 +257,16 @@ document.addEventListener('DOMContentLoaded',async function(){
     });
   });
 
+  /* İstatistikler alt-sekmeleri (Genel + admin-only Saha Planı/Performans/
+     Denetim). Event delegation kullanılır: admin-only sekmeler ops-v2.js
+     tarafından sayfa yüklendikten SONRA dinamik olarak eklenir, statik
+     querySelectorAll bağlaması onları yakalayamaz. */
+  var istatTabs=document.getElementById('istatTabs');
+  if(istatTabs)istatTabs.addEventListener('click',function(e){
+    var b=e.target.closest('[data-istat-tab]');if(!b)return;
+    switchIstatTab(b.dataset.istatTab);
+  });
+
   /* Dropdown dışı tıklama kapat */
   document.addEventListener('click',function(e){
     var menu=document.getElementById('navUserMenu');
@@ -395,12 +405,25 @@ function goto(p){
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(b){b.classList.toggle('active',b.dataset.page===p);});
   document.querySelectorAll('.pg').forEach(function(el){el.classList.toggle('hidden',el.id!=='pg-'+p);});
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
-  if(p==='istatistik')renderStat();
+  if(p==='istatistik')switchIstatTab('genel');
   if(p==='numune')renderNumune();
   if(p==='ayarlar'){renderSettingsTab('genel');}
   if(p==='raporlar'&&typeof renderDetailedReports==='function')renderDetailedReports();
   if(p==='numune'&&typeof renderSamples==='function')renderSamples();
   var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
+}
+/* İstatistikler sayfası içindeki alt-sekmeyi değiştirir (Genel / admin-only
+   Saha Planı / Performans / Denetim). Panel id'leri "istatPanel"+Baş harfi
+   büyük sekme adı şeklindedir (istatPanelGenel, istatPanelSaha, ...). */
+function switchIstatTab(tab){
+  document.querySelectorAll('#istatTabs [data-istat-tab]').forEach(function(x){x.classList.toggle('active',x.dataset.istatTab===tab);});
+  document.querySelectorAll('.istat-tab-panel').forEach(function(p){p.classList.add('hidden');});
+  var panel=document.getElementById('istatPanel'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(panel)panel.classList.remove('hidden');
+  var monthNav=document.getElementById('istatMonthNavWrap');
+  if(monthNav)monthNav.style.display=tab==='genel'?'':'none';
+  if(tab==='genel')renderStat();
+  if(typeof window.onIstatTabShow==='function')window.onIstatTabShow(tab);
 }
 /* Ayarlar sayfası içinde belirli bir alt-sekmeye atlar (ör. dropdown'daki
    "Profilim" kısayolu) — .stab tıklamasıyla AYNI şeyi yapar: aktif buton
