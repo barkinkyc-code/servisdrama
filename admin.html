@@ -217,7 +217,7 @@
       <option value="active">Sadece Aktif</option>
       <option value="inactive">Sadece Pasif</option>
     </select>
-    <label class="fchk"><input type="checkbox" id="fFilterTruck"> 🚚 Truck bildirimi olanlar</label>
+    <label class="fchk"><input type="checkbox" id="fFilterTruck"> 🚚 Konumu kayıtlı (truck mail gönderilebilir)</label>
     <button class="btn btn-ghost btn-sm" id="fFilterClear">Filtreyi Temizle</button>
   </div>
   <div class="co-list" id="firmaList"></div>
@@ -350,7 +350,7 @@
           <button type="button" class="week-tog on" data-w="4">4. Hafta</button>
         </div>
       </div>
-      <div class="fbox fbox-amber"><label class="cb-row"><input type="checkbox" id="fTruck"> 🚚 Truck Bildirimi aktif</label></div>
+      <div class="fbox fbox-amber">🚚 Truck maili — firmanın konumu ("Haritadan Seç" ile) kayıtlıysa otomatik aktif olur, ayrıca bir işlem gerekmez.</div>
       <div class="fbox fbox-red" style="margin-top:10px;"><label class="cb-row"><input type="checkbox" id="fPasif"> 🚫 Firma Pasif (ziyaret listesinde görünmez, firma listesinde en altta gösterilir)</label></div>
       <div class="fbox fbox-purple" style="margin-top:10px;">
         <div class="fbox-ttl">🔧 Kurulum Süreci</div>
@@ -638,7 +638,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=20260813-visit-fmt-fix" defer></script>
+<script src="data.js?v=20260813-truck-konum-fix" defer></script>
 <script src="companies.js?v=20260804-sync-v4" defer></script>
 <script src="email-template.js?v=20260804-sync-v4" defer></script>
 <script src="weekly-report-data.js?v=20260807-v11" defer></script>
@@ -646,7 +646,7 @@
 <!-- pdfmake + vfs_fonts (~2,17 MB) artık burada değil: weekly-report-pdf.js
      kendi içinde PDF ilk istendiğinde dinamik olarak yüklüyor (ensurePdfMake). -->
 <script src="weekly-report-pdf.js?v=20260807-v9" defer></script>
-<script src="admin.js?v=20260813-gecmis-ziyaret-fix" defer></script>
+<script src="admin.js?v=20260813-truck-konum-fix" defer></script>
 <script src="numune.js?v=20260804-sync-v4" defer></script>
 <script src="enhancements.js?v=20260804-mail-1900" defer></script>
 <script src="/pwa-update.js?v=20260804-pwa-v1" defer></script>

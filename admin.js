@@ -495,7 +495,7 @@ function renderFirma(){
     if(fTech&&c.techId!==fTech)return false;
     if(fSalesRep&&c.salesRepId!==fSalesRep)return false;
     if(fFreq&&_freqBucket(c)!==fFreq)return false;
-    if(fTruck&&!c.truck)return false;
+    if(fTruck&&!(c.lat&&c.lng))return false;
     if(fStatus==='active'&&c.aktif===false)return false;
     if(fStatus==='inactive'&&c.aktif!==false)return false;
     return true;
@@ -515,7 +515,7 @@ function renderFirma(){
     var isPasif=co.aktif===false;
     var card=document.createElement('div');card.className='co-card'+(isPasif?' co-card-pasif':'');
     var icon='<div class="co-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>';
-    var badges=(isPasif?'<span class="co-pasif-badge">PASİF</span> ':'')+(co.truck?'🚚 ':'')+' '+(co.lat?'📍 ':'')+' '+(co.kurulumStart?'🔧':'');
+    var badges=(isPasif?'<span class="co-pasif-badge">PASİF</span> ':'')+(co.lat?'🚚 📍 ':'')+' '+(co.kurulumStart?'🔧':'');
     var kurulum=co.kurulumStart?'<div class="co-kurulum"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Kurulum: '+co.kurulumStart+' → '+co.kurulumEnd+'</div>':'';
     var s=sm[co.salesRepId];
     var body='<div class="co-body"><div style="display:flex;align-items:center;gap:7px;"><div class="co-name">'+co.name+'</div><span style="font-size:13px;">'+badges+'</span></div>'
@@ -558,7 +558,6 @@ function openFirmaModal(id){
     sel.value=co.techId||(ts[0]&&ts[0].id);
     if(selSalesRep)selSalesRep.value=co.salesRepId||'';
     document.getElementById('fEmail').value=co.email||'';
-    document.getElementById('fTruck').checked=!!co.truck;
     document.getElementById('fPasif').checked=co.aktif===false;
     document.getElementById('fKonumNot').value=co.konumNot||'';
     document.getElementById('fKurulumStart').value=co.kurulumStart||'';
@@ -571,7 +570,7 @@ function openFirmaModal(id){
     if(A.mapLat&&lbl)lbl.textContent='📍 '+A.mapLat.toFixed(5)+', '+A.mapLng.toFixed(5);
   }else{
     ['fAdi','fBolge','fEmail','fKonumNot','fKurulumStart','fKurulumStartTime','fKurulumEnd','fKurulumEndTime'].forEach(function(i){document.getElementById(i).value='';});
-    document.getElementById('fTruck').checked=false;document.getElementById('fPasif').checked=false;if(selSalesRep)selSalesRep.value='';A.selWeeks=[1,2,3,4];
+    document.getElementById('fPasif').checked=false;if(selSalesRep)selSalesRep.value='';A.selWeeks=[1,2,3,4];
   }
   var pasifChk=document.getElementById('fPasif');
   if(pasifChk){pasifChk.disabled=!isSuperAdmin();var pasifRow=pasifChk.closest('.fbox');if(pasifRow)pasifRow.style.display=isSuperAdmin()?'':'none';}
@@ -635,7 +634,7 @@ function saveFirma(){
   var existingCo=A.editId?SD.companies.find(function(c){return c.id===A.editId;}):null;
   var aktifVal=isSuperAdmin()?!document.getElementById('fPasif').checked:(existingCo?existingCo.aktif!==false:true);
   var salesRepEl=document.getElementById('fSalesRep'),salesRepId=salesRepEl?salesRepEl.value:null;
-  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),truck:document.getElementById('fTruck').checked,aktif:aktifVal,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:document.getElementById('fKurulumStart').value,kurulumStartTime:document.getElementById('fKurulumStartTime').value,kurulumEnd:document.getElementById('fKurulumEnd').value,kurulumEndTime:document.getElementById('fKurulumEndTime').value,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4],salesRepId:salesRepId||null};
+  var payload={name:name,bolge:document.getElementById('fBolge').value.trim(),techId:document.getElementById('fTech').value,email:document.getElementById('fEmail').value.trim(),aktif:aktifVal,konumNot:document.getElementById('fKonumNot').value.trim(),kurulumStart:document.getElementById('fKurulumStart').value,kurulumStartTime:document.getElementById('fKurulumStartTime').value,kurulumEnd:document.getElementById('fKurulumEnd').value,kurulumEndTime:document.getElementById('fKurulumEndTime').value,aMails:A.aMails.slice(),lat:A.mapLat,lng:A.mapLng,weeks:A.selWeeks.length?A.selWeeks.slice():[1,2,3,4],salesRepId:salesRepId||null};
   var cos=SD.companies;
   if(A.editId){cos=cos.map(function(c){return c.id===A.editId?Object.assign({},c,payload):c;});}
   else{cos.push(Object.assign({id:'c'+Date.now()},payload));}

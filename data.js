@@ -812,7 +812,7 @@ function buildVisitTable(opts){
     /* Firma */
     var nc=document.createElement('div');nc.className='vt-nc';
     var nm=document.createElement('div');nm.className='vt-name';nm.textContent=co.name;nc.appendChild(nm);
-    if(co.truck){
+    if(co.lat&&co.lng){
       var tb=document.createElement('button');tb.className='vt-truck';tb.title='2× Truck mail';
       tb.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
       var tc2=0,tt2;
