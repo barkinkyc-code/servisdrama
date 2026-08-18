@@ -1382,6 +1382,25 @@ function renderTechAdmin(){
       inp.addEventListener('change',function(){var arr=SD.technicians,tech=arr.find(function(x){return x.id===t.id;});if(tech)tech[f]=inp.value.trim();SD.technicians=arr;UI.toast('Güncellendi.','success');});
       fields.appendChild(inp);
     });
+    /* İzin tarihi aralığı: doluysa günlük rapor maili o aralıkta teknisyeni
+       "İzinli" kartıyla gösterir (leaveStart/leaveEnd, YYYY-MM-DD). */
+    var leaveWrap=document.createElement('div');
+    leaveWrap.style.cssText='display:flex;align-items:center;gap:6px;';
+    var leaveLbl=document.createElement('span');leaveLbl.textContent='🌴 İzin:';leaveLbl.style.cssText='font-size:11.5px;font-weight:700;color:var(--text3);white-space:nowrap;';
+    leaveWrap.appendChild(leaveLbl);
+    ['leaveStart','leaveEnd'].forEach(function(f){
+      var inp=document.createElement('input');inp.type='date';
+      inp.style.cssText='padding:6px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit;flex:1;min-width:0;';
+      inp.value=t[f]||'';inp.title=f==='leaveStart'?'İzin başlangıcı':'İzin bitişi';
+      inp.addEventListener('change',function(){
+        var arr=SD.technicians,tech=arr.find(function(x){return x.id===t.id;});
+        if(tech)tech[f]=inp.value;
+        SD.technicians=arr;
+        UI.toast(inp.value?'İzin tarihi kaydedildi.':'İzin tarihi kaldırıldı.','success');
+      });
+      leaveWrap.appendChild(inp);
+    });
+    fields.appendChild(leaveWrap);
     var db=document.createElement('button');db.className='btn-icon red';db.title='Sil';
     db.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>';
     (function(tid){db.addEventListener('click',function(){if(SD.technicians.length<=1){UI.toast('En az 1 teknisyen gerekli.','warning');return;}UI.confirm('Teknisyeni sil?',function(){var arr=SD.technicians.filter(function(x){return x.id!==tid;});SD.technicians=arr;if(SD.activeTechId===tid)SD.activeTechId=arr[0].id;renderTechAdmin();});});})( t.id);

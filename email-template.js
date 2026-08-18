@@ -66,6 +66,7 @@
       +'</td></tr></table></td></tr>';
   }
   function staffCard(person,index){
+    if(person.onLeave)return leaveCard(person);
     var color=safeColor(person.color,index%2?'#f59a00':'#1565d8');
     var rows=person.visits.map(visitRow).join('');
     return '<tr><td class="pad" style="padding:0 30px 18px;">'
@@ -75,6 +76,28 @@
       +'<td width="68" valign="middle"><table role="presentation" width="54" height="54" cellpadding="0" cellspacing="0" border="0" bgcolor="'+color+'" style="width:54px;height:54px;background-color:'+color+';"><tr><td align="center" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:18px;font-weight:bold;color:#ffffff;">'+esc(person.code)+'</td></tr></table></td>'
       +'<td valign="middle" style="font-family:Arial,Helvetica,sans-serif;"><div style="font-size:19px;line-height:24px;font-weight:bold;color:#13233f;">'+esc(person.name)+'</div><div style="font-size:14px;line-height:20px;font-weight:bold;color:#009a69;">'+person.visits.length+' ziyaret</div></td>'
       +'</tr></table></td></tr>'+rows+'</table></td></tr>';
+  }
+  /* İzinli teknisyen kartı — nötr gri zemin, ziyaret sayısı yerine İZİNLİ
+     rozeti + tarih aralığı (GG.AA.YYYY). Outlook uyumlu: tablo + inline CSS. */
+  function leaveCard(person){
+    var range=formatSetupDate(person.leaveStart)+(person.leaveEnd&&person.leaveEnd!==person.leaveStart?' – '+formatSetupDate(person.leaveEnd):'');
+    return '<tr><td class="pad" style="padding:0 30px 18px;">'
+      +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f5f7" style="border:1px solid #d7dbe2;background-color:#f4f5f7;">'
+      +'<tr><td style="padding:18px 16px;">'
+      +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      +'<td width="68" valign="middle"><table role="presentation" width="54" height="54" cellpadding="0" cellspacing="0" border="0" bgcolor="#aeb6c2" style="width:54px;height:54px;background-color:#aeb6c2;"><tr><td align="center" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:18px;font-weight:bold;color:#ffffff;">'+esc(person.code)+'</td></tr></table></td>'
+      +'<td valign="middle" style="font-family:Arial,Helvetica,sans-serif;"><div style="font-size:19px;line-height:24px;font-weight:bold;color:#4b5568;">'+esc(person.name)+'</div>'
+      +'<div style="padding-top:6px;"><span style="display:inline-block;padding:5px 10px;border:1px solid #d2d7de;background-color:#eceef2;color:#5b6472;font-size:12.5px;line-height:16px;font-weight:bold;">İZİNLİ'+(range?' &#8226; '+range:'')+'</span></div>'
+      +'</td></tr></table>'
+      +'<div style="padding:12px 2px 0;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:18px;color:#6b7688;">Bu tarihler arasında izinli &#8226; ziyaret planlanmadı.</div>'
+      +'</td></tr></table></td></tr>';
+  }
+  /* Teknisyen verilen gün izinli mi? (leaveStart/leaveEnd, YYYY-MM-DD) */
+  function isOnLeave(tech,day){
+    if(!tech||!tech.leaveStart)return false;
+    var ymd=day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');
+    var end=tech.leaveEnd||tech.leaveStart;
+    return ymd>=tech.leaveStart&&ymd<=end;
   }
 
   function collectData(ctx){
@@ -89,6 +112,12 @@
        ikisi de kendi bloğunda görünür — biri diğerini ezmez. Eski tek teknisyenli
        kayıtlarda giriş, kayıttaki tc kodundan türetilir. */
     techs.forEach(function(tech){
+      /* İzinli teknisyen: ziyareti olsun olmasın raporda gri "İzinli" kartıyla
+         gösterilir — "izinli miydi, yoksa hiç mi gitmedi" ayrımı yapılabilsin. */
+      if(isOnLeave(tech,today)){
+        people.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:[],onLeave:true,leaveStart:tech.leaveStart,leaveEnd:tech.leaveEnd});
+        return;
+      }
       var list=[];
       companies.forEach(function(company){
         if(!_BL.scheduled(company,weekIndex))return;
