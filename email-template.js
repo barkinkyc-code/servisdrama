@@ -77,7 +77,7 @@
       +'<td valign="middle" style="font-family:Arial,Helvetica,sans-serif;"><div style="font-size:19px;line-height:24px;font-weight:bold;color:#13233f;">'+esc(person.name)+'</div><div style="font-size:14px;line-height:20px;font-weight:bold;color:#009a69;">'+person.visits.length+' ziyaret</div></td>'
       +'</tr></table></td></tr>'+rows+'</table></td></tr>';
   }
-  /* İzinli teknisyen kartı — nötr gri zemin, ziyaret sayısı yerine İZİNLİ
+  /* İzinli teknisyen kartı — nötr gri zemin, ziyaret sayısı yerine İzinli
      rozeti + tarih aralığı (GG.AA.YYYY). Outlook uyumlu: tablo + inline CSS. */
   function leaveCard(person){
     var range=formatSetupDate(person.leaveStart)+(person.leaveEnd&&person.leaveEnd!==person.leaveStart?' – '+formatSetupDate(person.leaveEnd):'');
@@ -87,9 +87,9 @@
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       +'<td width="68" valign="middle"><table role="presentation" width="54" height="54" cellpadding="0" cellspacing="0" border="0" bgcolor="#aeb6c2" style="width:54px;height:54px;background-color:#aeb6c2;"><tr><td align="center" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:18px;font-weight:bold;color:#ffffff;">'+esc(person.code)+'</td></tr></table></td>'
       +'<td valign="middle" style="font-family:Arial,Helvetica,sans-serif;"><div style="font-size:19px;line-height:24px;font-weight:bold;color:#4b5568;">'+esc(person.name)+'</div>'
-      +'<div style="padding-top:6px;"><span style="display:inline-block;padding:5px 10px;border:1px solid #d2d7de;background-color:#eceef2;color:#5b6472;font-size:12.5px;line-height:16px;font-weight:bold;">İZİNLİ'+(range?' &#8226; '+range:'')+'</span></div>'
+      +'<div style="padding-top:6px;"><span style="display:inline-block;padding:5px 10px;border:1px solid #d2d7de;background-color:#eceef2;color:#5b6472;font-size:12.5px;line-height:16px;font-weight:bold;">İzinli'+(range?' &#8226; '+range:'')+'</span></div>'
       +'</td></tr></table>'
-      +'<div style="padding:12px 2px 0;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:18px;color:#6b7688;">Bu tarihler arasında izinli &#8226; ziyaret planlanmadı.</div>'
+      +'<div style="padding:12px 2px 0;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:18px;color:#6b7688;">Ziyaret planlanmadı.</div>'
       +'</td></tr></table></td></tr>';
   }
   /* Teknisyen verilen gün izinli mi? (leaveStart/leaveEnd, YYYY-MM-DD) */
@@ -111,11 +111,13 @@
        Kayıt teknisyen bazlı tutulduğu için aynı firmaya hem 1015 hem 1016 girdiyse
        ikisi de kendi bloğunda görünür — biri diğerini ezmez. Eski tek teknisyenli
        kayıtlarda giriş, kayıttaki tc kodundan türetilir. */
+    var onLeavePeople=[];
     techs.forEach(function(tech){
       /* İzinli teknisyen: ziyareti olsun olmasın raporda gri "İzinli" kartıyla
-         gösterilir — "izinli miydi, yoksa hiç mi gitmedi" ayrımı yapılabilsin. */
+         gösterilir — "izinli miydi, yoksa hiç mi gitmedi" ayrımı yapılabilsin.
+         Ayrı listede toplanır ve çalışan personelin ALTINA eklenir. */
       if(isOnLeave(tech,today)){
-        people.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:[],onLeave:true,leaveStart:tech.leaveStart,leaveEnd:tech.leaveEnd});
+        onLeavePeople.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:[],onLeave:true,leaveStart:tech.leaveStart,leaveEnd:tech.leaveEnd});
         return;
       }
       var list=[];
@@ -140,7 +142,11 @@
     var installations=companies.filter(function(c){return (c.kurulumStart||c.kurulumEnd)&&(!c.kurulumEnd||c.kurulumEnd>=todayYmd);}).map(function(c){
       return {name:c.name,start:c.kurulumStart,end:c.kurulumEnd,startTime:c.kurulumStartTime||'',endTime:c.kurulumEndTime||''};
     });
-    return {today:today,people:people,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0)};
+    /* İzinliler her zaman listenin sonunda; "Personel" metriği yalnızca fiilen
+       çalışan (izinli olmayan) personeli sayar. */
+    var activeCount=people.length;
+    people=people.concat(onLeavePeople);
+    return {today:today,people:people,activeCount:activeCount,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0)};
   }
 
   function buildOutlookRaporHTML(ctx){
@@ -167,7 +173,7 @@
       +'<!--[if mso]><table role="presentation" width="680"><tr><td><![endif]--><table role="presentation" class="shell" width="680" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:680px;max-width:680px;background-color:#ffffff;border:1px solid #dbe3ec;">'
       +'<tr><td class="pad" style="padding:18px 30px;"><table role="presentation" width="100%"><tr><td class="brand-cell" width="185" valign="middle"><img class="brand-logo" src="cid:drama-makine-logo" width="158" height="58" alt="Drama Makine" style="display:block;width:158px;height:58px;object-fit:contain;"></td><td valign="middle" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td class="report-label" align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:15px;letter-spacing:1.3px;font-weight:bold;color:#13233f;border:1px solid #13233f;padding:10px 13px;white-space:nowrap;">GÜNLÜK SERVİS RAPORU</td></tr></table></td></tr></table></td></tr>'
       +'<tr><td class="pad" bgcolor="#102b50" style="padding:34px 30px;background-color:#102b50;"><table role="presentation" width="100%"><tr><td class="mobile-block" width="55%" valign="middle"><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;letter-spacing:2px;font-weight:bold;color:#42a1ff;">SERVİSDRAMA</div><h1 class="hero-title" style="margin:8px 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:40px;color:#ffffff;">Günlük Ziyaret Özeti</h1><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#d8e5f3;">Sahadaki teknik ekip faaliyetlerinin özeti.</div></td><td class="mobile-block mobile-left" width="45%" valign="middle" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td width="25" valign="middle"><img src="cid:servisdrama-calendar-white" width="18" height="18" alt="" style="display:block;width:18px;height:18px;"></td><td valign="middle" style="padding-right:14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+esc(reportDate)+'</td><td width="1" bgcolor="#70839a" style="width:1px;background-color:#70839a;font-size:1px;line-height:32px;">&nbsp;</td><td width="25" valign="middle" style="padding-left:14px;"><img src="cid:servisdrama-calendar-white" width="18" height="18" alt="" style="display:block;width:18px;height:18px;"></td><td valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#ffffff;white-space:nowrap;">'+esc(week)+'</td></tr></table></td></tr></table></td></tr>'
-      +'<tr><td class="pad" style="padding:26px 30px 12px;"><table role="presentation" width="100%" style="border:1px solid #dbe3ec;"><tr><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#1565d8;">'+data.total+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Teknik Ziyaret</div></td><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#f59a00;">'+data.installations.length+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Kurulum</div></td><td width="33.33%" align="center" style="padding:20px 8px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#078578;">'+data.people.length+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Personel</div></td></tr></table></td></tr>'
+      +'<tr><td class="pad" style="padding:26px 30px 12px;"><table role="presentation" width="100%" style="border:1px solid #dbe3ec;"><tr><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#1565d8;">'+data.total+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Teknik Ziyaret</div></td><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#f59a00;">'+data.installations.length+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Kurulum</div></td><td width="33.33%" align="center" style="padding:20px 8px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#078578;">'+(data.activeCount!=null?data.activeCount:data.people.length)+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Personel</div></td></tr></table></td></tr>'
       +installationRows+'<tr><td class="pad" style="padding:14px 30px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="116" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:bold;color:#13233f;white-space:nowrap;">Teknik Ekip</td><td valign="middle" style="padding-left:12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#cbd5e1" style="height:1px;background-color:#cbd5e1;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr></table></td></tr>'
       +staffRows+emptyRows+'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Automated Report • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
       +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
