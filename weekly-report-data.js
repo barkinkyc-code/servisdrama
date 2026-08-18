@@ -80,6 +80,47 @@
     return Math.max(1,Math.min(4,Math.round(4/n)));
   }
 
+  /* ═══ İZİN (leaveStart/leaveEnd, YYYY-MM-DD — sd_te kaydı) ═══
+     Kaynak, günlük rapordaki gri "İzinli" kartıyla aynıdır. Teknisyen izinliyken
+     ziyaret yapması beklenemeyeceği için o dönem plandan düşülür; aksi halde
+     izin, firma skorunu haksız yere aşağı çekiyordu. */
+  function techOfCompany(ctx,company){
+    if(!company||!company.techId)return null;
+    return (ctx.technicians||[]).find(function(t){return String(t.id)===String(company.techId);})||null;
+  }
+  function leaveRangeOf(tech){
+    if(!tech||!tech.leaveStart)return null;
+    var s=parseDate(tech.leaveStart),e=parseDate(tech.leaveEnd||tech.leaveStart);
+    if(!s||!e)return null;
+    s.setHours(0,0,0,0);e.setHours(23,59,59,999);
+    return e<s?null:{start:s,end:e};
+  }
+  /* O hafta sorumlu teknisyen izinli miydi? Ziyaretler hafta içi yapıldığı için
+     yalnızca Pzt–Cum'a bakılır ve izin bu 5 günün ÇOĞUNU (>=3) kapsamalıdır:
+     tek günlük izin haftayı mazur göstermez, tam hafta izin gösterir. */
+  function techOnLeaveForWeek(ctx,company,monday){
+    var range=leaveRangeOf(techOfCompany(ctx,company));
+    if(!range)return false;
+    var covered=0;
+    for(var i=0;i<5;i++){
+      var day=new Date(monday);day.setDate(day.getDate()+i);day.setHours(12,0,0,0);
+      if(day>=range.start&&day<=range.end)covered++;
+    }
+    return covered>=3;
+  }
+  /* [from,to] aralığında sorumlu teknisyenin izinli olduğu gün sayısı — "son
+     ziyaretten bu yana geçen süre"den düşülür ki izin, güncellik puanını
+     düşürmesin. */
+  function leaveDaysBetween(ctx,company,from,to){
+    var range=leaveRangeOf(techOfCompany(ctx,company));
+    if(!range)return 0;
+    var s=new Date(Math.max(range.start.getTime(),from.getTime()));
+    var e=new Date(Math.min(range.end.getTime(),to.getTime()));
+    if(e<s)return 0;
+    s.setHours(0,0,0,0);e.setHours(0,0,0,0);
+    return Math.floor((e-s)/86400000)+1;
+  }
+
   /* [from,to] aralığında firmanın planlı (BL.scheduled) hafta sayısı ve bu
      haftaların kaçında gerçekten ziyaret olduğu. Hem "ömür boyu" hem "bu dönem"
      istatistiği AYNI kuralı kullansın diye tek yerde hesaplanır. */
@@ -87,10 +128,14 @@
     var expected=0,met=0,cursor=ctx.DT.monday(from),endMonday=ctx.DT.monday(to);
     while(cursor<=endMonday){
       if(ctx.BL.scheduled(company,weekIndexOf(ctx,cursor))){
-        expected++;
         var wkStart=cursor,wkEnd=new Date(cursor);
         wkEnd.setDate(wkEnd.getDate()+6);wkEnd.setHours(23,59,59,999);
-        if(visits.some(function(x){return x.d>=wkStart&&x.d<=wkEnd;}))met++;
+        var visited=visits.some(function(x){return x.d>=wkStart&&x.d<=wkEnd;});
+        /* Ziyaret varsa hafta her koşulda sayılır (izinde bile gidilmişse bu
+           olumlu bir kayıttır). Ziyaret YOKSA ve teknisyen o hafta izinliyse
+           hafta beklenenlerden tamamen çıkarılır — kaçırılmış sayılmaz. */
+        if(visited){expected++;met++;}
+        else if(!techOnLeaveForWeek(ctx,company,cursor))expected++;
       }
       cursor=new Date(cursor);cursor.setDate(cursor.getDate()+7);
     }
@@ -149,8 +194,13 @@
     var uyum=Math.round(Math.max(raw,smoothed)*100);
 
     var daysSince=Math.max(0,Math.round((reportEnd-visits[0].d)/86400000));
-    var planDays=cadence*7,overdue=daysSince>planDays;
-    var guncellik=recencyScore(daysSince,cadence);
+    /* Gerçek gecikme gösterilmeye devam eder (daysSince), ama PUAN hesabı izin
+       günleri düşülmüş süreye göre yapılır: teknisyen izindeyken geçen süre
+       firmanın güncellik puanını düşürmemeli. */
+    var leaveDays=leaveDaysBetween(ctx,company,visits[0].d,reportEnd);
+    var effectiveDays=Math.max(0,daysSince-leaveDays);
+    var planDays=cadence*7,overdue=effectiveDays>planDays;
+    var guncellik=recencyScore(effectiveDays,cadence);
 
     var score=W_UYUM*uyum+W_GUNCEL*guncellik;
     var penalties=[];
@@ -164,12 +214,13 @@
     if(life.missed>0)reasons.push(life.met+'/'+life.expected+' planlı hafta karşılandı');
     else reasons.push('Tam uyum ('+life.met+'/'+life.expected+' hafta)');
     if(overdue)reasons.push('Son ziyaret '+daysSince+' gün önce (plan '+planDays+' gün)');
+    if(leaveDays)reasons.push(leaveDays+' gün teknisyen izni skordan düşüldü');
     if(life.expected<3)reasons.push('Az veri — skor geçici');
     reasons=reasons.concat(penalties);
 
     return{score:score,reason:reasons.join(' · '),reasons:reasons,
       parts:{expected:life.expected,met:life.met,missed:life.missed,uyum:uyum,guncellik:guncellik,
-        daysSince:daysSince,cadence:cadence,planDays:planDays,overdue:overdue,
+        daysSince:daysSince,leaveDays:leaveDays,effectiveDays:effectiveDays,cadence:cadence,planDays:planDays,overdue:overdue,
         neverVisited:false,lowData:life.expected<3,penalties:penalties}};
   }
   /* Satış temsilcisi kayıtları SD.users'ta DEĞİL, ayrı `sd_st` deposunda tutulur
@@ -304,16 +355,28 @@
 
     /* Bu dönemde gidilmesi gereken (BL.scheduled) ama hiç ziyaret edilmeyen aktif firmalar. */
     var activeCompanies=ctx.companies.filter(function(c){return c.aktif!==false;});
-    var scheduledIds={};
+    var scheduledIds={},workableIds={};
     var mondayCursor=ctx.DT.monday(rangeStart);
     while(mondayCursor<=rangeEnd){
       var wi=weekIndexOf(ctx,mondayCursor);
-      activeCompanies.forEach(function(c){if(ctx.BL.scheduled(c,wi))scheduledIds[c.id]=true;});
+      (function(monday,weekIdx){
+        activeCompanies.forEach(function(c){
+          if(!ctx.BL.scheduled(c,weekIdx))return;
+          scheduledIds[c.id]=true;
+          /* Sorumlu teknisyen o hafta izinliyse o hafta "gidilebilir" sayılmaz.
+             Dönemdeki TÜM planlı haftaları izne denk gelen firma gidilmeyenler
+             listesine girmez — izin, kaçırılmış ziyaret gibi görünmesin. */
+          if(!techOnLeaveForWeek(ctx,c,monday))workableIds[c.id]=true;
+        });
+      })(mondayCursor,wi);
       mondayCursor=new Date(mondayCursor);mondayCursor.setDate(mondayCursor.getDate()+7);
     }
     var visitedIds={};
     rows.forEach(function(r){if(r.firmaId)visitedIds[r.firmaId]=true;});
-    var missed=Object.keys(scheduledIds).filter(function(id){return !visitedIds[id];}).map(function(id){
+    /* İzin yüzünden gidilemeyen firmalar aksiyon listesinden çıkar ama skorları
+       ortalamaya DAHİL kalır (aşağıda) — yoksa havuzdan düşüp ortalamayı kaydırırlar. */
+    var leaveExcusedIds=Object.keys(scheduledIds).filter(function(id){return !visitedIds[id]&&!workableIds[id];});
+    var missed=Object.keys(scheduledIds).filter(function(id){return !visitedIds[id]&&workableIds[id];}).map(function(id){
       var c=activeCompanies.find(function(x){return x.id===id;});
       var tech=ctx.technicians.find(function(t){return t.id===c.techId;});
       var last=lastVisitBefore(ctx,id,rangeEnd);
@@ -354,11 +417,17 @@
        kuralla dışarıda bırakılırlar. */
     rows.forEach(function(r){if(r.firmaId&&r.registered&&!(r.firmaId in companyScores))companyScores[r.firmaId]={score:r.score,grade:r.grade};});
     missed.forEach(function(m){if(!(m.firmaId in companyScores))companyScores[m.firmaId]={score:m.score,grade:m.grade};});
+    leaveExcusedIds.forEach(function(id){
+      if(id in companyScores)return;
+      var lc=activeCompanies.find(function(x){return x.id===id;});
+      var lsd=scoreDetail(ctx,lc,rangeEnd);
+      companyScores[id]={score:lsd.score,grade:grade(lsd.score)};
+    });
     var scored=Object.keys(companyScores).map(function(k){return companyScores[k];});
     var scoreVals=scored.map(function(s){return s.score;}).filter(function(s){return typeof s==='number';});
     var avgScore=scoreVals.length?Math.round(scoreVals.reduce(function(a,b){return a+b;},0)/scoreVals.length*10)/10:0;
 
-    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,unregistered:unregistered,duplicates:duplicates,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,companyScores:scored,scheduledCount:Object.keys(scheduledIds).length};
+    return {start:rangeStart,end:rangeEnd,rows:rows,total:total,unique:unique,unregistered:unregistered,duplicates:duplicates,uygun:uygun,planDisi:planDisi,programDisi:programDisi,tech:techCounts,days:dayCounts,avgScore:avgScore,planRate:planRate,missed:missed,leaveExcused:leaveExcusedIds.length,companyScores:scored,scheduledCount:Object.keys(scheduledIds).length};
   }
 
   function previousPeriodRange(start,end){
