@@ -69,12 +69,15 @@
     if(person.onLeave)return leaveCard(person);
     var color=safeColor(person.color,index%2?'#f59a00':'#1565d8');
     var rows=person.visits.map(visitRow).join('');
+    /* 0 ziyaret: sayı kırmızı, altına kısa bilgi satırı — kart listede kalır. */
+    var countColor=person.visits.length?'#009a69':'#c2410c';
+    if(!person.visits.length)rows='<tr><td style="border-top:1px solid #dbe3ec;padding:14px 16px;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:18px;color:#8a6a49;">Bugün ziyaret girilmedi.</td></tr>';
     return '<tr><td class="pad" style="padding:0 30px 18px;">'
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dbe3ec;">'
       +'<tr><td bgcolor="#ffffff" style="padding:18px 16px;background-color:#ffffff;">'
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       +'<td width="68" valign="middle"><table role="presentation" width="54" height="54" cellpadding="0" cellspacing="0" border="0" bgcolor="'+color+'" style="width:54px;height:54px;background-color:'+color+';"><tr><td align="center" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:18px;font-weight:bold;color:#ffffff;">'+esc(person.code)+'</td></tr></table></td>'
-      +'<td valign="middle" style="font-family:Arial,Helvetica,sans-serif;"><div style="font-size:19px;line-height:24px;font-weight:bold;color:#13233f;">'+esc(person.name)+'</div><div style="font-size:14px;line-height:20px;font-weight:bold;color:#009a69;">'+person.visits.length+' ziyaret</div></td>'
+      +'<td valign="middle" style="font-family:Arial,Helvetica,sans-serif;"><div style="font-size:19px;line-height:24px;font-weight:bold;color:#13233f;">'+esc(person.name)+'</div><div style="font-size:14px;line-height:20px;font-weight:bold;color:'+countColor+';">'+person.visits.length+' ziyaret</div></td>'
       +'</tr></table></td></tr>'+rows+'</table></td></tr>';
   }
   /* İzinli teknisyen kartı — nötr gri zemin, ziyaret sayısı yerine İzinli
@@ -136,7 +139,14 @@
         var extraPrevious=extraCompany?previousVisit(extraCompany.id,visits,weekKey,today):{date:'Kayıt yok',days:''};
         list.push({name:extraName,previousDate:extraPrevious.date,daysElapsed:extraPrevious.days,time:e.saat||'',isExtra:true,note:e.not||''});
       });
-      if(list.length)people.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:list});
+      if(list.length){people.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:list});}
+      else{
+        /* Bugün hiç ziyaret girmemiş teknisyen de raporda görünür (0 ziyaret) —
+           "izinli mi, yoksa hiç mi girmedi" ayrımı yapılabilsin. Hiç aktif
+           firması olmayan kodlar (kullanılmayan teknisyen kayıtları) atlanır. */
+        var hasCompanies=companies.some(function(c){return c.techId===tech.id&&c.aktif!==false;});
+        if(hasCompanies)people.push({code:tech.code,name:tech.name,color:_BL.avatarColor(tech.name),visits:[]});
+      }
     });
     var todayYmd=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
     var installations=companies.filter(function(c){return (c.kurulumStart||c.kurulumEnd)&&(!c.kurulumEnd||c.kurulumEnd>=todayYmd);}).map(function(c){
