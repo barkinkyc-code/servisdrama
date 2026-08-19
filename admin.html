@@ -246,7 +246,7 @@
   </div>
   <div class="settings-tabs" id="istatTabs">
     <button class="stab active" data-istat-tab="genel">Genel</button>
-    <!-- Saha Planı / Performans / Denetim sekmeleri yalnızca admin için ops-v2.js
+    <!-- Saha Planı / Performans / Erken Uyarı / Denetim sekmeleri yalnızca admin için ops-v2.js
          tarafından buraya eklenir (bkz. ensureUI). Rolü admin olmayan kullanıcı
          bu sekmeleri hiç görmez. -->
   </div>
@@ -645,7 +645,7 @@
 <script src="data.js?v=20260813-truck-konum-fix" defer></script>
 <script src="companies.js?v=20260804-sync-v4" defer></script>
 <script src="email-template.js?v=20260814-izinli-v3" defer></script>
-<script src="weekly-report-data.js?v=20260818-izin-skor2" defer></script>
+<script src="weekly-report-data.js?v=20260818-erken-uyari" defer></script>
 <script src="weekly-email-template.js?v=20260807-v14" defer></script>
 <!-- pdfmake + vfs_fonts (~2,17 MB) artık burada değil: weekly-report-pdf.js
      kendi içinde PDF ilk istendiğinde dinamik olarak yüklüyor (ensurePdfMake). -->
@@ -653,7 +653,8 @@
 <script src="admin.js?v=20260818-ayarlar-sade" defer></script>
 <script src="numune.js?v=20260804-sync-v4" defer></script>
 <script src="enhancements.js?v=20260818-ayarlar-sade" defer></script>
-<script src="ops-v2.js?v=20260813-istat-subtabs" defer></script>
+<script src="early-warning.js?v=20260818-erken-uyari" defer></script>
+<script src="ops-v2.js?v=20260818-erken-uyari" defer></script>
 <script src="/pwa-update.js?v=20260804-pwa-v1" defer></script>
 </body>
 </html>

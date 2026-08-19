@@ -256,7 +256,9 @@
     return idx<1?1:idx;
   }
 
-  function collectWeeklyData(startDate,endDate,ctxIn){
+  /* Rapor hesaplarinin ortak baglami. Erken uyari paneli de ayni skor
+     motorunu kullanabilsin diye ayri fonksiyona alindi. */
+  function makeCtx(ctxIn){
     var ctx={
       SD:(ctxIn&&ctxIn.SD)||SD,DT:(ctxIn&&ctxIn.DT)||DT,BL:(ctxIn&&ctxIn.BL)||BL
     };
@@ -267,6 +269,10 @@
     ctx.users=ctx.SD.users||[];
     ctx.salesReps=(ctx.SD.load?ctx.SD.load('sd_st',[]):[])||[];
     ctx.samples=(ctx.SD.load?ctx.SD.load('sd_samples',[]):[])||[];
+    return ctx;
+  }
+  function collectWeeklyData(startDate,endDate,ctxIn){
+    var ctx=makeCtx(ctxIn);
 
     var rangeStart=new Date(startDate);rangeStart.setHours(0,0,0,0);
     var rangeEnd=new Date(endDate);rangeEnd.setHours(23,59,59,999);
@@ -480,6 +486,19 @@
     return current;
   }
 
+  /* Erken uyari paneli icin: ayni skor modeli ve ayni izin kurali tek
+     kaynaktan kullanilsin diye disa acilir. */
+  global.weeklyScoreDetail=function(company,reportEnd,ctxIn){return scoreDetail(makeCtx(ctxIn),company,reportEnd);};
+  global.weeklyTechOnLeaveWeek=function(tech,monday){
+    var range=leaveRangeOf(tech);
+    if(!range)return false;
+    var covered=0;
+    for(var i=0;i<5;i++){
+      var day=new Date(monday);day.setDate(day.getDate()+i);day.setHours(12,0,0,0);
+      if(day>=range.start&&day<=range.end)covered++;
+    }
+    return covered>=3;
+  };
   global.collectWeeklyData=collectWeeklyData;
   global.collectWeeklyDataWithTrend=collectWeeklyDataWithTrend;
   global.previousPeriodRange=previousPeriodRange;
