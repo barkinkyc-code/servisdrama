@@ -13,7 +13,7 @@
 <!-- leaflet.css/js artık burada değil: admin.js "Haritadan Seç" ilk
      tıklandığında dinamik olarak yüklüyor (ensureLeaflet). -->
 <link rel="stylesheet" href="style.css?v=20260810-fast-v1">
-<link rel="stylesheet" href="ops-v2.css?v=20260813-ops-v2">
+<link rel="stylesheet" href="ops-v2.css?v=20260819-uyari-zil">
 
 <meta name="theme-color" content="#1D4ED8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -66,6 +66,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
       DK Portal
     </a>
+    <button class="ew-bell" id="ewBell" type="button" onclick="openEarlyWarningModal()" aria-label="Erken uyarılar" title="Erken uyarılar">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      <span class="ew-bell-badge hidden" id="ewBellBadge">0</span>
+    </button>
     <div class="nav-user-menu" id="navUserMenu">
       <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu(event)">
         <div class="nav-avatar-img" id="navAvatarImg"></div>
@@ -653,7 +657,7 @@
 <script src="admin.js?v=20260818-ayarlar-sade" defer></script>
 <script src="numune.js?v=20260804-sync-v4" defer></script>
 <script src="enhancements.js?v=20260818-ayarlar-sade" defer></script>
-<script src="early-warning.js?v=20260818-erken-uyari" defer></script>
+<script src="early-warning.js?v=20260819-uyari-zil" defer></script>
 <script src="ops-v2.js?v=20260818-erken-uyari" defer></script>
 <script src="/pwa-update.js?v=20260804-pwa-v1" defer></script>
 </body>

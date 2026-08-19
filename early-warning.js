@@ -10,6 +10,12 @@
      3. Kronik program dışı çağrı   — firma bazlı, 90 gün
      4. Tamamlama oranı düştü       — teknisyen bazlı, 4 hafta vs önceki 4 hafta
 
+   KAPSAM: teknisyen girişinde yalnızca KENDİ firmaları ve kendi tamamlama
+   oranı; admin girişinde her şey. Aynı hesap üç yerde kullanılır:
+     - açılışta bir kez çıkan uyarı ekranı
+     - kullanıcı adının yanındaki zil + sayaç
+     - İstatistikler › Erken Uyarı sekmesi (admin)
+
    Skor ve izin kuralı yeniden yazılmaz; weekly-report-data.js'ten
    weeklyScoreDetail / weeklyTechOnLeaveWeek olarak kullanılır — böylece
    rapor ile uyarı paneli aynı modeli paylaşır.
@@ -28,7 +34,6 @@ var INTERVAL_FACTOR=1.5;      /* son aralık / önceki aralık */
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function avg(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:0;}
 function daysBetween(a,b){return Math.round((b-a)/DAY);}
-function monday(d){return DT.monday(d);}
 function weekIdxOfMonday(m){
   var weeks=DT.monthWeeks(m.getFullYear(),m.getMonth());
   var i=weeks.findIndex(function(w){return w.getTime()===m.getTime();})+1;
@@ -81,8 +86,22 @@ function techOnLeave(tech,mon){
   return global.weeklyTechOnLeaveWeek?global.weeklyTechOnLeaveWeek(tech,mon):false;
 }
 
+/* ── KAPSAM ──────────────────────────────────────────────────────
+   Teknisyen girişinde yalnızca kendi verisi; admin girişinde hepsi. */
+function viewerScope(){
+  var tech=null;
+  try{tech=(SD.sessionTech&&SD.sessionTech())||null;}catch(e){tech=null;}
+  return tech?{techId:tech.id,tech:tech,isAdmin:false}:{techId:null,tech:null,isAdmin:true};
+}
+function scopedCompanies(scope){
+  return (SD.companies||[]).filter(function(c){
+    if(c.aktif===false)return false;
+    return !scope.techId||String(c.techId)===String(scope.techId);
+  });
+}
+
 /* ── KURAL 1: Ziyaret aralığı uzuyor ─────────────────────────────
-   Son 2 aralığın ortalaması, ondan önceki 3 aralığın ortalamasının
+   Son 2 aralığın ortalaması, ondan önceki aralıkların ortalamasının
    INTERVAL_FACTOR katını aşıyorsa VE firmanın kendi planını geçiyorsa. */
 function intervalDrift(co){
   var d=doneVisitDates(co.id);
@@ -126,23 +145,29 @@ function scoreDrift(co,now,past){
 /* ── KURAL 3: Kronik program dışı çağrı ──────────────────────────
    Planlı olmayan ziyaretin tekrarı, çözülmemiş bir sorunun işareti.
    Kayıtsız (serbest metin) firmalar da normalize edilmiş isimle sayılır. */
-function chronicExtras(){
-  var since=new Date(Date.now()-LOOKBACK_EXTRA_DAYS*DAY),groups={};
+function chronicExtras(scope){
+  var since=new Date(Date.now()-LOOKBACK_EXTRA_DAYS*DAY),groups={},cos=SD.companies||[];
   (SD.extras||[]).forEach(function(e){
     var d=parseAny(e.date,e.wk);
     if(!d||d<since)return;
+    var co=e.firmaId?cos.find(function(c){return String(c.id)===String(e.firmaId);}):null;
+    if(scope.techId){
+      /* Kayıtlı firmada sorumluluk firmanın teknisyenine, kayıtsız girişte
+         ziyareti giren teknisyene göre belirlenir. */
+      var owns=co?String(co.techId)===String(scope.techId):String(e.techId||'')===String(scope.techId);
+      if(!owns)return;
+    }
     var key=e.firmaId||('ad:'+String(e.firmAdi||'').toLocaleUpperCase('tr').trim());
-    if(!groups[key])groups[key]={n:0,firmaId:e.firmaId||'',ad:e.firmAdi||'',son:d};
+    if(!groups[key])groups[key]={n:0,firmaId:e.firmaId||'',ad:co?co.name:(e.firmAdi||''),son:d};
     groups[key].n++;
     if(d>groups[key].son)groups[key].son=d;
   });
   return Object.keys(groups).map(function(k){
     var g=groups[k];
-    var co=g.firmaId?(SD.companies||[]).find(function(c){return String(c.id)===String(g.firmaId);}):null;
     if(g.n<MIN_EXTRA_CALLS)return null;
     return {
       tur:'kronik',
-      ad:co?co.name:(g.ad||'Bilinmeyen firma'),firmaId:co?co.id:'',
+      ad:g.ad||'Bilinmeyen firma',firmaId:g.firmaId,
       olcu:g.n+'×',
       aciklama:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+g.n+' program dışı çağrı (son: '+DT.ddmmyyyy(g.son)+')',
       kritik:g.n>=5
@@ -189,65 +214,130 @@ function techDrift(tech,thisMonday){
 }
 
 /* ── Toplama ─────────────────────────────────────────────────── */
-function collectWarnings(){
+function collectWarnings(scope){
+  scope=scope||viewerScope();
   var now=new Date();now.setHours(23,59,59,999);
   var past=new Date(now.getTime()-LOOKBACK_SCORE_DAYS*DAY);
-  var thisMonday=monday(new Date());
-  var cos=(SD.companies||[]).filter(function(c){return c.aktif!==false;});
-  var out={aralik:[],skor:[],kronik:[],teknisyen:[]};
-  cos.forEach(function(co){
+  var thisMonday=DT.monday(new Date());
+  var out={aralik:[],skor:[],kronik:[],teknisyen:[],scope:scope};
+  scopedCompanies(scope).forEach(function(co){
     var a=intervalDrift(co);if(a)out.aralik.push(a);
     var s=scoreDrift(co,now,past);if(s)out.skor.push(s);
   });
-  out.kronik=chronicExtras();
+  out.kronik=chronicExtras(scope);
   (SD.technicians||[]).forEach(function(t){
+    if(scope.techId&&String(t.id)!==String(scope.techId))return;
     var d=techDrift(t,thisMonday);if(d)out.teknisyen.push(d);
   });
-  /* Her grup kendi içinde en ağırdan hafife */
-  Object.keys(out).forEach(function(k){
+  ['aralik','skor','kronik','teknisyen'].forEach(function(k){
     out[k].sort(function(a,b){return (b.kritik?1:0)-(a.kritik?1:0)||String(a.ad).localeCompare(String(b.ad),'tr');});
   });
   return out;
 }
-
-/* ── Görünüm ─────────────────────────────────────────────────── */
 var GROUPS=[
   {key:'aralik',baslik:'Ziyaret aralığı uzayan firmalar',alt:'Son iki ziyaret arası, önceki temposunun 1.5 katını ve firmanın kendi planını aştı.'},
   {key:'skor',baslik:'Skoru düşen firmalar',alt:'Son '+LOOKBACK_SCORE_DAYS+' günde firma skoru en az '+MIN_SCORE_DROP+' puan geriledi.'},
   {key:'kronik',baslik:'Kronik program dışı çağrı',alt:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+MIN_EXTRA_CALLS+' veya daha fazla plansız ziyaret — çözülmemiş sorun işareti.'},
   {key:'teknisyen',baslik:'Tamamlama oranı düşen teknisyenler',alt:'Son 4 hafta, önceki 4 haftaya göre en az '+MIN_RATE_DROP+' puan geriledi. İzinli haftalar sayılmaz.'}
 ];
+function totalOf(w){return GROUPS.reduce(function(n,g){return n+w[g.key].length;},0);}
+function criticalOf(w){return GROUPS.reduce(function(n,g){return n+w[g.key].filter(function(x){return x.kritik;}).length;},0);}
+
+/* ── Görünüm ─────────────────────────────────────────────────── */
 function rowHtml(w){
-  var isim=w.firmaId
+  /* Firma 360° yalnızca admin panelinde tanımlı; yoksa düz metin gösterilir. */
+  var isim=(w.firmaId&&typeof global.openCompany360==='function')
     ? '<button class="ops-link" onclick="openCompany360(\''+esc(w.firmaId)+'\')">'+esc(w.ad)+'</button>'
-    : '<b>'+esc(w.ad)+'</b>';
+    : '<b style="font-size:13px;color:#172033;">'+esc(w.ad)+'</b>';
   return '<div class="ops-pr-row">'
     +'<div class="ops-pr-main">'+isim+'<div class="ops-reason">'+esc(w.aciklama)+'</div></div>'
     +'<div class="ops-score '+(w.kritik?'danger':'warn')+'">'+esc(w.olcu)+'</div>'
     +'</div>';
 }
+function groupsHtml(w){
+  var html='';
+  GROUPS.forEach(function(g){
+    var list=w[g.key];if(!list.length)return;
+    html+='<div class="ops-card" style="margin-bottom:14px;"><div class="ops-card-hd"><div><h3>'+esc(g.baslik)+'</h3><p>'+esc(g.alt)+'</p></div>'
+      +'<span class="ops-pill">'+list.length+'</span></div>'
+      +'<div class="ops-priority-list">'+list.map(rowHtml).join('')+'</div></div>';
+  });
+  return html;
+}
+function scopeNote(scope){
+  return scope.isAdmin
+    ? 'Kapsam: <b>tüm firmalar ve teknisyenler</b>.'
+    : 'Kapsam: <b>size atanmış firmalar</b> ('+esc((scope.tech&&scope.tech.code)||'')+').';
+}
+
+/* İstatistikler › Erken Uyarı sekmesi (admin) */
 function renderEarlyWarning(){
   var host=document.getElementById('opsEarlyWarning');if(!host)return;
-  var w=collectWarnings();
-  var total=GROUPS.reduce(function(n,g){return n+w[g.key].length;},0);
-  var kritik=GROUPS.reduce(function(n,g){return n+w[g.key].filter(function(x){return x.kritik;}).length;},0);
-  var html='<div class="ops-card"><div class="ops-card-hd"><div>'
+  var w=collectWarnings(),total=totalOf(w);
+  var html='<div class="ops-card" style="margin-bottom:14px;"><div class="ops-card-hd"><div>'
     +'<h3>Durum Özeti</h3>'
-    +'<p>Skor anlık durumu ölçer; burada durum iyi görünse bile <b>kötüye gidenler</b> listelenir.</p>'
-    +'</div><span class="ops-pill">'+total+' uyarı · '+kritik+' kritik</span></div></div>';
-  if(!total){
-    html+='<div class="ops-card"><div class="ops-empty">Sapma bulunamadı — takip edilen dört ölçütte de kötüye giden bir eğilim yok.</div></div>';
-  }else{
-    GROUPS.forEach(function(g){
-      var list=w[g.key];if(!list.length)return;
-      html+='<div class="ops-card"><div class="ops-card-hd"><div><h3>'+esc(g.baslik)+'</h3><p>'+esc(g.alt)+'</p></div>'
-        +'<span class="ops-pill">'+list.length+'</span></div>'
-        +'<div class="ops-priority-list">'+list.map(rowHtml).join('')+'</div></div>';
-    });
-  }
+    +'<p>Skor anlık durumu ölçer; burada durum iyi görünse bile <b>kötüye gidenler</b> listelenir. '+scopeNote(w.scope)+'</p>'
+    +'</div><span class="ops-pill">'+total+' uyarı · '+criticalOf(w)+' kritik</span></div></div>';
+  html+=total?groupsHtml(w)
+    :'<div class="ops-card"><div class="ops-empty">Sapma bulunamadı — takip edilen dört ölçütte de kötüye giden bir eğilim yok.</div></div>';
   host.innerHTML=html;
 }
 
+/* Açılış ekranı / zil ile açılan pencere */
+function ensureModal(){
+  if(document.getElementById('earlyWarningModal'))return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="overlay hidden" id="earlyWarningModal"><div class="modal ew-modal">'
+    +'<div class="modal-hd"><h2>⚠️ Erken Uyarı</h2><button class="modal-x" onclick="UI.closeModal(\'earlyWarningModal\')" aria-label="Kapat">×</button></div>'
+    +'<div class="modal-body ew-body" id="ewModalBody"></div>'
+    +'<div class="modal-ft"><button class="btn btn-primary" onclick="UI.closeModal(\'earlyWarningModal\')">Tamam</button></div>'
+    +'</div></div>');
+}
+function openEarlyWarningModal(){
+  ensureModal();
+  var body=document.getElementById('ewModalBody');if(!body)return;
+  var w=collectWarnings(),total=totalOf(w),kritik=criticalOf(w);
+  var head='<div class="ew-scope"><b>'+total+' uyarı</b>'+(kritik?' · <b style="color:#c33434;">'+kritik+' kritik</b>':'')+' — '+scopeNote(w.scope)+'</div>';
+  body.innerHTML=head+(total?groupsHtml(w)
+    :'<div class="ops-card"><div class="ops-empty">Şu an bir sapma yok. Takip edilen dört ölçütte de kötüye giden eğilim görünmüyor.</div></div>');
+  refreshBell();
+  if(global.UI&&UI.openModal)UI.openModal('earlyWarningModal');
+}
+
+/* Kullanıcı adının yanındaki zil + sayaç */
+function refreshBell(){
+  var btn=document.getElementById('ewBell'),badge=document.getElementById('ewBellBadge');
+  if(!btn||!badge)return 0;
+  var n=0;
+  try{n=totalOf(collectWarnings());}catch(e){return 0;}
+  badge.textContent=n>99?'99+':String(n);
+  badge.classList.toggle('hidden',n===0);
+  btn.title=n?(n+' erken uyarı — görmek için tıklayın'):'Erken uyarı yok';
+  return n;
+}
+/* Açılışta günde bir kez otomatik açılır; uyarı yoksa hiç açılmaz ki
+   ekran boşuna kapatılmak zorunda kalınmasın. */
+function autoOpenOnce(){
+  var n=refreshBell();
+  if(!n)return;
+  var key='sd_ew_auto_'+new Date().toISOString().slice(0,10);
+  try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1');}catch(e){}
+  openEarlyWarningModal();
+}
+function init(){
+  if(!global.SD||!global.DT||!global.BL)return;
+  if(!document.getElementById('ewBell'))return;   /* yalnızca admin.html */
+  ensureModal();
+  autoOpenOnce();
+  /* Uzak veri açılıştan sonra gelebilir; sayaç bir kez tazelenir. */
+  setTimeout(function(){try{refreshBell();}catch(e){}},4000);
+}
+function boot(){setTimeout(init,900);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
+else boot();
+
 global.renderEarlyWarning=renderEarlyWarning;
+global.openEarlyWarningModal=openEarlyWarningModal;
+global.refreshEarlyWarningBell=refreshBell;
 global.collectEarlyWarnings=collectWarnings;
 })(typeof window!=='undefined'?window:this);
