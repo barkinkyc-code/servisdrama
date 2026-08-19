@@ -237,7 +237,7 @@ function collectWarnings(scope){
 var GROUPS=[
   {key:'aralik',baslik:'Ziyaret aralığı uzayan firmalar',alt:'Son iki ziyaret arası, önceki temposunun 1.5 katını ve firmanın kendi planını aştı.'},
   {key:'skor',baslik:'Skoru düşen firmalar',alt:'Son '+LOOKBACK_SCORE_DAYS+' günde firma skoru en az '+MIN_SCORE_DROP+' puan geriledi.'},
-  {key:'kronik',baslik:'Kronik program dışı çağrı',alt:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+MIN_EXTRA_CALLS+' veya daha fazla plansız ziyaret — çözülmemiş sorun işareti.'},
+  {key:'kronik',baslik:'Kronik program dışı firmalar',alt:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+MIN_EXTRA_CALLS+' veya daha fazla plansız ziyaret — çözülmemiş sorun işareti.'},
   {key:'teknisyen',baslik:'Tamamlama oranı düşen teknisyenler',alt:'Son 4 hafta, önceki 4 haftaya göre en az '+MIN_RATE_DROP+' puan geriledi. İzinli haftalar sayılmaz.'}
 ];
 function totalOf(w){return GROUPS.reduce(function(n,g){return n+w[g.key].length;},0);}

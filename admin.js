@@ -409,9 +409,9 @@ function goto(p){
   document.querySelectorAll('.nav-tab[data-page]').forEach(function(b){b.classList.toggle('active',b.dataset.page===p);});
   document.querySelectorAll('.pg').forEach(function(el){el.classList.toggle('hidden',el.id!=='pg-'+p);});
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
-  if(p==='istatistik')switchIstatTab('genel');
+  if(p==='istatistik')switchIstatTab(A.istatTab||'genel');
   if(p==='numune')renderNumune();
-  if(p==='ayarlar'){renderSettingsTab('mail');}
+  if(p==='ayarlar'){renderSettingsTab(A.settingsTab||'mail');}
   if(p==='raporlar'&&typeof renderDetailedReports==='function')renderDetailedReports();
   if(p==='numune'&&typeof renderSamples==='function')renderSamples();
   var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
@@ -420,6 +420,12 @@ function goto(p){
    Saha Planı / Performans / Denetim). Panel id'leri "istatPanel"+Baş harfi
    büyük sekme adı şeklindedir (istatPanelGenel, istatPanelSaha, ...). */
 function switchIstatTab(tab){
+  /* Hedef panel yoksa (ör. teknisyende admin sekmeleri hiç eklenmez) Genel'e düş. */
+  if(!document.getElementById('istatPanel'+String(tab||'').charAt(0).toUpperCase()+String(tab||'').slice(1))&&tab!=='genel')tab='genel';
+  /* Seçili alt sekme hatırlanır: 15 saniyelik otomatik yenileme goto()'yu tekrar
+     çağırdığı için sabit 'genel' yazılıysa kullanıcı Erken Uyarı/Performans
+     ekranındayken sürekli Genel'e atılıyordu. */
+  A.istatTab=tab;
   document.querySelectorAll('#istatTabs [data-istat-tab]').forEach(function(x){x.classList.toggle('active',x.dataset.istatTab===tab);});
   document.querySelectorAll('.istat-tab-panel').forEach(function(p){p.classList.add('hidden');});
   var panel=document.getElementById('istatPanel'+tab.charAt(0).toUpperCase()+tab.slice(1));
@@ -1577,6 +1583,7 @@ function normalizeSettingsTab(tab){return SETTINGS_TAB_ALIAS[tab]||tab||'mail';}
 
 function renderSettingsTab(tab){
   tab=normalizeSettingsTab(tab);
+  A.settingsTab=tab;   /* otomatik yenilemede aynı sekmede kalınsın */
   var cfg=SD.config,content=document.getElementById('settingsContent');if(!content)return;
   content.innerHTML='';
   var esc=salesEsc;
