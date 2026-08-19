@@ -411,7 +411,7 @@ function goto(p){
   var tabs=document.getElementById('navTabs');if(tabs)tabs.style.display='';
   if(p==='istatistik')switchIstatTab('genel');
   if(p==='numune')renderNumune();
-  if(p==='ayarlar'){renderSettingsTab('genel');}
+  if(p==='ayarlar'){renderSettingsTab('mail');}
   if(p==='raporlar'&&typeof renderDetailedReports==='function')renderDetailedReports();
   if(p==='numune'&&typeof renderSamples==='function')renderSamples();
   var monthNav=document.getElementById('visitMonthNav');if(monthNav)monthNav.style.display=p==='ziyaret'?'':'none';
@@ -433,6 +433,9 @@ function switchIstatTab(tab){
    "Profilim" kısayolu) — .stab tıklamasıyla AYNI şeyi yapar: aktif buton
    sınıfını günceller, o sekmenin içeriğini render eder. */
 function openSettingsSubTab(tab){
+  /* Eski sekme adlari (genel, modul, izinler...) yeni sekmeye cevrilir ki
+     kayitli kisayollar ve eski linkler calismaya devam etsin. */
+  tab=normalizeSettingsTab(tab);
   document.querySelectorAll('.stab').forEach(function(x){x.classList.toggle('active',x.dataset.stab===tab);});
   renderSettingsTab(tab);
 }
@@ -1563,93 +1566,103 @@ var TECH_FEATS=[
   {key:'showHistory',nm:'Geçmiş Ziyaretler',desc:'Önceki haftalara ait ziyaret kayıtları'}
 ];
 
+/* ═══ AYARLAR ═══
+   Sekmeler 10'dan 5'e indirildi: aynı konuyu paylaşan bölümler tek sekmede
+   kart kart toplandı (Mail = eski Genel + Mail + Mail Alıcıları, Ekip = eski
+   Teknisyen Yetkileri + Satışçılar + Kullanıcılar, Yetkiler = eski Modüller +
+   Teknisyen Ekran Yetkileri + Raporlama İzinleri). Hiçbir ayar anahtarı
+   değişmedi; eski sekme adları alias ile yeni sekmeye yönlendirilir. */
+var SETTINGS_TAB_ALIAS={genel:'mail',mailAlicilar:'mail',modul:'yetkiler',teknik:'yetkiler',izinler:'yetkiler',satisci:'ekip',kullanici:'ekip'};
+function normalizeSettingsTab(tab){return SETTINGS_TAB_ALIAS[tab]||tab||'mail';}
+
 function renderSettingsTab(tab){
+  tab=normalizeSettingsTab(tab);
   var cfg=SD.config,content=document.getElementById('settingsContent');if(!content)return;
   content.innerHTML='';
-  if(tab==='genel'){
+  var esc=salesEsc;
+  if(tab==='mail'){
+    /* Gönderici kimliği artık TEK yerde. Eskiden "Genel"deki senderName ve
+       "Mail"deki senderEmail alanları hiçbir yerde OKUNMUYORDU — mail her zaman
+       smtpSenderName/smtpSenderEmail ile gönderiliyordu. İki ayrı "Gönderici
+       Adı" alanı hangisinin geçerli olduğunu belirsizleştiriyordu. Eski alanda
+       değer varsa buraya taşınıp gösterilir; kaydedilince canlı ayara yazılır. */
+    var sName=cfg.smtpSenderName||cfg.senderName||'';
+    var sEmail=cfg.smtpSenderEmail||cfg.senderEmail||'';
     content.innerHTML='<div class="settings-card">'
-      +'<div class="settings-ttl">⚙️ Genel Bilgiler</div>'
-      +'<div class="settings-row"><label class="form-lbl">Gönderici Adı</label><input class="inp" id="cfg-senderName" value="'+(cfg.senderName||'')+'" placeholder="Drama Makine Teknik Servis"></div>'
-      +'<div class="settings-row"><label class="form-lbl">Rapor Mail Konusu Öneki</label><input class="inp" id="cfg-subjectPrefix" value="'+(cfg.subjectPrefix||'')+'" placeholder="ServisDrama | Günlük Rapor"></div>'
-      +'<div class="settings-acts"><button class="btn btn-outline btn-sm" onclick="buildAndPreview()">HTML Rapor Önizle</button><button class="btn btn-primary btn-sm" onclick="saveGenelCfg()">Kaydet</button></div>'
+      +'<div class="settings-ttl">✉️ Gönderici ve Konu</div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:14px;">Giden tüm raporlarda görünen gönderici bilgisi ve mail konu öneki.</p>'
+      +'<div class="settings-row"><label class="form-lbl">Gönderici Adı</label><input class="inp" id="cfg-smtpSenderName" value="'+esc(sName)+'" placeholder="Drama Makine Teknik Servis"></div>'
+      +'<div class="settings-row"><label class="form-lbl">Gönderici E-posta</label><input class="inp" type="email" id="cfg-smtpSenderEmail" value="'+esc(sEmail)+'" placeholder="servis@dramamakine.com"></div>'
+      +'<div class="settings-row"><label class="form-lbl">Rapor Mail Konusu Öneki</label><input class="inp" id="cfg-subjectPrefix" value="'+esc(cfg.subjectPrefix||'')+'" placeholder="ServisDrama | Günlük Rapor"></div>'
+      +'<div class="settings-acts"><button class="btn btn-outline btn-sm" onclick="buildAndPreview()">HTML Rapor Önizle</button><button class="btn btn-primary btn-sm" onclick="saveGonderici()">Kaydet</button></div>'
       +'</div>'
-      +'<div id="previewFrame" style="margin-top:16px;border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;min-height:60px;"></div>';
-  }else if(tab==='mail'){
-    content.innerHTML='<div class="settings-card" style="margin-top:0;">'
-      +'<div class="settings-ttl">🔔 SMTP / Otomatik Gönderim</div>'
-      +'<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--r-lg);padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">Bu uygulama file:// tabanlı çalıştığı için SMTP entegrasyonu JavaScript mail kütüphanesi (EmailJS) veya bir backend ile yapılabilir. Aşağıdaki bilgileri kaydedin.</div>'
-      +'<div class="settings-row"><label class="form-lbl">Gönderici E-posta</label><input class="inp" id="cfg-senderEmail" value="'+(cfg.senderEmail||'')+'" placeholder="servis@dramamakine.com"></div>'
-      +'<div class="settings-row"><label class="form-lbl">EmailJS Service ID</label><input class="inp" id="cfg-emailjsService" value="'+(cfg.emailjsService||'')+'" placeholder="service_xxxxx"></div>'
-      +'<div class="settings-row"><label class="form-lbl">EmailJS Template ID</label><input class="inp" id="cfg-emailjsTemplate" value="'+(cfg.emailjsTemplate||'')+'" placeholder="template_xxxxx"></div>'
-      +'<div class="settings-row"><label class="form-lbl">EmailJS Public Key</label><input class="inp" id="cfg-emailjsKey" value="'+(cfg.emailjsKey||'')+'" placeholder="public_key_xxxxx"></div>'
-      +'<div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveMailCfg()">Kaydet</button></div>'
-      +'</div>'
-      +'<div class="settings-card" style="margin-top:0;">'
-      +'<div class="settings-ttl">📧 SMTP Sunucu Ayarları</div>'
-      +'<div class="settings-row"><label class="form-lbl">Gönderici Adı</label><input class="inp" id="cfg-smtpSenderName" value="'+(cfg.smtpSenderName||'')+'" placeholder="Drama Kimya"></div>'
-      +'<div class="settings-row"><label class="form-lbl">E-Posta Adresi</label><input class="inp" type="email" id="cfg-smtpSenderEmail" value="'+(cfg.smtpSenderEmail||'')+'" placeholder="kimyaservis@dramamakine.com"></div>'
-      +'<div class="settings-row"><label class="form-lbl">Giden Sunucu (SMTP)</label><input class="inp" id="cfg-smtpHost" value="'+(cfg.smtpHost||'')+'" placeholder="mail.dramagroup.com.tr"></div>'
-      +'<div class="settings-row"><label class="form-lbl">SMTP Port</label><input class="inp" type="number" id="cfg-smtpPort" value="'+(cfg.smtpPort||587)+'" placeholder="587"></div>'
-      +'<div class="settings-row"><label class="form-lbl">Kullanıcı Adı</label><input class="inp" id="cfg-smtpUser" value="'+(cfg.smtpUser||'')+'" placeholder="kimyaservis@dramagroup.com"></div>'
-      +'<div class="settings-row"><label class="form-lbl">Parola</label><input class="inp" type="password" id="cfg-smtpPass" value="'+(cfg.smtpPass||'')+'" placeholder="••••••••"></div>'
+      +'<div id="previewFrame" style="margin-top:16px;border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;"></div>'
+      +'<div class="settings-card">'
+      +'<div class="settings-ttl">📧 SMTP Sunucu</div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:14px;">Mailler bu sunucu üzerinden gönderilir.</p>'
+      +'<div class="settings-row"><label class="form-lbl">Giden Sunucu (SMTP)</label><input class="inp" id="cfg-smtpHost" value="'+esc(cfg.smtpHost||'')+'" placeholder="mail.dramagroup.com.tr"></div>'
+      +'<div class="settings-row"><label class="form-lbl">SMTP Port</label><input class="inp" type="number" id="cfg-smtpPort" value="'+esc(cfg.smtpPort||587)+'" placeholder="587"></div>'
+      +'<div class="settings-row"><label class="form-lbl">Kullanıcı Adı</label><input class="inp" id="cfg-smtpUser" value="'+esc(cfg.smtpUser||'')+'" placeholder="kimyaservis@dramagroup.com"></div>'
+      +'<div class="settings-row"><label class="form-lbl">Parola</label><input class="inp" type="password" id="cfg-smtpPass" value="'+esc(cfg.smtpPass||'')+'" placeholder="••••••••"></div>'
       +'<div class="settings-row"><label class="form-lbl">Sertifika</label><select class="inp" id="cfg-smtpTls"><option value="tls"'+(cfg.smtpTls==="starttls"?"":' selected')+'>TLS</option><option value="starttls"'+(cfg.smtpTls==="starttls"?" selected":'')+'>STARTTLS</option></select></div>'
       +'<div class="settings-acts"><button class="btn btn-outline btn-sm" onclick="testSmtpMail()">📨 Test Maili Gönder</button><button class="btn btn-primary btn-sm" onclick="saveSmtpCfg()">Kaydet</button></div>'
-      +'</div>';
-  }else if(tab==='mailAlicilar'){
-    content.innerHTML='<div class="settings-card">'
+      +'</div>'
+      +'<div class="settings-card">'
       +'<div class="settings-ttl">👥 Mail Alıcıları</div>'
-      +'<p style="font-size:13px;color:var(--text3);margin-bottom:14px;">Her gün rapor gönderildiğinde bu adresler alıcı olarak eklenir.</p>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:14px;">Rapor gönderildiğinde bu adresler alıcı olarak eklenir.</p>'
       +'<div style="display:flex;gap:10px;margin-bottom:10px;"><input class="inp" id="mailAliciInp" type="email" placeholder="ornek@dramamakine.com" style="flex:1;"><button onclick="addMailAlici()" style="width:42px;height:40px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-lg);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;">+</button></div>'
       +'<div id="mailAliciList"></div>'
-      +'</div>'
-      +'<div class="settings-card" style="margin-top:0;">'
-      +'<div class="settings-ttl">⚙️ Gönderim Modu</div>'
-      +'<div style="display:flex;align-items:center;gap:12px;padding:12px 0;">'
+      +'<div class="feat-row" style="margin-top:14px;">'
+      +'<div><div class="feat-nm">Tüm alıcılara gönder</div><div class="feat-desc">Kapalıyken yalnızca barkin.kayaci@dramamakine.com adresine gönderilir.</div></div>'
       +'<label class="toggle"><input type="checkbox" id="manuelHariciToggle"'+(loadMailRecipientsMode()?' checked':'')+' onchange="saveMailRecipientsMode(this.checked);"><span class="toggle-tr"></span></label>'
-      +'<div><div style="font-weight:500;font-size:13px;">Manuel Harici - Tüm alıcılara mail gönder</div>'
-      +'<div style="font-size:12px;color:var(--text3);">Seçiliyse: tüm tanımlı adresler | Seçili değilse: sadece barkin.kayaci@dramamakine.com</div></div>'
       +'</div>'
       +'</div>';
-    var cfg=SD.config;cfg.mailAlicilar=loadMailRecipients();SD.config=cfg;
+    var mcfg=SD.config;mcfg.mailAlicilar=loadMailRecipients();SD.config=mcfg;
     renderMailAlicilar();
-  }else if(tab==='modul'){
-    var mf=cfg.moduleFeatures||{};
-    content.innerHTML='<div class="settings-card"><div class="settings-ttl">🧩 Modül Ayarları</div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Hangi özellikler aktif olsun?</p><div id="modulFeatRows"></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveModulCfg()">Kaydet</button></div></div>';
-    var mfr=document.getElementById('modulFeatRows');
-    MODULE_FEATS.forEach(function(f){
-      var row=document.createElement('div');row.className='feat-row';
-      row.innerHTML='<div><div class="feat-nm">'+f.nm+'</div><div class="feat-desc">'+f.desc+'</div></div>'
-        +'<label class="toggle"><input type="checkbox" id="mf-'+f.key+'"'+(mf[f.key]!==false?' checked':'')+'><span class="toggle-tr"></span></label>';
-      mfr.appendChild(row);
-    });
-  }else if(tab==='teknik'){
-    var tf=cfg.techFeatures||{};
-    content.innerHTML='<div class="settings-card"><div class="settings-ttl" style="display:flex;align-items:center;justify-content:space-between;"><span>👥 Ekip Yönetimi</span><button class="btn btn-primary btn-sm" onclick="UI.openModal(\'addTechModal\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Teknisyen Ekle</button></div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Teknisyen bilgileri ve erişim kontrolü</p><div id="techAdminList"></div></div>'
-      +'<div class="settings-card" style="margin-top:16px;"><div class="settings-ttl">👤 Teknisyen Ekran Yetkileri</div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Teknisyen ekranında hangi özellikler görünsün?</p><div id="techFeatRows"></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveTechCfg()">Kaydet</button></div></div>';
-    var tfr=document.getElementById('techFeatRows');
-    TECH_FEATS.forEach(function(f){
-      var row=document.createElement('div');row.className='feat-row';
-      row.innerHTML='<div><div class="feat-nm">'+f.nm+'</div><div class="feat-desc">'+f.desc+'</div></div>'
-        +'<label class="toggle"><input type="checkbox" id="tf-'+f.key+'"'+(tf[f.key]!==false?' checked':'')+'><span class="toggle-tr"></span></label>';
-      tfr.appendChild(row);
-    });
+  }else if(tab==='ekip'){
+    content.innerHTML='<div class="settings-card">'
+      +'<div class="settings-ttl" style="display:flex;align-items:center;justify-content:space-between;"><span>🔧 Teknisyenler</span><button class="btn btn-primary btn-sm" onclick="UI.openModal(\'addTechModal\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Teknisyen Ekle</button></div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px;">İletişim bilgileri ve izin tarihleri. İzinli haftalar firma skorundan düşülür.</p>'
+      +'<div id="techAdminList"></div></div>'
+      +'<div class="settings-card">'
+      +'<div class="settings-ttl" style="display:flex;align-items:center;justify-content:space-between;"><span>💼 Satışçılar</span><button class="btn btn-primary btn-sm" onclick="UI.openModal(\'addSalesModal\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Satışçı Ekle</button></div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Firmalara atama, Firmalar sekmesindeki firma formundan yapılır.</p>'
+      +'<div id="salesAdminList"></div></div>'
+      +'<div id="kullaniciCards"></div>';
     renderTechAdmin();
-  }else if(tab==='satisci'){
-    content.innerHTML='<div class="settings-card"><div class="settings-ttl" style="display:flex;align-items:center;justify-content:space-between;"><span>💼 Satışçı Yönetimi</span><button class="btn btn-primary btn-sm" onclick="UI.openModal(\'addSalesModal\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Satışçı Ekle</button></div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Satışçı bilgileri. Firmalara atama, Firmalar sekmesindeki firma formundan yapılır.</p><div id="salesAdminList"></div></div>';
     renderSalesAdmin();
-  }else if(tab==='kullanici'){
     renderKullanicilar();
-  }else if(tab==='izinler'){
-    var users=SD.users||[];
-    content.innerHTML='<div class="settings-card"><div class="settings-ttl">🔐 Raporlama İzinleri</div><p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Hangi kullanıcılar rapor gönderebilsin? (barkin.kayaci her zaman gönderebilir)</p><div id="permissionsGrid"></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="savePermissions()">Kaydet</button></div></div>';
+  }else if(tab==='yetkiler'){
+    var mf=cfg.moduleFeatures||{},tf=cfg.techFeatures||{},users=SD.users||[];
+    content.innerHTML='<div class="settings-card">'
+      +'<div class="settings-ttl">🧩 Modüller</div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Hangi özellikler uygulamada aktif olsun?</p>'
+      +'<div id="modulFeatRows"></div></div>'
+      +'<div class="settings-card">'
+      +'<div class="settings-ttl">👤 Teknisyen Ekranı</div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Teknisyen girişinde hangi bölümler görünsün?</p>'
+      +'<div id="techFeatRows"></div></div>'
+      +'<div class="settings-card">'
+      +'<div class="settings-ttl">🔐 Rapor Gönderme İzni</div>'
+      +'<p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Hangi kullanıcılar rapor gönderebilsin? (barkin.kayaci her zaman gönderebilir)</p>'
+      +'<div id="permissionsGrid"></div></div>'
+      +'<div style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onclick="saveYetkiler()">Tüm Yetkileri Kaydet</button></div>';
+    var addFeatRow=function(host,id,nm,desc,checked,disabled){
+      if(!host)return;
+      var row=document.createElement('div');row.className='feat-row';
+      row.innerHTML='<div><div class="feat-nm">'+nm+'</div><div class="feat-desc">'+desc+'</div></div>'
+        +'<label class="toggle"><input type="checkbox" id="'+id+'"'+(checked?' checked':'')+(disabled?' disabled style="cursor:not-allowed;"':'')+'><span class="toggle-tr"></span></label>';
+      host.appendChild(row);
+    };
+    var mfr=document.getElementById('modulFeatRows');
+    MODULE_FEATS.forEach(function(f){addFeatRow(mfr,'mf-'+f.key,f.nm,f.desc,mf[f.key]!==false,false);});
+    var tfr=document.getElementById('techFeatRows');
+    TECH_FEATS.forEach(function(f){addFeatRow(tfr,'tf-'+f.key,f.nm,f.desc,tf[f.key]!==false,false);});
     var grid=document.getElementById('permissionsGrid');
     users.forEach(function(u){
-      var row=document.createElement('div');row.className='feat-row';
-      var canSendReportPerm=!(cfg.sendReportPermissions&&cfg.sendReportPermissions[u.id]===false);
-      row.innerHTML='<div><div class="feat-nm">'+u.name+' <span style="font-size:11px;color:var(--text3);">('+(u.username||'—')+')</span></div>'
-        +'<div class="feat-desc">'+(u.role==='admin'?'Admin · Her zaman gönderebilir':'Kullanıcı')+' · Teknik Servis'+'</div></div>'
-        +'<label class="toggle"><input type="checkbox" id="perm-'+u.id+'"'+(canSendReportPerm?' checked':'')+' '+(u.role==='admin'?' disabled':'')+' style="cursor:'+(u.role==='admin'?'not-allowed':'pointer')+';" ><span class="toggle-tr"></span></label>';
-      grid.appendChild(row);
+      var can=!(cfg.sendReportPermissions&&cfg.sendReportPermissions[u.id]===false);
+      addFeatRow(grid,'perm-'+u.id,esc(u.name)+' <span style="font-size:11px;color:var(--text3);">('+esc(u.username||'—')+')</span>',
+        u.role==='admin'?'Admin · Her zaman gönderebilir':'Kullanıcı',can,u.role==='admin');
     });
   }else if(tab==='veri'){
     content.innerHTML='<div class="settings-card"><div class="settings-ttl">💾 Veri Yönetimi</div><div style="display:flex;flex-direction:column;gap:10px;"><button class="btn btn-outline btn-sm" onclick="exportAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke-linecap="round"/></svg>Tüm Veriyi İndir (JSON)</button><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'importAll\').click()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0l-4 4m4-4l4 4" stroke-linecap="round"/></svg>Yedekten Geri Yükle</button><input type="file" id="importAll" accept=".json" hidden onchange="importAll(event)"><button class="btn btn-danger btn-sm" onclick="if(confirm(\'Tüm ziyaret geçmişi silinecek!\'))clearVisits()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>Ziyaret Geçmişini Temizle</button></div></div>';
@@ -1658,12 +1671,12 @@ function renderSettingsTab(tab){
     var rolLbl=cu.role==='admin'?'Yönetici · Admin':(cu.role||'—');
     content.innerHTML='<div class="settings-card">'
       +'<div class="settings-ttl">👤 Profil Bilgileri</div>'
-      +'<div class="settings-row"><label class="form-lbl">Ad Soyad</label><input class="inp" value="'+(cu.name||'')+'" disabled></div>'
-      +'<div class="settings-row"><label class="form-lbl">Kullanıcı Adı</label><input class="inp" value="'+(cu.username||'')+'" disabled></div>'
-      +'<div class="settings-row"><label class="form-lbl">E-posta</label><input class="inp" value="'+(cu.email||'—')+'" disabled></div>'
-      +'<div class="settings-row"><label class="form-lbl">Rol</label><input class="inp" value="'+rolLbl+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">Ad Soyad</label><input class="inp" value="'+esc(cu.name||'')+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">Kullanıcı Adı</label><input class="inp" value="'+esc(cu.username||'')+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">E-posta</label><input class="inp" value="'+esc(cu.email||'—')+'" disabled></div>'
+      +'<div class="settings-row"><label class="form-lbl">Rol</label><input class="inp" value="'+esc(rolLbl)+'" disabled></div>'
       +'</div>'
-      +'<div class="settings-card" style="margin-top:0;">'
+      +'<div class="settings-card">'
       +'<div class="settings-ttl">🔒 Şifre Değiştir</div>'
       +'<div class="settings-row"><label class="form-lbl">Mevcut Şifre</label><input class="inp" type="password" id="pfCurrentPw" autocomplete="current-password"></div>'
       +'<div class="settings-row"><label class="form-lbl">Yeni Şifre</label><input class="inp" type="password" id="pfNewPw" minlength="6" autocomplete="new-password"></div>'
@@ -1671,6 +1684,35 @@ function renderSettingsTab(tab){
       +'<div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="changeMyPassword()">Şifreyi Güncelle</button></div>'
       +'</div>';
   }
+}
+/* Gönderici adı/e-postası + konu öneki. Değerler mailin FİİLEN kullandığı
+   smtpSenderName/smtpSenderEmail anahtarlarına yazılır. */
+function saveGonderici(){
+  var cfg=SD.config;
+  cfg.smtpSenderName=(document.getElementById('cfg-smtpSenderName')||{}).value||'';
+  cfg.smtpSenderEmail=(document.getElementById('cfg-smtpSenderEmail')||{}).value||'';
+  cfg.subjectPrefix=(document.getElementById('cfg-subjectPrefix')||{}).value||'';
+  SD.config=cfg;UI.toast('Gönderici ayarları kaydedildi.','success');
+}
+/* Modül + teknisyen ekranı + rapor izinleri tek düğmeyle kaydedilir; üç ayrı
+   sekmede üç ayrı "Kaydet" aramak yerine hepsi aynı yerde. */
+function saveYetkiler(){
+  var cfg=SD.config;
+  if(!cfg.moduleFeatures)cfg.moduleFeatures={};
+  if(!cfg.techFeatures)cfg.techFeatures={};
+  if(!cfg.sendReportPermissions)cfg.sendReportPermissions={};
+  MODULE_FEATS.forEach(function(f){var el=document.getElementById('mf-'+f.key);if(el)cfg.moduleFeatures[f.key]=el.checked;});
+  TECH_FEATS.forEach(function(f){var el=document.getElementById('tf-'+f.key);if(el)cfg.techFeatures[f.key]=el.checked;});
+  /* Kutu render edilmediyse o kullanıcıya DOKUNULMAZ. Eski savePermissions()
+     eksik kutuyu false sayıp izni sessizce kaldırabiliyordu. */
+  (SD.users||[]).forEach(function(u){
+    if(u.role==='admin')return;
+    var chk=document.getElementById('perm-'+u.id);
+    if(chk)cfg.sendReportPermissions[u.id]=chk.checked;
+  });
+  SD.config=cfg;
+  updateRaporButtonState();
+  UI.toast('Yetkiler kaydedildi.','success');
 }
 
 /* /api/auth/change-password zaten sunucuda vardı (sales.js'te kullanılıyordu,
@@ -1832,12 +1874,21 @@ function syncUsersFromDB(){
     .catch(e => UI.toast('Sunucu hatası: '+e.message,'error'));
 }
 
+/* Ekip sekmesindeki #kullaniciCards kabina yazar. Eskiden settingsContent-i
+   komple ezerdi; artik ayni sekmedeki Teknisyen/Satisci kartlari korunur.
+   Sifre kurulum butonlari da sabit 1015/1016 yerine teknisyen listesinden
+   uretilir — yeni teknisyen eklendiginde otomatik gelir. */
 function renderKullanicilar(){
-  var content=document.getElementById('settingsContent');if(!content)return;
+  var content=document.getElementById('kullaniciCards');
+  if(!content){var host=document.getElementById('settingsContent');if(!host)return;content=host;}
   var users=SD.users;
-  var html='<div class="settings-card"><div class="settings-ttl">🧑‍💼 Teknisyen Kurulumu</div>';
-  html+='<p style="font-size:13px;color:var(--text3);margin-bottom:12px;">Technician kod 1015 ve 1016 için şifre atayın ve firma aktiviteleri düzenleyin.</p>';
-  html+='<div style="display:flex;gap:10px;"><button class="btn btn-outline btn-sm" onclick="setupTechCode(\'1015\')">1015 - Semih Ağlan Kurulumu</button><button class="btn btn-outline btn-sm" onclick="setupTechCode(\'1016\')">1016 - Süleyman Küçük Kurulumu</button></div></div>';
+  var html='<div class="settings-card"><div class="settings-ttl">🔑 Şifre Kurulumu</div>';
+  html+='<p style="font-size:13px;color:var(--text3);margin-bottom:12px;">Teknisyenin panele giriş şifresini belirleyin.</p>';
+  html+='<div style="display:flex;gap:10px;flex-wrap:wrap;">'
+    +(SD.technicians||[]).map(function(t){
+      return '<button class="btn btn-outline btn-sm" onclick="setupTechCode(&#39;'+salesEsc(t.code)+'&#39;)">'+salesEsc(t.code)+' · '+salesEsc(t.name||'')+'</button>';
+    }).join('')
+    +'</div></div>';
   html+='<div class="settings-card"><div class="settings-ttl" style="justify-content:space-between;">🔑 Kullanıcı Hesapları<div style="display:flex;gap:8px;"><button class="btn btn-outline btn-xs" onclick="syncUsersFromDB()" style="font-size:11px;">🔄 DB\'den Yükle</button><button class="btn btn-primary btn-sm" onclick="openAddUserModal()">+ Kullanıcı Ekle</button></div></div>';
   html+='<div id="userList"></div></div>';
   content.innerHTML=html;
