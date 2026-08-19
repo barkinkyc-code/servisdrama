@@ -2,12 +2,37 @@
 @media(max-width:900px){.ops-grid,.ops-scorecards{grid-template-columns:1fr}.ops-metrics{grid-template-columns:repeat(2,1fr)}.c360-kpis{grid-template-columns:repeat(2,1fr)}.c360-info{grid-template-columns:1fr 1fr}.c360-timeline>div{grid-template-columns:10px 72px 90px 1fr}.ops-nav span{display:inline}}
 @media(max-width:560px){.c360-info{grid-template-columns:1fr}.c360-timeline>div{grid-template-columns:10px 70px 1fr}.c360-timeline span{grid-column:3}.ops-card-hd{padding:16px}.ops-priority-list{padding:4px 8px 10px}}
 
-/* Erken uyarı zili (kullanıcı adının yanında) ve açılış penceresi */
-.ew-bell{position:relative;width:38px;height:38px;flex-shrink:0;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--tr)}
+/* Erken uyarı zili — yanındaki avatarla AYNI çapta durur. Avatar responsive
+   olarak 32/42/38px alıyor (style.css), zil de aynı kırılımları izler; sabit
+   kalırsa komşusundan büyük/küçük görünüp orantısız duruyordu. */
+.ew-bell{position:relative;width:32px;height:32px;flex-shrink:0;border-radius:50%;
+  border:1px solid var(--border);background:var(--surface);color:var(--text2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background var(--tr),border-color var(--tr),color var(--tr)}
 .ew-bell:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue)}
-.ew-bell svg{width:18px;height:18px}
-.ew-bell-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;background:var(--red);color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;border:2px solid var(--surface)}
+.ew-bell:active{transform:scale(.96)}
+.ew-bell:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ew-bell svg{width:16px;height:16px;display:block}
+/* Rakam dikeyde LINE-HEIGHT ile değil FLEX ile ortalanır: box-sizing:border-box
+   altında height - border kadar içerik kutusu kalıyor, line-height ondan uzun
+   olduğu için rakam aşağı kayıp ortasız duruyordu. tabular-nums ise 1 ile 11
+   arasında rozetin zıplamasını önler. */
+.ew-bell-badge{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;padding:0 2px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:99px;border:2px solid var(--surface);background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;
+  pointer-events:none}
 .ew-bell-badge.hidden{display:none}
+@media(max-width:768px){
+  .ew-bell{width:42px;height:42px}
+  .ew-bell svg{width:20px;height:20px}
+  .ew-bell-badge{min-width:18px;height:18px}
+}
+@media(max-width:390px){
+  .ew-bell{width:38px;height:38px}
+  .ew-bell svg{width:18px;height:18px}
+  .ew-bell-badge{min-width:17px;height:17px}
+}
 .ew-modal{width:min(780px,94vw);max-height:88vh;display:flex;flex-direction:column}
 .ew-body{overflow:auto}
 .ew-scope{margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#f5f7fa;color:#64748b;font-size:12.5px;line-height:1.5}
