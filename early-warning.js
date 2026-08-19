@@ -142,37 +142,115 @@ function scoreDrift(co,now,past){
   };
 }
 
-/* ── KURAL 3: Kronik program dışı çağrı ──────────────────────────
+/* ── KURAL 3: Kronik program dışı firmalar ───────────────────────
    Planlı olmayan ziyaretin tekrarı, çözülmemiş bir sorunun işareti.
-   Kayıtsız (serbest metin) firmalar da normalize edilmiş isimle sayılır. */
+
+   Kayıtsız (serbest metin) firmalar için ad EŞLEŞTİRMESİ yapılır: aynı yer
+   manuel girişte "GURSOYLAR" ve "GRSOYLAR LTD. ŞTİ." gibi farklı yazılabiliyor.
+   Ayrı sayılırsa ne kronik eşiği doluyor ne de geçmiş bir arada görünüyor.
+   Ad, şirket türü ekleri atılarak normalize edilir; yakın yazımlar (Levenshtein
+   benzerliği >= NAME_SIM) tek firma sayılır. */
+var NAME_SIM=0.85;
+var LEGAL_TOKENS=['LTD','ŞTİ','STI','SIRKETI','ŞİRKETİ','ŞİRKET','AŞ','ANONİM','ANONIM',
+  'LİMİTED','LIMITED','SANAYİ','SANAYI','SAN','TİCARET','TICARET','TİC','TIC','VE'];
+function normalizeName(s){
+  var up=String(s||'').toLocaleUpperCase('tr').replace(/[^0-9A-ZÇĞİÖŞÜ]+/g,' ');
+  return up.split(' ').filter(function(t){return t&&LEGAL_TOKENS.indexOf(t)<0;}).join(' ').trim();
+}
+function levenshtein(a,b){
+  if(a===b)return 0;
+  var la=a.length,lb=b.length;
+  if(!la)return lb;
+  if(!lb)return la;
+  var prev=new Array(lb+1),cur=new Array(lb+1),i,j;
+  for(j=0;j<=lb;j++)prev[j]=j;
+  for(i=1;i<=la;i++){
+    cur[0]=i;
+    for(j=1;j<=lb;j++){
+      var cost=a.charCodeAt(i-1)===b.charCodeAt(j-1)?0:1;
+      cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+cost);
+    }
+    var t=prev;prev=cur;cur=t;
+  }
+  return prev[lb];
+}
+function nameSimilarity(a,b){
+  if(!a||!b)return 0;
+  if(a===b)return 1;
+  var m=Math.max(a.length,b.length);
+  return m?1-levenshtein(a,b)/m:0;
+}
+/* Bir kayıtsız adın hangi gruba ait olduğunu bulur; yoksa null. */
+function findNameGroup(groups,norm){
+  for(var i=0;i<groups.length;i++){
+    if(nameSimilarity(groups[i].norm,norm)>=NAME_SIM)return groups[i];
+  }
+  return null;
+}
+/* Kapsam süzgeci: kayıtlı firmada sorumluluk firmanın teknisyenine,
+   kayıtsız girişte ziyareti giren teknisyene göre belirlenir. */
+function extraInScope(e,co,scope){
+  if(!scope.techId)return true;
+  return co?String(co.techId)===String(scope.techId):String(e.techId||'')===String(scope.techId);
+}
+/* Kayıtsız adı verilen gruba ait TÜM program dışı ziyaretler (tarih sınırı yok).
+   Geçmiş penceresi bunu kullanır; uyarı eşiği ise yalnızca son 90 güne bakar. */
+function extrasForName(norm,scope){
+  var cos=SD.companies||[],out=[];
+  (SD.extras||[]).forEach(function(e){
+    if(e.firmaId)return;
+    var co=null;
+    if(!extraInScope(e,co,scope))return;
+    if(nameSimilarity(normalizeName(e.firmAdi),norm)<NAME_SIM)return;
+    var d=parseAny(e.date,e.wk);
+    out.push({d:d,ad:String(e.firmAdi||''),tech:String(e.techCode||''),not:String(e.not||'')});
+  });
+  return out.sort(function(a,b){return (b.d?b.d.getTime():0)-(a.d?a.d.getTime():0);});
+}
 function chronicExtras(scope){
-  var since=new Date(Date.now()-LOOKBACK_EXTRA_DAYS*DAY),groups={},cos=SD.companies||[];
+  var since=new Date(Date.now()-LOOKBACK_EXTRA_DAYS*DAY),cos=SD.companies||[];
+  var kayitli={},kayitsiz=[];
   (SD.extras||[]).forEach(function(e){
     var d=parseAny(e.date,e.wk);
     if(!d||d<since)return;
     var co=e.firmaId?cos.find(function(c){return String(c.id)===String(e.firmaId);}):null;
-    if(scope.techId){
-      /* Kayıtlı firmada sorumluluk firmanın teknisyenine, kayıtsız girişte
-         ziyareti giren teknisyene göre belirlenir. */
-      var owns=co?String(co.techId)===String(scope.techId):String(e.techId||'')===String(scope.techId);
-      if(!owns)return;
+    if(!extraInScope(e,co,scope))return;
+    if(co){
+      var k=String(co.id);
+      if(!kayitli[k])kayitli[k]={n:0,firmaId:co.id,ad:co.name,son:d};
+      kayitli[k].n++;
+      if(d>kayitli[k].son)kayitli[k].son=d;
+      return;
     }
-    var key=e.firmaId||('ad:'+String(e.firmAdi||'').toLocaleUpperCase('tr').trim());
-    if(!groups[key])groups[key]={n:0,firmaId:e.firmaId||'',ad:co?co.name:(e.firmAdi||''),son:d};
-    groups[key].n++;
-    if(d>groups[key].son)groups[key].son=d;
+    var norm=normalizeName(e.firmAdi);
+    if(!norm)return;
+    var g=findNameGroup(kayitsiz,norm);
+    if(!g){g={norm:norm,n:0,son:d,yazimlar:{}};kayitsiz.push(g);}
+    g.n++;
+    g.yazimlar[String(e.firmAdi||'')]=true;
+    if(d>g.son)g.son=d;
   });
-  return Object.keys(groups).map(function(k){
-    var g=groups[k];
-    if(g.n<MIN_EXTRA_CALLS)return null;
-    return {
-      tur:'kronik',
-      ad:g.ad||'Bilinmeyen firma',firmaId:g.firmaId,
+
+  var out=[];
+  Object.keys(kayitli).forEach(function(k){
+    var g=kayitli[k];
+    if(g.n<MIN_EXTRA_CALLS)return;
+    out.push({tur:'kronik',ad:g.ad,firmaId:g.firmaId,olcu:g.n+'×',
+      aciklama:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+g.n+' program dışı ziyaret (son: '+DT.ddmmyyyy(g.son)+')',
+      kritik:g.n>=5});
+  });
+  kayitsiz.forEach(function(g){
+    if(g.n<MIN_EXTRA_CALLS)return;
+    var yazimlar=Object.keys(g.yazimlar);
+    /* En uzun yazım genelde en eksiksiz olanıdır; başlıkta o gösterilir. */
+    var ad=yazimlar.slice().sort(function(a,b){return b.length-a.length;})[0]||g.norm;
+    out.push({tur:'kronik',ad:ad,firmaId:'',gecmisKey:g.norm,
       olcu:g.n+'×',
-      aciklama:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+g.n+' program dışı çağrı (son: '+DT.ddmmyyyy(g.son)+')',
-      kritik:g.n>=5
-    };
-  }).filter(Boolean);
+      aciklama:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+g.n+' program dışı ziyaret (son: '+DT.ddmmyyyy(g.son)+')'
+        +(yazimlar.length>1?' · '+yazimlar.length+' farklı yazım eşleşti':''),
+      kritik:g.n>=5});
+  });
+  return out;
 }
 
 /* ── KURAL 4: Teknisyen tamamlama oranı düştü ────────────────────
@@ -237,7 +315,7 @@ function collectWarnings(scope){
 var GROUPS=[
   {key:'aralik',baslik:'Ziyaret aralığı uzayan firmalar',alt:'Son iki ziyaret arası, önceki temposunun 1.5 katını ve firmanın kendi planını aştı.'},
   {key:'skor',baslik:'Skoru düşen firmalar',alt:'Son '+LOOKBACK_SCORE_DAYS+' günde firma skoru en az '+MIN_SCORE_DROP+' puan geriledi.'},
-  {key:'kronik',baslik:'Kronik program dışı firmalar',alt:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+MIN_EXTRA_CALLS+' veya daha fazla plansız ziyaret — çözülmemiş sorun işareti.'},
+  {key:'kronik',baslik:'Kronik program dışı firmalar',alt:'Son '+LOOKBACK_EXTRA_DAYS+' günde '+MIN_EXTRA_CALLS+' veya daha fazla plansız ziyaret.'},
   {key:'teknisyen',baslik:'Tamamlama oranı düşen teknisyenler',alt:'Son 4 hafta, önceki 4 haftaya göre en az '+MIN_RATE_DROP+' puan geriledi. İzinli haftalar sayılmaz.'}
 ];
 function totalOf(w){return GROUPS.reduce(function(n,g){return n+w[g.key].length;},0);}
@@ -250,9 +328,14 @@ function rowHtml(w){
      rolde tanimlar ama modal elemanini yalnizca admin icin olusturur. Sadece
      fonksiyona bakmak teknisyende tiklanip hicbir sey acmayan olu bag uretiyordu. */
   var c360Hazir=(typeof global.openCompany360==='function')&&!!document.getElementById('company360Modal');
-  var isim=(w.firmaId&&c360Hazir)
-    ? '<button class="ops-link" onclick="ewOpenCompany(\''+esc(w.firmaId)+'\')">'+esc(w.ad)+'</button>'
-    : '<b style="font-size:13px;color:#172033;">'+esc(w.ad)+'</b>';
+  var isim;
+  if(w.firmaId&&c360Hazir)
+    isim='<button class="ops-link" onclick="ewOpenCompany(\''+esc(w.firmaId)+'\')">'+esc(w.ad)+'</button>';
+  else if(w.gecmisKey)
+    /* Kayıtsız firma: geçmiş program dışı ziyaretleri aynı pencerede açılır. */
+    isim='<button class="ops-link" onclick="ewOpenGecmis(\''+esc(w.gecmisKey)+'\')">'+esc(w.ad)+'</button>';
+  else
+    isim='<b style="font-size:13px;color:#172033;">'+esc(w.ad)+'</b>';
   return '<div class="ops-pr-row">'
     +'<div class="ops-pr-main">'+isim+'<div class="ops-reason">'+esc(w.aciklama)+'</div></div>'
     +'<div class="ops-score '+(w.kritik?'danger':'warn')+'">'+esc(w.olcu)+'</div>'
@@ -340,6 +423,32 @@ function boot(){setTimeout(init,900);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
 else boot();
 
+/* Kayıtsız firmanın geçmiş program dışı ziyaretleri. Ayrı bir pencere yerine
+   uyarı penceresinin İÇİNDE gösterilir: iki modal üst üste binmez, mobilde de
+   sorun çıkmaz. Geri düğmesi uyarı listesine döner. */
+global.ewOpenGecmis=function(norm){
+  ensureModal();
+  var body=document.getElementById('ewModalBody');if(!body)return;
+  var list=extrasForName(norm,viewerScope());
+  var yazimlar={};list.forEach(function(x){if(x.ad)yazimlar[x.ad]=true;});
+  var adlar=Object.keys(yazimlar);
+  var baslik=adlar.slice().sort(function(a,b){return b.length-a.length;})[0]||norm;
+  var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">'
+    +'<button class="btn btn-outline btn-sm" onclick="openEarlyWarningModal()">← Geri</button>'
+    +'<b style="font-size:14px;color:#172033;">'+esc(baslik)+'</b></div>';
+  html+='<div class="ew-scope">Kayıtsız firma · <b>'+list.length+' program dışı ziyaret</b>'
+    +(adlar.length>1?' · Eşleşen yazımlar: '+adlar.map(esc).join(', '):'')+'</div>';
+  html+=list.length
+    ? '<div class="ops-card"><div class="ops-priority-list">'+list.map(function(x){
+        return '<div class="ops-pr-row"><div class="ops-pr-main">'
+          +'<b style="font-size:13px;color:#172033;">'+(x.d?DT.ddmmyyyy(x.d):'Tarih yok')+'</b>'
+          +'<div class="ops-reason">'+esc(x.ad)+(x.not?' · '+esc(x.not):'')+'</div></div>'
+          +'<div class="ops-score warn">'+esc(x.tech||'—')+'</div></div>';
+      }).join('')+'</div></div>'
+    : '<div class="ops-card"><div class="ops-empty">Bu firma için geçmiş kayıt bulunamadı.</div></div>';
+  body.innerHTML=html;
+  if(global.UI&&UI.openModal)UI.openModal('earlyWarningModal');
+};
 /* Firma 360° açılmadan ÖNCE uyarı penceresi kapatılır: ikisi de aynı
    z-index katmanında olduğu için üst üste binip mobilde okunamıyordu. */
 global.ewOpenCompany=function(id){
