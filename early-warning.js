@@ -246,8 +246,12 @@ function criticalOf(w){return GROUPS.reduce(function(n,g){return n+w[g.key].filt
 /* ── Görünüm ─────────────────────────────────────────────────── */
 function rowHtml(w){
   /* Firma 360° yalnızca admin panelinde tanımlı; yoksa düz metin gösterilir. */
-  var isim=(w.firmaId&&typeof global.openCompany360==='function')
-    ? '<button class="ops-link" onclick="openCompany360(\''+esc(w.firmaId)+'\')">'+esc(w.ad)+'</button>'
+  /* Firma 360° yalnizca admin panelinde KURULUR: ops-v2.js fonksiyonu her
+     rolde tanimlar ama modal elemanini yalnizca admin icin olusturur. Sadece
+     fonksiyona bakmak teknisyende tiklanip hicbir sey acmayan olu bag uretiyordu. */
+  var c360Hazir=(typeof global.openCompany360==='function')&&!!document.getElementById('company360Modal');
+  var isim=(w.firmaId&&c360Hazir)
+    ? '<button class="ops-link" onclick="ewOpenCompany(\''+esc(w.firmaId)+'\')">'+esc(w.ad)+'</button>'
     : '<b style="font-size:13px;color:#172033;">'+esc(w.ad)+'</b>';
   return '<div class="ops-pr-row">'
     +'<div class="ops-pr-main">'+isim+'<div class="ops-reason">'+esc(w.aciklama)+'</div></div>'
@@ -336,6 +340,13 @@ function boot(){setTimeout(init,900);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
 else boot();
 
+/* Firma 360° açılmadan ÖNCE uyarı penceresi kapatılır: ikisi de aynı
+   z-index katmanında olduğu için üst üste binip mobilde okunamıyordu. */
+global.ewOpenCompany=function(id){
+  if(typeof global.openCompany360!=='function'||!document.getElementById('company360Modal'))return;
+  if(global.UI&&UI.closeModal)UI.closeModal('earlyWarningModal');
+  setTimeout(function(){openCompany360(id);},120);
+};
 global.renderEarlyWarning=renderEarlyWarning;
 global.openEarlyWarningModal=openEarlyWarningModal;
 global.refreshEarlyWarningBell=refreshBell;

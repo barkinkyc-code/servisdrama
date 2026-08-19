@@ -33,6 +33,22 @@
   .ew-bell svg{width:18px;height:18px}
   .ew-bell-badge{min-width:17px;height:17px}
 }
-.ew-modal{width:min(780px,94vw);max-height:88vh;display:flex;flex-direction:column}
+.ew-modal{width:min(780px,94vw);max-height:88dvh;display:flex;flex-direction:column}
 .ew-body{overflow:auto}
 .ew-scope{margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#f5f7fa;color:#64748b;font-size:12.5px;line-height:1.5}
+
+/* Mobil: sabit topbar (z-index:3000) modalın üstünü örtüyor, ayrıca iOS'ta
+   vh birimi URL çubuğu gizliyken ölçüldüğü için 90vh gerçek görünür alanı
+   aşıp içeriği alttan kırpıyordu. #missedModal için uygulanan çözümün aynısı:
+   modal topbar altından başlar ve dvh ile sınırlanır, gövde kendi içinde kayar. */
+@media(max-width:768px){
+  #earlyWarningModal,#company360Modal{align-items:flex-start}
+  #earlyWarningModal .modal,#company360Modal .modal{
+    width:calc(100vw - 16px);max-width:none;margin:calc(76px + 8px) 8px 8px;
+    max-height:calc(100dvh - 76px - 16px);border-radius:16px}
+  #earlyWarningModal .modal-hd,#company360Modal .modal-hd{padding:14px 16px;gap:10px}
+  #earlyWarningModal .modal-hd h2,#company360Modal .modal-hd h2{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+  #earlyWarningModal .modal-body,#company360Modal .modal-body{padding:14px 16px}
+  #earlyWarningModal .ops-card-hd{padding:14px 16px}
+  #earlyWarningModal .ops-priority-list{padding:4px 10px 10px}
+}
