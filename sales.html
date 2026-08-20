@@ -8,7 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=20260810-fast-v1">
-<link rel="stylesheet" href="sales.css?v=20260819-dash-sade2">
+<link rel="stylesheet" href="ops-v2.css?v=20260820-ortak-kart">
+<link rel="stylesheet" href="sales.css?v=20260820-sade">
 
 <meta name="theme-color" content="#1D4ED8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,21 +29,17 @@
 
 <!-- ═══ ÜST PANEL (tüm ekran genişliklerinde) ═══ -->
 <header class="topbar" id="topbar">
-  <img class="topbar-logo" id="topbarLogo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine" role="button" tabindex="0" title="Dashboard'a Git">
+  <img class="topbar-logo" id="topbarLogo" src="assets/email/servisdrama/drama-makine-logo.png" alt="Drama Makine" role="button" tabindex="0" title="Firmalarıma Git">
 
   <!-- Ana menü: masaüstünde satır içi, mobilde hamburger ile açılan panel -->
   <nav class="topbar-nav" id="navTabs">
-    <button class="nav-tab" data-page="dashboard">
+    <button class="nav-tab" data-page="firmalar">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-      Dashboard
+      Firmalarım
     </button>
     <button class="nav-tab" data-page="ziyaretler">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
       Ziyaret Geçmişi
-    </button>
-    <button class="nav-tab" data-page="firmalar">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-      Firmalarım
     </button>
     <button class="nav-tab" data-page="numuneler">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
@@ -98,17 +95,13 @@
 <!-- ═══ SOL PANEL (yalnızca masaüstü) ═══ -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-nav">
-    <button class="nav-tab" data-page="dashboard">
+    <button class="nav-tab" data-page="firmalar">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-      Dashboard
+      Firmalarım
     </button>
     <button class="nav-tab" data-page="ziyaretler">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-5-5h3v3h-3zm-4-4h3v3h-3zm4 0h3v3h-3z"/></svg>
       Ziyaret Geçmişi
-    </button>
-    <button class="nav-tab" data-page="firmalar">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-      Firmalarım
     </button>
     <button class="nav-tab" data-page="numuneler">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
@@ -126,45 +119,21 @@
 
 <!-- ═══ ANA İÇERİK ═══ -->
 <main class="content" id="mainContent">
-  <!-- Dashboard Sekmesi -->
-  <section id="dashboardContent" class="page hidden">
-    <div class="page-header">
-      <h1>Dashboard</h1>
-      <p>Kendi firmalarınızın özeti ve durumu</p>
-    </div>
-    <div class="content-body">
-      <div id="dashboardStats"></div>
-      <div class="dash-cols">
-        <div id="dashboardUpcoming" class="dash-col"></div>
-        <div id="dashboardOverdue" class="dash-col"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Firmalarım Sekmesi -->
+  <!-- Firmalarım — satışçının TEK çalışma ekranı.
+       Eski "Dashboard" sekmesi buraya katlandı: KPI kartları + iki mini liste
+       ile bu liste aynı firmaları iki ayrı yerde gösteriyordu. Artık sayılar
+       filtre düğmesinin kendisi: rakama basınca liste o gruba iner. -->
   <section id="firmalarContent" class="page hidden">
     <div class="page-header">
       <h1>Firmalarım</h1>
       <p id="companiesSub">Size atanmış müşteriler</p>
     </div>
     <div class="content-body">
+      <div id="salesChips" class="sls-chips"></div>
       <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="companySearch" placeholder="Firma ara..."></div>
-      <div class="firma-filters">
-        <select class="inp inp-sm" id="companyStatusFilter">
-          <option value="">Tüm Durumlar</option>
-          <option value="scheduled">Bu Hafta Planlı</option>
-          <option value="visited">Bu Hafta Ziyaret Edildi</option>
-          <option value="delayed">Gecikti</option>
-          <option value="critical">Kritik</option>
-          <option value="risk">Riskli</option>
-        </select>
-        <select class="inp inp-sm" id="companySortBy">
-          <option value="name">İsme Göre (A-Z)</option>
-          <option value="lastVisit">Son Ziyarete Göre (En Eski Önce)</option>
-          <option value="health">Sağlık Skoruna Göre (Düşükten Yükseğe)</option>
-        </select>
-        <label class="fchk"><input type="checkbox" id="companyOpenSampleFilter"> 🧪 Açık numunesi olanlar</label>
-        <button class="btn btn-ghost btn-sm" id="companyFilterClear">Filtreyi Temizle</button>
+      <div class="sls-list-hd">
+        <span id="salesListTitle"></span>
+        <button type="button" class="sls-sort" id="salesSortToggle"></button>
       </div>
       <div id="companiesList" class="co-list"></div>
       <p class="empty-state hidden" id="companiesEmpty">Firma bulunamadı.</p>
@@ -245,23 +214,17 @@
   </div>
 </div>
 
-<!-- ═══ Modal: Firma Detayı ═══ -->
-<div id="companyDetailModal" class="sales-modal hidden">
-  <div class="sales-modal-box">
-    <div class="sales-modal-hd">
-      <h2 id="companyDetailTitle"></h2>
-      <button class="sales-modal-x" onclick="closeCompanyDetail()" aria-label="Kapat">×</button>
-    </div>
-    <div class="sales-modal-body" id="companyDetailBody"></div>
-  </div>
-</div>
+<!-- Firma detayı: ayrı bir satışçı modalı YOK. #company360Modal'ı company-360.js
+     kurar; admin ve teknisyenin gördüğü Firma 360° kartının aynısı açılır. -->
 
 <!-- ═══ Hata/Bilgi Mesajları ═══ -->
 <div id="notifications" class="notifications-container"></div>
 
 <!-- ═══ Scripts ═══ -->
 <script src="data.js?v=20260813-truck-konum-fix"></script>
-<script src="sales.js?v=20260819-dash-sade"></script>
+<script src="weekly-report-data.js?v=20260820-ortak-kart"></script>
+<script src="company-360.js?v=20260820-ortak-kart"></script>
+<script src="sales.js?v=20260820-sade"></script>
 <script src="pwa-update.js?v=20260804-pwa-v1"></script>
 </body>
 </html>

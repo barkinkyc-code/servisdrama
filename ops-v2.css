@@ -52,3 +52,13 @@
   #earlyWarningModal .ops-card-hd{padding:14px 16px}
   #earlyWarningModal .ops-priority-list{padding:4px 10px 10px}
 }
+
+/* Firma 360 kartı: skor/son ziyaret kutularının altındaki açıklama satırı ve
+   durum etiketi. Kart admin, teknisyen ve satışçı panellerinde ortak
+   (company-360.js), bu yüzden stiller de burada tek yerde durur. */
+.c360-kpis b small{display:block;margin-top:3px;font-size:10.5px;font-weight:700;color:#8894a5}
+.c360-info b.c360-durum{font-weight:800}
+.c360-info b.c360-durum.d-green{color:#17814a}
+.c360-info b.c360-durum.d-blue{color:#245edb}
+.c360-info b.c360-durum.d-red{color:#c33434}
+.c360-info b.c360-durum.d-gray{color:#64748b}
