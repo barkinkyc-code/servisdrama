@@ -438,6 +438,15 @@ function switchIstatTab(tab){
 /* Ayarlar sayfası içinde belirli bir alt-sekmeye atlar (ör. dropdown'daki
    "Profilim" kısayolu) — .stab tıklamasıyla AYNI şeyi yapar: aktif buton
    sınıfını günceller, o sekmenin içeriğini render eder. */
+/* Ayarlar sayfasının tamamı admin'e özel; ama her kullanıcı kendi profiline ve
+   şifre değiştirmeye erişebilmeli. Bu kısayol doğrudan Profilim sekmesini açar.
+   A.settingsTab önce yazılır: enhancements.js'teki erişim kontrolü buna bakıp
+   teknisyene yalnızca bu sekme için izin veriyor. */
+function openMyProfile(){
+  A.settingsTab='profil';
+  goto('ayarlar');
+  openSettingsSubTab('profil');
+}
 function openSettingsSubTab(tab){
   /* Eski sekme adlari (genel, modul, izinler...) yeni sekmeye cevrilir ki
      kayitli kisayollar ve eski linkler calismaya devam etsin. */
@@ -1587,6 +1596,13 @@ function renderSettingsTab(tab){
   var cfg=SD.config,content=document.getElementById('settingsContent');if(!content)return;
   content.innerHTML='';
   var esc=salesEsc;
+  /* Teknisyen/satışçı yalnızca Profilim sekmesini görür; diğer sekme düğmeleri
+     gizlenir ki erişemeyeceği bir yere tıklamasın. */
+  var tamYetki=isSuperAdmin();
+  document.querySelectorAll('#settingsTabs .stab[data-stab]').forEach(function(b){
+    b.style.display=(tamYetki||b.dataset.stab==='profil')?'':'none';
+  });
+  if(!tamYetki)tab='profil';
   if(tab==='mail'){
     /* Gönderici kimliği artık TEK yerde. Eskiden "Genel"deki senderName ve
        "Mail"deki senderEmail alanları hiçbir yerde OKUNMUYORDU — mail her zaman

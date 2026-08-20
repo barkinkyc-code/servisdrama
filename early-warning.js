@@ -302,7 +302,11 @@ function collectWarnings(scope){
     var a=intervalDrift(co);if(a)out.aralik.push(a);
     var s=scoreDrift(co,now,past);if(s)out.skor.push(s);
   });
-  out.kronik=chronicExtras(scope);
+  /* Kronik liste teknisyene yalnızca HAFTA BAŞI (pazartesi) gösterilir: haftayı
+     planlarken işe yarar, sonraki günlerde her açılışta tekrar çıkması gürültü
+     oluyordu. Admin her gün görür. */
+  var pazartesi=new Date().getDay()===1;
+  out.kronik=(scope.isAdmin||pazartesi)?chronicExtras(scope):[];
   (SD.technicians||[]).forEach(function(t){
     if(scope.techId&&String(t.id)!==String(scope.techId))return;
     var d=techDrift(t,thisMonday);if(d)out.teknisyen.push(d);
@@ -416,8 +420,12 @@ function init(){
   if(!document.getElementById('ewBell'))return;   /* yalnızca admin.html */
   ensureModal();
   autoOpenOnce();
-  /* Uzak veri açılıştan sonra gelebilir; sayaç bir kez tazelenir. */
-  setTimeout(function(){try{refreshBell();}catch(e){}},4000);
+  /* Uzak veri açılıştan SONRA gelebilir (remoteReady artık beklenmiyor). İlk
+     denemede uyarı sayısı 0 çıkıp ekran hiç açılmayabiliyordu; veri geldikten
+     sonra tekrar denenir. autoOpenOnce zaten gün/oturum bayrağıyla korunuyor,
+     yani iki kez açılmaz. */
+  setTimeout(function(){try{refreshBell();autoOpenOnce();}catch(e){}},4000);
+  setTimeout(function(){try{refreshBell();autoOpenOnce();}catch(e){}},9000);
 }
 function boot(){setTimeout(init,900);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);

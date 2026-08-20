@@ -10,15 +10,24 @@
 
   function applyRoleUI(){
     var owner=SD_isOwner();
-    document.querySelectorAll('[data-page="ayarlar"], [data-page="raporlar"], .nav-dd-item[onclick*="ayarlar"]').forEach(function(el){el.style.display=owner?'':'none';});
+    document.querySelectorAll('[data-page="ayarlar"], [data-page="raporlar"], .nav-dd-item[onclick*="goto(\'ayarlar\')"]').forEach(function(el){el.style.display=owner?'':'none';});
     document.querySelectorAll('.btn-icon.red[title="Sil"], .co-acts .red').forEach(function(el){el.style.display=owner?'':'none';});
     document.querySelectorAll('.week-tog').forEach(function(el){el.disabled=!owner;el.style.opacity=owner?'':'0.45';el.style.pointerEvents=owner?'':'none';});
-    if(!owner&&window.A&&(A.page==='ayarlar'||A.page==='raporlar')){goto('ziyaret');UI.toast('Bu bölüm yalnızca Barkın Kayacı hesabına açıktır.','warning');}
+    /* Ayarlar sayfası admin'e özel; TEK istisna kendi profili. Eskiden bu kontrol
+       Profilim'i açan teknisyeni de anında Ziyaret'e geri atıyordu — ekran açılıp
+       hemen kapanıyormuş gibi görünüyordu. */
+    var profilde=(window.A&&A.page==='ayarlar'&&A.settingsTab==='profil');
+    if(!owner&&!profilde&&window.A&&(A.page==='ayarlar'||A.page==='raporlar')){goto('ziyaret');UI.toast('Bu bölüm yalnızca Barkın Kayacı hesabına açıktır.','warning');}
   }
   document.addEventListener('DOMContentLoaded',function(){setTimeout(applyRoleUI,200);new MutationObserver(applyRoleUI).observe(document.body,{childList:true,subtree:true});});
 
   var oldGoto=window.goto;
-  if(typeof oldGoto==='function')window.goto=function(p){if((p==='ayarlar'||p==='raporlar')&&!SD_isOwner()){UI.toast('Bu bölüme erişim yetkiniz yok.','warning');return;}return oldGoto.apply(this,arguments);};
+  if(typeof oldGoto==='function')window.goto=function(p){
+  /* Ayarlar sayfası admin'e özel; tek istisna kendi profili (Profilim). */
+  var profilIcin=(p==='ayarlar'&&window.A&&A.settingsTab==='profil');
+  if((p==='raporlar'||(p==='ayarlar'&&!profilIcin))&&!SD_isOwner()){UI.toast('Bu bölüme erişim yetkiniz yok.','warning');return;}
+  return oldGoto.apply(this,arguments);
+};
   var oldDelete=window.deleteFirma;
   window.deleteFirma=function(id){if(!SD_isOwner()){UI.toast('Firma silme yetkisi yalnızca Barkın Kayacı hesabındadır.','error');return;}return oldDelete&&oldDelete(id);};
 
@@ -101,7 +110,7 @@
 
   /* Ayarlar: otomatik rapor ve Excel alanı */
   var oldRenderSettings=window.renderSettingsTab;
-  if(typeof oldRenderSettings==='function')window.renderSettingsTab=function(tab){if(!SD_isOwner()){goto('ziyaret');return;}oldRenderSettings.apply(this,arguments);if(tab==='mail'||tab==='veri')setTimeout(injectOwnerTools,0);};
+  if(typeof oldRenderSettings==='function')window.renderSettingsTab=function(tab){if(!SD_isOwner()&&tab!=='profil'){goto('ziyaret');return;}oldRenderSettings.apply(this,arguments);if(tab==='mail'||tab==='veri')setTimeout(injectOwnerTools,0);};
   function injectOwnerTools(){var content=document.getElementById('settingsContent');if(!content||document.getElementById('autoSummaryCard'))return;var cfg=SD.config||{};var card=document.createElement('div');card.className='settings-card';card.id='autoSummaryCard';card.innerHTML='<div class="settings-ttl">✉️ Otomatik Gün Özeti</div><p class="setting-note">Türkiye saatine göre günlük rapor gönderimini ve TO/CC alıcılarını yönetin.</p><div class="schedule-grid"><label>Gönderim saati<input class="inp" type="time" id="dailySummaryTime" value="'+esc((!cfg.dailySummaryTime||cfg.dailySummaryTime==='18:00')?'19:00':cfg.dailySummaryTime)+'"></label><label>TO alıcıları<textarea class="inp" id="dailySummaryTo" rows="3" placeholder="Her satıra bir e-posta">'+esc((cfg.dailySummaryTo||RAPOR_TO_LIST||[]).join('\n'))+'</textarea></label><label>CC alıcıları<textarea class="inp" id="dailySummaryCc" rows="3" placeholder="Her satıra bir e-posta">'+esc((cfg.dailySummaryCc||RAPOR_CC_LIST||[]).join('\n'))+'</textarea></label></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveDailySummarySettings()">Ayarları Kaydet</button><button class="btn btn-outline btn-sm" onclick="sendDailySummaryNow()">Şimdi Test Gönder</button></div><hr class="settings-sep"><div class="settings-ttl">📊 Ziyaret ve Numune Excel Dışa Aktarımı</div><div class="export-grid"><label>Başlangıç<input class="inp" type="date" id="exportStart"></label><label>Bitiş<input class="inp" type="date" id="exportEnd"></label><button class="btn btn-primary" onclick="exportOperationalExcel()">Excel İndir</button></div>';content.appendChild(card);}
   window.saveDailySummarySettings=function(){var cfg=SD.config||{};cfg.dailySummaryTime=document.getElementById('dailySummaryTime').value||'19:00';cfg.dailySummaryTo=document.getElementById('dailySummaryTo').value.split(/[\n,;]+/).map(function(x){return x.trim();}).filter(Boolean);cfg.dailySummaryCc=document.getElementById('dailySummaryCc').value.split(/[\n,;]+/).map(function(x){return x.trim();}).filter(Boolean);cfg.dailySummaryEnabled=true;SD.config=cfg;UI.toast('Otomatik gün özeti ayarları kaydedildi.','success');};
   window.sendDailySummaryNow=function(){saveDailySummarySettings();var to=(document.getElementById('dailySummaryTo').value||'').split(/[\n,;]+/).map(function(x){return x.trim();}).filter(Boolean);var cc=(document.getElementById('dailySummaryCc').value||'').split(/[\n,;]+/).map(function(x){return x.trim();}).filter(Boolean);if(!to.length){UI.toast('En az bir TO alıcısı girin.','warning');return;}UI.toast('Test maili gönderiliyor...','info');fetch('/api/daily-summary',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||'')},body:JSON.stringify({force:true,to:to,cc:cc})}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.details||d.error||'Gönderilemedi');return d;});}).then(function(){UI.toast('Gün özeti gönderildi.','success');}).catch(function(e){UI.toast(e.message,'error');});};
