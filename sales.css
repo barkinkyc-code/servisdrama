@@ -18,6 +18,9 @@
 
 /* ── Dashboard: Bu hafta / geciken firma mini listeleri ── */
 .sales-body .dash-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;}
+/* Grid öğeleri varsayılan min-width:auto ile uzun firma adı yüzünden sütunu
+   genişletip mobilde içeriği ekran dışına taşıyordu. */
+.sales-body .dash-col{min-width:0;}
 .sales-body .dash-sec-title{font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px;letter-spacing:-.01em;}
 .sales-body .mini-list{display:flex;flex-direction:column;gap:8px;}
 .sales-body .mini-row{
@@ -293,3 +296,15 @@
   .sales-body .ay-grid{grid-template-columns:1fr;}
   .sales-modal-body{padding:16px;}
 }
+
+/* Tıklanabilir KPI kartları, tablo satırları ve numune kartları */
+.sales-body .kpi-clickable{cursor:pointer;transition:transform var(--tr),box-shadow var(--tr),border-color var(--tr);}
+.sales-body .kpi-clickable:hover{transform:translateY(-2px);box-shadow:var(--sh-md,0 6px 18px rgba(15,23,42,.08));border-color:var(--blue-m);}
+.sales-body .kpi-clickable:focus-visible,.sales-body .row-clickable:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.sales-body .row-clickable{cursor:pointer;}
+.sales-body .sample-card.row-clickable:hover{border-color:var(--blue-m);box-shadow:var(--sh-xs);}
+.sales-body .sample-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.sales-body .sample-head h3{margin:0;font-size:14px;}
+.sales-body .sample-line{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:12.5px;border-top:1px solid var(--border);}
+.sales-body .sample-line span{color:var(--text3);}
+.sales-body .sample-line b{color:var(--text);text-align:right;overflow-wrap:anywhere;}

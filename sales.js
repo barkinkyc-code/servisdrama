@@ -74,17 +74,20 @@ function renderDashboard(){
   const cs=myCompanies();
   const ss=(SD.load('sd_samples',[])||[]).filter(s=>cs.some(c=>String(c.id)===companyIdOf(s)));
   const planned=cs.filter(c=>scheduled(c)),visitedNow=cs.filter(c=>visitedThisWeek(c)),delayed=cs.filter(c=>delayStatus(c)==='delayed'),critical=cs.filter(c=>delayStatus(c)==='critical'),stale=cs.filter(c=>(daysSince(lastVisit(c))||0)>30),openSamples=ss.filter(sampleOpen),risky=cs.filter(c=>health(c).score<60);
+  /* Sadeleştirildi: 8 kart göz yoruyor ve hangisinin aksiyon gerektirdiği
+     kayboluyordu. Dört karta indirildi — biri bağlam (toplam), biri plan,
+     biri AKSİYON (geciken+kritik tek sayıda, kırılımı alt satırda), biri
+     takip. Kaldırılan kartların bilgisi kayıp değil: "Bu Hafta Ziyaret"
+     zaten plan kartının altında, "30+ gün" ve "riskli firma" ise Dikkat
+     kartıyla örtüşüyordu. Kartlar artık ilgili sayfaya götürüyor. */
+  const dikkat=[...delayed,...critical].filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i);
   const kpis=[
-    {icon:'🏢',lbl:'Toplam Firma',val:cs.length,sub:'size atanmış',bg:'#EFF6FF',c:'#2563EB'},
-    {icon:'📅',lbl:'Bu Hafta Planlı',val:planned.length,sub:visitedNow.length+' ziyaret edildi',bg:'#EEF2FF',c:'#4F46E5'},
-    {icon:'✅',lbl:'Bu Hafta Ziyaret',val:visitedNow.length,sub:'tamamlanan',bg:'#DCFCE7',c:'#16A34A'},
-    {icon:'⏰',lbl:'Geciken',val:delayed.length,sub:'planlı ama gidilmedi',bg:'#FEF3C7',c:'#D97706'},
-    {icon:'🚨',lbl:'Kritik',val:critical.length,sub:'90+ gündür ziyaretsiz',bg:'#FEE2E2',c:'#DC2626'},
-    {icon:'📉',lbl:'30+ Gün Ziyaretsiz',val:stale.length,sub:'takip gerekiyor',bg:'#FFF7ED',c:'#EA580C'},
-    {icon:'🧪',lbl:'Açık Numune',val:openSamples.length,sub:'analiz bekliyor',bg:'#F5F3FF',c:'#7C3AED'},
-    {icon:'⚠️',lbl:'Riskli/Kritik Firma',val:risky.length,sub:'sağlık skoru <60',bg:'#FEE2E2',c:'#DC2626'}
+    {icon:'🏢',lbl:'Firmalarım',val:cs.length,sub:'size atanmış',bg:'#EFF6FF',c:'#2563EB',go:"showPage('firmalar')"},
+    {icon:'📅',lbl:'Bu Hafta Planlı',val:planned.length,sub:visitedNow.length+' tamamlandı',bg:'#EEF2FF',c:'#4F46E5',go:"showPage('firmalar')"},
+    {icon:'⏰',lbl:'Dikkat Gerekiyor',val:dikkat.length,sub:delayed.length+' geciken · '+critical.length+' kritik',bg:'#FEF3C7',c:'#D97706',go:"showPage('firmalar')"},
+    {icon:'🧪',lbl:'Açık Numune',val:openSamples.length,sub:'analiz bekliyor',bg:'#F5F3FF',c:'#7C3AED',go:"showPage('numuneler')"}
   ];
-  document.getElementById('dashboardStats').innerHTML=`<div class="kpi-row">${kpis.map(k=>`<div class="kpi-card"><div class="kpi-icon" style="background:${k.bg};color:${k.c};">${k.icon}</div><div class="kpi-val" style="color:${k.c};">${k.val}</div><div class="kpi-lbl">${k.lbl}</div><div class="kpi-sub">${k.sub}</div></div>`).join('')}</div>`;
+  document.getElementById('dashboardStats').innerHTML=`<div class="kpi-row">${kpis.map(k=>`<div class="kpi-card kpi-clickable" role="button" tabindex="0" onclick="${k.go}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${k.go};}"><div class="kpi-icon" style="background:${k.bg};color:${k.c};">${k.icon}</div><div class="kpi-val" style="color:${k.c};">${k.val}</div><div class="kpi-lbl">${k.lbl}</div><div class="kpi-sub">${k.sub}</div></div>`).join('')}</div>`;
 
   const soon=cs.filter(c=>scheduled(c)&&!visitedThisWeek(c)).sort((a,b)=>(daysSince(lastVisit(a))||999)-(daysSince(lastVisit(b))||999));
   document.getElementById('dashboardUpcoming').innerHTML=`<h3 class="dash-sec-title">Bu Hafta Gidilecek Firmalar</h3>`+(soon.length?`<div class="mini-list">${soon.map(miniCompanyRow).join('')}</div>`:'<div class="empty-msg">Bu hafta beklenen ziyaret yok.</div>');
@@ -251,11 +254,31 @@ function renderVisitHistoryRows(){
   if(emp){emp.classList.toggle('hidden',rows.length>0);emp.textContent=visitHistoryWeekFilter?'Bu haftada ziyaret kaydı yok.':'Ziyaret kaydı bulunamadı.';}
   tbody.innerHTML=rows.map(v=>{
     const h=health(v._company),hc=HEALTH_COLOR[h.label]||'blue',lv=lastVisit(v._company);
-    return `<tr><td>${escapeHtml(v._company.name)}</td><td>${lv?formatDate(lv._date):'—'}</td><td>${escapeHtml(techLabel(v))}</td><td>${formatDate(v._date)}</td><td><span class="wr-badge ${v._type==='extra'?'off':'ok'}">${v._type==='extra'?'Program Dışı':'Normal'}</span></td><td><span class="health-text-${hc}" style="font-weight:800;">${h.score}</span></td></tr>`;
+    /* Satıra tıklayınca firma detayı açılır. */
+    return `<tr class="row-clickable" role="button" tabindex="0" onclick="showCompanyDetail('${escapeHtml(v._company.id)}')" onkeydown="if(event.key==='Enter'){showCompanyDetail('${escapeHtml(v._company.id)}');}"><td>${escapeHtml(v._company.name)}</td><td>${lv?formatDate(lv._date):'—'}</td><td>${escapeHtml(techLabel(v))}</td><td>${formatDate(v._date)}</td><td><span class="wr-badge ${v._type==='extra'?'off':'ok'}">${v._type==='extra'?'Program Dışı':'Normal'}</span></td><td><span class="health-text-${hc}" style="font-weight:800;">${h.score}</span></td></tr>`;
   }).join('');
 }
 function visitDetails(v){const skip=new Set(['by','ts','date','dayKey','saat','time','tc','techCode','technicianCode','techId','firmaId','companyId','_type','_date','id']);const parts=Object.entries(v).filter(([k,val])=>!skip.has(k)&&val!==''&&val!=null&&typeof val!=='object').slice(0,20).map(([k,val])=>`<div><b>${escapeHtml(k)}:</b> ${escapeHtml(String(val))}</div>`);return parts.length?`<div class="visit-notes">${parts.join('')}</div>`:'';}
-function renderSamples(){const cs=new Map(myCompanies().map(c=>[String(c.id),c]));const rows=(SD.load('sd_samples',[])||[]).filter(s=>cs.has(companyIdOf(s)));document.getElementById('samplesList').innerHTML=rows.length?rows.map(s=>`<div class="sample-card"><h3>${escapeHtml(cs.get(companyIdOf(s))?.name||'Firma')}</h3>${Object.entries(s).filter(([k,v])=>v!==''&&v!=null&&typeof v!=='object').map(([k,v])=>`<div><b>${escapeHtml(k)}:</b> ${escapeHtml(String(v))}</div>`).join('')}</div>`).join(''):'<p>Numune kaydı yok.</p>';}
+/* Eskiden kaydın TÜM alanları ham anahtar adlarıyla basılıyordu (firmaId, ts,
+   reminderSent...) — okunmayan gürültüydü. Artık yalnızca anlamlı alanlar
+   gösteriliyor ve kart firma detayına götürüyor. */
+function sampleOpenLabel(s){return sampleOpen(s)?'<span class="wr-badge off">Bekliyor</span>':'<span class="wr-badge ok">Sonuçlandı</span>';}
+function renderSamples(){
+  const cs=new Map(myCompanies().map(c=>[String(c.id),c]));
+  const rows=(SD.load('sd_samples',[])||[]).filter(s=>cs.has(companyIdOf(s)))
+    .sort((a,b)=>(Number(b.ts)||0)-(Number(a.ts)||0));
+  const satir=(lbl,val)=>val?`<div class="sample-line"><span>${escapeHtml(lbl)}</span><b>${escapeHtml(val)}</b></div>`:'';
+  document.getElementById('samplesList').innerHTML=rows.length?rows.map(s=>{
+    const co=cs.get(companyIdOf(s));
+    const urun=[].concat(s.urunler||[]).filter(Boolean).join(', ');
+    const ekip=[].concat(s.ekipmanlar||[]).filter(Boolean).join(', ');
+    return `<div class="sample-card row-clickable" role="button" tabindex="0" onclick="showCompanyDetail('${escapeHtml(String(co?.id||''))}')" onkeydown="if(event.key==='Enter'){showCompanyDetail('${escapeHtml(String(co?.id||''))}');}">`
+      +`<div class="sample-head"><h3>${escapeHtml(co?.name||s.firmAdi||'Firma')}</h3>${sampleOpenLabel(s)}</div>`
+      +satir('Gönderim',s.tarih)+satir('Analiz Merkezi',s.lab)+satir('Ürün',urun)+satir('Ekipman',ekip)
+      +satir('Not',s.not)+satir('Sonuç',s.result)
+      +'</div>';
+  }).join(''):'<p>Numune kaydı yok.</p>';
+}
 
 /* Numune Ekle: satışçı bizzat numune aldığında kayıt oluşturur; backend atanmış teknisyene bildirim düşürür. */
 function openSampleAddModal(){
