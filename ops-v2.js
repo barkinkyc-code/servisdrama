@@ -40,14 +40,23 @@ function isAdminRole(){
 /* Saha Planı/Performans/Denetim artık bağımsız üst-menü sayfaları DEĞİL,
    İstatistikler sayfasının içindeki alt-sekmeler (bkz. admin.html #istatTabs,
    admin.js switchIstatTab). Yalnızca admin rolündeki kullanıcı için eklenir. */
+/* Firma 360° penceresi HER ROLDE kurulur: teknisyen de kendi firmasının skor
+   kartını ve zaman çizgisini görebilmeli. Eskiden yalnızca ensureUI() içinde,
+   yani admin'e özel oluşturuluyordu; openCompany360 her rolde tanımlı olduğu
+   için teknisyende tıklanınca hata veriyordu. */
+function ensureCompany360(){
+  if(document.getElementById('company360Modal'))return;
+  document.body.insertAdjacentHTML('beforeend','<div class="overlay hidden" id="company360Modal"><div class="modal modal-lg ops-360-modal"><div class="modal-hd"><h2 id="c360Title">Firma 360°</h2><button class="modal-x" onclick="UI.closeModal(\'company360Modal\')">×</button></div><div class="modal-body" id="c360Body"></div></div></div>');
+}
+/* Saha Planı / Performans / Erken Uyarı / Denetim alt sekmeleri admin'e özel. */
 function ensureUI(){
+  ensureCompany360();
   if(!isAdminRole())return;
   if(document.getElementById('istatPanelSaha'))return;
   var tabs=document.getElementById('istatTabs');
   if(tabs)tabs.insertAdjacentHTML('beforeend','<button class="stab" data-istat-tab="saha">🧭 Saha Planı</button><button class="stab" data-istat-tab="performans">📈 Performans</button><button class="stab" data-istat-tab="denetim">🛡️ Denetim</button><button class="stab" data-istat-tab="uyari">⚠️ Erken Uyarı</button>');
   var istatPg=document.getElementById('pg-istatistik');
   if(istatPg)istatPg.insertAdjacentHTML('beforeend','<div class="istat-tab-panel hidden" id="istatPanelSaha"><div class="pg-hd"><div><h1 class="pg-title">Saha Planı</h1><div class="pg-sub">Akıllı ziyaret önceliği ve günlük rota</div></div></div><div id="opsPriority"></div></div><div class="istat-tab-panel hidden" id="istatPanelPerformans"><div class="pg-hd"><div><h1 class="pg-title">Personel Performansı</h1><div class="pg-sub">Ziyaret kapsamı, düzenlilik ve sonuç odaklı skor kartı</div></div></div><div id="opsPerformance"></div></div><div class="istat-tab-panel hidden" id="istatPanelUyari"><div class="pg-hd"><div><h1 class="pg-title">Erken Uyarı</h1><div class="pg-sub">Skorun göremediği sapmalar: kötüye giden firma ve teknisyenler</div></div></div><div id="opsEarlyWarning"></div></div><div class="istat-tab-panel hidden" id="istatPanelDenetim"><div class="pg-hd"><div><h1 class="pg-title">Değişiklik Geçmişi</h1><div class="pg-sub">Kim, ne zaman, hangi veri grubunda değişiklik yaptı</div></div></div><div id="opsAudit"></div></div>');
-  document.body.insertAdjacentHTML('beforeend','<div class="overlay hidden" id="company360Modal"><div class="modal modal-lg ops-360-modal"><div class="modal-hd"><h2 id="c360Title">Firma 360°</h2><button class="modal-x" onclick="UI.closeModal(\'company360Modal\')">×</button></div><div class="modal-body" id="c360Body"></div></div></div>');
   window.onIstatTabShow=function(tab){if(tab==='saha')renderSaha();if(tab==='performans')renderPerformance();if(tab==='denetim')renderAudit();if(tab==='uyari'&&typeof renderEarlyWarning==='function')renderEarlyWarning();};
 }
 function renderSaha(){var rows=priorityRows(),host=document.getElementById('opsPriority');if(!host)return;var top=rows.slice(0,12);O.routeRows=top.filter(function(r){return Number(r.c.lat)&&Number(r.c.lng);});
