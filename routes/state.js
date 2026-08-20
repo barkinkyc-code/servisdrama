@@ -54,6 +54,14 @@ function technicianIdentityForUser(current, user) {
   return tech ? { techId: String(tech.id || ''), code: String(tech.code || '') } : { techId: '', code: '' };
 }
 
+/* Ziyaret talepleri SUNUCU otoritesindedir: yalnızca /api/visit-requests yazar.
+   Admin paneli state'i bütün olarak PUT ettiği için, tarayıcısındaki liste eski
+   kaldığında az önce açılmış bir talebi silebilirdi. Bu yüzden gelen paylaşımda
+   ne olursa olsun sunucudaki kayıt korunur. */
+function preserveVisitRequests(current) {
+  return Array.isArray(current?.sd_visit_requests) ? current.sd_visit_requests : [];
+}
+
 function finiteCoordinate(value, min, max) {
   const n = Number(value);
   return Number.isFinite(n) && n >= min && n <= max ? n : null;
@@ -176,6 +184,14 @@ router.get('/', auth, async (req, res) => {
       hiddenForTech.forEach(k => {
         if (r.state && k in r.state) delete r.state[k];
       });
+      // Ziyaret talepleri gizlenmez ama KENDİ firmalarıyla sınırlanır: teknisyen
+      // kendisinden istenen ziyaretleri görmeli, başkasınınkileri değil.
+      if (Array.isArray(r.state?.sd_visit_requests)) {
+        const identity = technicianIdentityForUser(r.state, req.user);
+        r.state.sd_visit_requests = identity.techId
+          ? r.state.sd_visit_requests.filter(v => String(v?.techId || '') === String(identity.techId))
+          : [];
+      }
     }
 
     res.json({ success: true, ...r });
@@ -221,6 +237,7 @@ router.put('/', auth, async (req, res) => {
         safeState.sd_co = mergeTechnicianCompanyLocations(current.sd_co, incomingState.sd_co, identity, req.user);
         state = safeState;
       }
+      state.sd_visit_requests = preserveVisitRequests(current);
 
       await client.query(
         `INSERT INTO app_state(state_key,payload,updated_by,updated_at)
@@ -247,6 +264,7 @@ router.put('/', auth, async (req, res) => {
           safeState.sd_co = mergeTechnicianCompanyLocations(current.sd_co, incomingState.sd_co, identity, req.user);
           state = safeState;
         }
+        state.sd_visit_requests = preserveVisitRequests(current);
         await new Promise((resolve, reject) => db.run(
           "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
           [JSON.stringify(state), req.user.id], e => e ? reject(e) : resolve()

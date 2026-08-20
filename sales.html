@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=20260810-fast-v1">
-<link rel="stylesheet" href="ops-v2.css?v=20260820-ortak-kart">
-<link rel="stylesheet" href="sales.css?v=20260820-sade">
+<link rel="stylesheet" href="ops-v2.css?v=20260820-ziyaret-talebi">
+<link rel="stylesheet" href="sales.css?v=20260820-ziyaret-talebi">
 
 <meta name="theme-color" content="#1D4ED8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,18 +52,7 @@
   </nav>
 
   <div class="topbar-right">
-    <div class="nav-bell-menu" id="navBellMenu">
-      <button class="nav-bell-btn" id="navBellBtn" onclick="toggleNotifBell(event)" aria-label="Bildirimler">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-        <span class="nav-bell-badge hidden" id="navBellBadge">0</span>
-      </button>
-      <div class="nav-dropdown nav-notif-dropdown hidden" id="navNotifDropdown">
-        <div class="nav-dd-header">
-          <div class="nav-dd-name">Bildirimler</div>
-        </div>
-        <div class="nav-notif-list" id="navNotifList"></div>
-      </div>
-    </div>
+    <!-- Bildirim zilini notify-bell.js kurar (admin/teknisyen paneliyle ortak). -->
     <div class="nav-user-menu" id="navUserMenu">
       <div class="nav-avatar-btn" id="navAvatarBtn" onclick="toggleUserMenu(event)">
         <div class="nav-avatar-img" id="navAvatarImg"></div>
@@ -223,8 +212,9 @@
 <!-- ═══ Scripts ═══ -->
 <script src="data.js?v=20260813-truck-konum-fix"></script>
 <script src="weekly-report-data.js?v=20260820-ortak-kart"></script>
-<script src="company-360.js?v=20260820-ortak-kart"></script>
-<script src="sales.js?v=20260820-sade"></script>
+<script src="company-360.js?v=20260820-ziyaret-talebi"></script>
+<script src="notify-bell.js?v=20260820-ziyaret-talebi"></script>
+<script src="sales.js?v=20260820-ziyaret-talebi"></script>
 <script src="pwa-update.js?v=20260804-pwa-v1"></script>
 </body>
 </html>

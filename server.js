@@ -41,6 +41,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/actions', require('./routes/actions'));
 app.use('/api/samples', require('./routes/samples'));
 app.use('/api/sales', require('./routes/sales'));
+app.use('/api/visit-requests', require('./routes/visit-requests'));
 
 // ═══ MAIL SYSTEM ═══
 // Rapor e-postalarındaki cid: görsellerin ortak kaynağı (manuel "Rapor Gönder" ve

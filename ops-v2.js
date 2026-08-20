@@ -32,11 +32,44 @@ function ensureUI(){
   if(!isAdminRole())return;
   if(document.getElementById('istatPanelSaha'))return;
   var tabs=document.getElementById('istatTabs');
-  if(tabs)tabs.insertAdjacentHTML('beforeend','<button class="stab" data-istat-tab="saha">🧭 Saha Planı</button><button class="stab" data-istat-tab="performans">📈 Performans</button><button class="stab" data-istat-tab="denetim">🛡️ Denetim</button><button class="stab" data-istat-tab="uyari">⚠️ Erken Uyarı</button>');
+  if(tabs)tabs.insertAdjacentHTML('beforeend','<button class="stab" data-istat-tab="saha">🧭 Saha Planı</button><button class="stab" data-istat-tab="performans">📈 Performans</button><button class="stab" data-istat-tab="talepler">🔔 Ziyaret Talepleri</button><button class="stab" data-istat-tab="denetim">🛡️ Denetim</button><button class="stab" data-istat-tab="uyari">⚠️ Erken Uyarı</button>');
   var istatPg=document.getElementById('pg-istatistik');
-  if(istatPg)istatPg.insertAdjacentHTML('beforeend','<div class="istat-tab-panel hidden" id="istatPanelSaha"><div class="pg-hd"><div><h1 class="pg-title">Saha Planı</h1><div class="pg-sub">Akıllı ziyaret önceliği ve günlük rota</div></div></div><div id="opsPriority"></div></div><div class="istat-tab-panel hidden" id="istatPanelPerformans"><div class="pg-hd"><div><h1 class="pg-title">Personel Performansı</h1><div class="pg-sub">Ziyaret kapsamı, düzenlilik ve sonuç odaklı skor kartı</div></div></div><div id="opsPerformance"></div></div><div class="istat-tab-panel hidden" id="istatPanelUyari"><div class="pg-hd"><div><h1 class="pg-title">Erken Uyarı</h1><div class="pg-sub">Skorun göremediği sapmalar: kötüye giden firma ve teknisyenler</div></div></div><div id="opsEarlyWarning"></div></div><div class="istat-tab-panel hidden" id="istatPanelDenetim"><div class="pg-hd"><div><h1 class="pg-title">Değişiklik Geçmişi</h1><div class="pg-sub">Kim, ne zaman, hangi veri grubunda değişiklik yaptı</div></div></div><div id="opsAudit"></div></div>');
-  window.onIstatTabShow=function(tab){if(tab==='saha')renderSaha();if(tab==='performans')renderPerformance();if(tab==='denetim')renderAudit();if(tab==='uyari'&&typeof renderEarlyWarning==='function')renderEarlyWarning();};
+  if(istatPg)istatPg.insertAdjacentHTML('beforeend','<div class="istat-tab-panel hidden" id="istatPanelSaha"><div class="pg-hd"><div><h1 class="pg-title">Saha Planı</h1><div class="pg-sub">Akıllı ziyaret önceliği ve günlük rota</div></div></div><div id="opsPriority"></div></div><div class="istat-tab-panel hidden" id="istatPanelPerformans"><div class="pg-hd"><div><h1 class="pg-title">Personel Performansı</h1><div class="pg-sub">Ziyaret kapsamı, düzenlilik ve sonuç odaklı skor kartı</div></div></div><div id="opsPerformance"></div></div><div class="istat-tab-panel hidden" id="istatPanelTalepler"><div class="pg-hd"><div><h1 class="pg-title">Ziyaret Talepleri</h1><div class="pg-sub">Satışçıların teknik servisten istediği ziyaretler ve durumları</div></div></div><div id="opsVisitRequests"></div></div><div class="istat-tab-panel hidden" id="istatPanelUyari"><div class="pg-hd"><div><h1 class="pg-title">Erken Uyarı</h1><div class="pg-sub">Skorun göremediği sapmalar: kötüye giden firma ve teknisyenler</div></div></div><div id="opsEarlyWarning"></div></div><div class="istat-tab-panel hidden" id="istatPanelDenetim"><div class="pg-hd"><div><h1 class="pg-title">Değişiklik Geçmişi</h1><div class="pg-sub">Kim, ne zaman, hangi veri grubunda değişiklik yaptı</div></div></div><div id="opsAudit"></div></div>');
+  window.onIstatTabShow=function(tab){if(tab==='saha')renderSaha();if(tab==='talepler')renderVisitRequests();if(tab==='performans')renderPerformance();if(tab==='denetim')renderAudit();if(tab==='uyari'&&typeof renderEarlyWarning==='function')renderEarlyWarning();};
 }
+/* Ziyaret Talepleri (admin) — satışçının açtığı, teknisyene bildirim düşen
+   talepler tek listede. Kayıtlar sunucudan (sd_visit_requests) gelir; buradan
+   yalnızca okunur, durum değişikliği firmanın 360° kartından yapılır. */
+function renderVisitRequests(){
+  var host=document.getElementById('opsVisitRequests');if(!host)return;
+  var rows=(SD.load('sd_visit_requests',[])||[]).slice()
+    .sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
+  var meta=(C.VR_META||{});
+  var acik=rows.filter(function(r){return r.status==='open';}).length,
+      plan=rows.filter(function(r){return r.status==='planned';}).length;
+  host.innerHTML='<div class="ops-card"><div class="ops-card-hd"><div><h3>Ziyaret Talepleri</h3>'
+    +'<p>Satışçı talep açtığında firmanın atanmış teknisyenine otomatik bildirim gider.</p></div>'
+    +'<span class="ops-pill">'+acik+' bekleyen · '+plan+' planlandı</span></div>'
+    +(rows.length
+      ?'<div class="vr-list">'+rows.map(function(r){
+          var m=meta[r.status]||{lbl:r.status,ico:'•',cls:'open'};
+          return'<div class="vr-row"><div class="vr-ico">'+(m.ico||'•')+'</div>'
+            +'<div class="vr-main"><b><button class="ops-link" onclick="openCompany360(\''+esc(r.companyId)+'\')">'+esc(r.companyName||r.companyId)+'</button></b>'
+            +'<span>'+esc(r.salesRepName||'Satışçı')+' istedi · '+fmtDate(r.createdAt)
+            +' → '+esc((r.techCode?r.techCode+' · ':'')+(r.techName||'teknisyen yok'))
+            +(r.urgency==='high'?' · ACİL':'')
+            +(r.reason?' · '+esc(r.reason):'')+'</span></div>'
+            +'<span class="vr-tag '+esc(r.status)+'">'+esc(m.lbl||r.status)+'</span></div>';
+        }).join('')+'</div>'
+      :'<div class="ops-empty">Henüz ziyaret talebi yok. Satışçılar firma kartından talep açtığında burada görünür.</div>')
+    +'</div>';
+}
+/* 360° kartından durum değiştirildiğinde liste açıksa anında tazelensin
+   (company-360.js bu kancayı çağırır). */
+window.onVisitRequestChange=function(){
+  var p=document.getElementById('istatPanelTalepler');
+  if(p&&!p.classList.contains('hidden'))renderVisitRequests();
+};
 function renderSaha(){var rows=priorityRows(),host=document.getElementById('opsPriority');if(!host)return;var top=rows.slice(0,12);O.routeRows=top.filter(function(r){return Number(r.c.lat)&&Number(r.c.lng);});
   host.innerHTML='<div class="ops-grid"><section class="ops-card"><div class="ops-card-hd"><div><h3>Bugün Öncelikli Firmalar</h3><p>Skor; ziyaret gecikmesi, haftalık plan, açık numune ve aksiyonlardan hesaplanır.</p></div><span class="ops-pill">'+rows.length+' aktif firma</span></div><div class="ops-priority-list">'+top.map(function(r,i){return'<div class="ops-pr-row"><div class="ops-rank">'+(i+1)+'</div><div class="ops-pr-main"><button class="ops-link" onclick="openCompany360(\''+esc(r.c.id)+'\')">'+esc(r.c.name)+'</button><div class="ops-reason">'+esc(r.p.reasons.slice(0,3).join(' · ')||'normal takip')+'</div></div><div class="ops-score '+(r.p.score>=70?'danger':r.p.score>=45?'warn':'ok')+'">'+r.p.score+'</div></div>';}).join('')+'</div></section><section class="ops-card"><div class="ops-card-hd"><div><h3>Günlük Rota Önerisi</h3><p>Koordinatı kayıtlı öncelikli firmaları seçin; sistem yakınlığa göre sıralar.</p></div></div><div id="opsRouteBox"></div></section></div>';renderRouteBox();}
 function renderRouteBox(){var h=document.getElementById('opsRouteBox');if(!h)return;var rows=O.routeRows;h.innerHTML=rows.length?'<div class="ops-route-select">'+rows.map(function(r){var checked=O.routeSelection.includes(String(r.c.id));return'<label><input type="checkbox" data-route-id="'+esc(r.c.id)+'" '+(checked?'checked':'')+'> <span>'+esc(r.c.name)+'</span><b>'+r.p.score+'</b></label>';}).join('')+'</div><div class="ops-route-actions"><button class="btn btn-primary" id="opsBuildRoute">Rotayı Oluştur</button><button class="btn btn-ghost" id="opsSelectTop">İlk 6’yı Seç</button></div><div id="opsRouteResult"></div>':'<div class="ops-empty">Öncelikli firmalarda kayıtlı koordinat bulunamadı. Firma kartından konum ekleyin.</div>';

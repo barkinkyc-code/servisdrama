@@ -5,33 +5,33 @@
 /* Erken uyarı zili — yanındaki avatarla AYNI çapta durur. Avatar responsive
    olarak 32/42/38px alıyor (style.css), zil de aynı kırılımları izler; sabit
    kalırsa komşusundan büyük/küçük görünüp orantısız duruyordu. */
-.ew-bell{position:relative;width:32px;height:32px;flex-shrink:0;border-radius:50%;
+.ew-bell,.nav-bell-btn{position:relative;width:32px;height:32px;flex-shrink:0;border-radius:50%;
   border:1px solid var(--border);background:var(--surface);color:var(--text2);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   transition:background var(--tr),border-color var(--tr),color var(--tr)}
-.ew-bell:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue)}
-.ew-bell:active{transform:scale(.96)}
-.ew-bell:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.ew-bell svg{width:16px;height:16px;display:block}
+.ew-bell:hover,.nav-bell-btn:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue)}
+.ew-bell:active,.nav-bell-btn:active{transform:scale(.96)}
+.ew-bell:focus-visible,.nav-bell-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ew-bell svg,.nav-bell-btn svg{width:16px;height:16px;display:block}
 /* Rakam dikeyde LINE-HEIGHT ile değil FLEX ile ortalanır: box-sizing:border-box
    altında height - border kadar içerik kutusu kalıyor, line-height ondan uzun
    olduğu için rakam aşağı kayıp ortasız duruyordu. tabular-nums ise 1 ile 11
    arasında rozetin zıplamasını önler. */
-.ew-bell-badge{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;padding:0 2px;
+.ew-bell-badge,.nav-bell-badge{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;padding:0 2px;
   display:flex;align-items:center;justify-content:center;
   border-radius:99px;border:2px solid var(--surface);background:var(--red);color:#fff;
   font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;
   pointer-events:none}
-.ew-bell-badge.hidden{display:none}
+.ew-bell-badge.hidden,.nav-bell-badge.hidden{display:none}
 @media(max-width:768px){
-  .ew-bell{width:42px;height:42px}
-  .ew-bell svg{width:20px;height:20px}
-  .ew-bell-badge{min-width:18px;height:18px}
+  .ew-bell,.nav-bell-btn{width:42px;height:42px}
+  .ew-bell svg,.nav-bell-btn svg{width:20px;height:20px}
+  .ew-bell-badge,.nav-bell-badge{min-width:18px;height:18px}
 }
 @media(max-width:390px){
-  .ew-bell{width:38px;height:38px}
-  .ew-bell svg{width:18px;height:18px}
-  .ew-bell-badge{min-width:17px;height:17px}
+  .ew-bell,.nav-bell-btn{width:38px;height:38px}
+  .ew-bell svg,.nav-bell-btn svg{width:18px;height:18px}
+  .ew-bell-badge,.nav-bell-badge{min-width:17px;height:17px}
 }
 .ew-modal{width:min(780px,94vw);max-height:88dvh;display:flex;flex-direction:column}
 .ew-body{overflow:auto}
@@ -62,3 +62,64 @@
 .c360-info b.c360-durum.d-blue{color:#245edb}
 .c360-info b.c360-durum.d-red{color:#c33434}
 .c360-info b.c360-durum.d-gray{color:#64748b}
+
+/* ═══ Bildirim zili açılır listesi (notify-bell.js) ═══
+   Zil düğmesinin kendisi .ew-bell ile aynı ölçüyü paylaşır (yukarıda);
+   burada yalnız açılır liste tanımlıdır. admin.html ve sales.html ortak. */
+.nav-bell-menu{position:relative}
+.nav-notif-dropdown{width:360px;max-width:calc(100vw - 32px)}
+.nav-dd-allread{margin-left:auto;background:none;border:0;padding:0;cursor:pointer;font:700 11.5px/1 inherit;color:var(--blue)}
+.nav-dd-allread:hover{text-decoration:underline}
+.nav-notif-list{max-height:420px;overflow-y:auto}
+.nav-notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--tr)}
+.nav-notif-item:last-child{border-bottom:none}
+.nav-notif-item:hover{background:var(--surface2)}
+.nav-notif-item b{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.nav-notif-ico{font-size:14px;line-height:1}
+.nav-notif-item div{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:4px}
+.nav-notif-item small{font-size:11px;color:var(--text3)}
+.nav-notif-item:not(.unread){opacity:.6}
+.nav-notif-item.unread{background:var(--blue-l)}
+.nav-notif-item.unread:hover{background:var(--blue-m)}
+.nav-notif-empty{padding:28px 16px;text-align:center;font-size:13px;color:var(--text3)}
+/* style.css mobilde ".topbar .nav-dropdown{position:absolute}" diyor; aynı
+   özgüllükte (.topbar .nav-…) yazılmazsa açılır liste 38px zilin genişliğine
+   sıkışıyor. */
+@media(max-width:768px){
+  .topbar .nav-notif-dropdown{position:fixed;top:64px;right:8px;left:8px;width:auto;max-width:none}
+}
+
+/* ═══ Firma 360° · Ziyaret Talebi bloğu (company-360.js) ═══
+   Kartın TEK aksiyon alanı; skor yorumundan görsel olarak ayrılır ki
+   "okunacak bilgi" ile "yapılacak iş" karışmasın. */
+.c360-vr{margin-top:12px;padding:13px 15px;border-radius:13px;border:1px solid #e3e9f2;background:#f7f9fc}
+.c360-vr.open{background:#fff6e6;border-color:#f3ddb0}
+.c360-vr.planned{background:#eef4ff;border-color:#cfdefa}
+.c360-vr.done{background:#f5f7fa;border-color:#e6ebf2}
+.c360-vr>b{display:block;font-size:12.5px;color:#243149}
+.c360-vr>span{display:block;margin-top:4px;font-size:11.5px;color:#6b7789;line-height:1.5}
+.c360-vr-acil{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:#c33434;color:#fff;font:800 9.5px/1.6 inherit;font-style:normal;letter-spacing:.05em}
+.c360-vr-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.c360-vr-form{margin-top:10px}
+.c360-vr-form textarea{width:100%;resize:vertical}
+.c360-vr-urgent{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#5b6779;cursor:pointer;user-select:none}
+.c360-vr-urgent input{width:15px;height:15px;accent-color:#c33434;cursor:pointer}
+.c360-vr-last{display:block;margin-top:9px;font-size:11px;color:#8a96a7}
+.c360-vr-msg{margin-top:9px;padding:8px 11px;border-radius:9px;font-size:11.5px;font-weight:600}
+.c360-vr-msg.hidden{display:none}
+.c360-vr-msg.err{background:#ffecec;color:#b83232}
+
+/* ═══ Admin · Ziyaret Talepleri listesi (ops-v2.js) ═══ */
+.vr-list{padding:6px 14px 14px}
+.vr-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 8px;border-bottom:1px solid #f0f3f7}
+.vr-row:last-child{border:0}
+.vr-ico{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#f4f6f9;font-size:14px}
+.vr-main{min-width:0}
+.vr-main b{display:block;font-size:13px;color:#172033}
+.vr-main span{display:block;margin-top:3px;font-size:11px;color:#8894a6;overflow:hidden;text-overflow:ellipsis}
+.vr-tag{padding:5px 10px;border-radius:99px;font-weight:800;font-size:10.5px;white-space:nowrap}
+.vr-tag.open{background:#fff5df;color:#a76605}
+.vr-tag.planned{background:#eef4ff;color:#3564c8}
+.vr-tag.done{background:#eaf8f0;color:#17814a}
+.vr-tag.cancelled{background:#f4f6f9;color:#7b8798}
+@media(max-width:560px){.vr-row{grid-template-columns:28px minmax(0,1fr)}.vr-tag{grid-column:2;justify-self:start}}

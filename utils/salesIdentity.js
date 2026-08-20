@@ -103,6 +103,14 @@ function filterStateForSalesRep(state, salesRep) {
       a => idSet.has(String(a?.salesRepId || ''))
     );
   }
+  // Ziyaret talepleri: yalnızca kendi açtıkları. Whitelist mantığı gereği yeni
+  // bir anahtar eklenirse burada da filtrelenmeli, aksi halde clone(state) ile
+  // olduğu gibi karşıya geçer ve diğer satışçıların talepleri görünür.
+  if (Array.isArray(filtered.sd_visit_requests)) {
+    filtered.sd_visit_requests = filtered.sd_visit_requests.filter(
+      r => idSet.has(String(r?.salesRepId || ''))
+    );
+  }
 
   filtered.sd_st = [salesRep];
 

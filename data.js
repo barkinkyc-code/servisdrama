@@ -8,7 +8,7 @@ var SD=(function(){
   /* sd_ac (seçili teknisyen/ALL kapsamı) bilinçli olarak listede DEĞİL: bu bir kullanıcı
      arayüz tercihi, ortak iş verisi değil. Paylaşılırsa bir teknisyenin ALL seçimi
      diğerinin ekranını da değiştirir. */
-  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples','sd_st','sd_notifications','sd_actions','sd_audit'];
+  var SHARED_KEYS=['sd_co','sd_te','sd_vi','sd_ex','sd_dp','sd_cfg','sd_users','sd_samples','sd_st','sd_notifications','sd_actions','sd_audit','sd_visit_requests'];
   var remoteLoaded=false, syncTimer=null, syncInFlight=false, syncPending=false, remoteReadInFlight=null;
   var DIRTY_KEY='sd_sync_dirty_v2';
   function load(k,fb){try{var r=store.getItem(k);return r!=null?JSON.parse(r):fb;}catch(e){return fb;}}

@@ -41,7 +41,6 @@ function initializeUI(user){
     if(!e.target.closest('#navUserMenu'))document.getElementById('navDropdown')?.classList.add('hidden');
   });
   initCompanyControls();
-  refreshNotifBadge();
   const pwForm=document.getElementById('passwordForm');if(pwForm)pwForm.addEventListener('submit',submitPasswordChange);
   const sampleBtn=document.getElementById('sampleAddBtn');if(sampleBtn)sampleBtn.addEventListener('click',openSampleAddModal);
   const sampleForm=document.getElementById('sampleAddForm');if(sampleForm)sampleForm.addEventListener('submit',submitSampleAdd);
@@ -91,7 +90,8 @@ const CHIPS=[
   {key:'gecikmis' ,lbl:'Gecikmiş'           ,icon:'⏰',cls:'red'  },
   {key:'gidilecek',lbl:'Bu Hafta Gidilecek' ,icon:'📅',cls:'blue' },
   {key:'gidildi'  ,lbl:'Bu Hafta Gidildi'   ,icon:'✅',cls:'green'},
-  {key:'numune'   ,lbl:'Açık Numune'        ,icon:'🧪',cls:'purple'}
+  {key:'numune'   ,lbl:'Açık Numune'        ,icon:'🧪',cls:'purple'},
+  {key:'talep'    ,lbl:'Ziyaret Talebim'    ,icon:'🔔',cls:'amber'}
 ];
 const DURUM_SIRA={gecikmis:0,gidilecek:1,planinda:2,gidildi:3};
 const salesView={key:'all',q:'',sort:'aciliyet'};
@@ -99,9 +99,13 @@ const salesView={key:'all',q:'',sort:'aciliyet'};
 function chipMatches(c,key){
   if(key==='all')return true;
   if(key==='numune')return openSampleCount(c)>0;
+  if(key==='talep')return !!C360.openRequestOf(c);
   return C360.durum(c).key===key;
 }
 function setSalesFilter(key){salesView.key=key;renderCompanies();}
+/* Firma 360° kartından ziyaret talebi açılıp kapandığında liste ve sayılar
+   anında tazelensin (company-360.js bu kancayı çağırır). */
+window.onVisitRequestChange=function(){if(currentPage==='firmalar')renderCompanies();};
 
 function renderCompanies(){
   const all=myCompanies(),el=document.getElementById('companiesList'),emp=document.getElementById('companiesEmpty');
@@ -145,13 +149,18 @@ function renderCompanies(){
   emp.textContent=salesView.q?'Aramaya uyan firma bulunamadı.':'Bu grupta firma yok.';
 
   el.innerHTML=cs.map(c=>{
-    const d=C360.durum(c),skor=skorOf(c),sc=C360.scoreClass(skor);
+    const d=C360.durum(c),skor=skorOf(c),sc=C360.scoreClass(skor),req=C360.openRequestOf(c);
     const open=`showCompanyDetail('${escapeHtml(c.id)}')`;
+    /* Açık ziyaret talebi satırda görünür: satışçı hangi firmayı istediğini ve
+       teknisyenin planlayıp planlamadığını kartı açmadan bilsin. */
+    const talep=req
+      ? `<span class="co-vr ${req.status}">${req.status==='planned'?'📅 Teknisyen planladı':'🔔 Ziyaret talebi açık'}${req.urgency==='high'?' · ACİL':''}</span>`
+      : '';
     return `<div class="co-card" role="button" tabindex="0" onclick="${open}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${open};}">
       <div class="co-icon">${escapeHtml(initials(c.name))}</div>
       <div class="co-body">
         <div class="co-name">${escapeHtml(c.name)}</div>
-        <div class="co-meta">${escapeHtml(C360.ozet(c))}</div>
+        <div class="co-meta">${escapeHtml(C360.ozet(c))}${talep}</div>
       </div>
       <div class="co-right">
         <span class="badge badge-${d.cls}">${escapeHtml(d.label)}</span>
@@ -364,39 +373,9 @@ async function submitPasswordChange(e){
   }catch(err){msg.textContent='Şifre güncellenemedi: '+err.message;msg.className='pw-msg err';}
 }
 
-/* ═══ Bildirimler: sağ üstte zil ikonu + açılır liste (ayrı sayfa yok) ═══ */
-async function refreshNotifBadge(){
-  try{
-    const r=await fetch('/api/notifications/unread/count',{headers:API_HEADERS()});
-    if(!r.ok)return;
-    const j=await r.json(),badge=document.getElementById('navBellBadge');
-    if(!badge)return;
-    const n=j.unread_count||0;
-    badge.textContent=n>9?'9+':String(n);
-    badge.classList.toggle('hidden',n===0);
-  }catch(e){}
-}
-async function loadNotifDropdown(){
-  const list=document.getElementById('navNotifList');
-  if(!list)return;
-  list.innerHTML='<div class="nav-notif-empty">Yükleniyor...</div>';
-  try{
-    const r=await fetch('/api/notifications',{headers:API_HEADERS()});
-    const j=await r.json();
-    const items=(j.notifications||[]).slice(0,15);
-    list.innerHTML=items.length?items.map(n=>`<div class="nav-notif-item ${n.read||n.readAt?'':'unread'}" onclick="readNotification('${n.id}')"><b>${escapeHtml(n.title||'Bildirim')}</b><div>${escapeHtml(n.message||'')}</div><small>${escapeHtml(formatDate(new Date(n.createdAt)))}</small></div>`).join(''):'<div class="nav-notif-empty">Bildiriminiz yok.</div>';
-  }catch(e){list.innerHTML='<div class="nav-notif-empty">Bildirimler yüklenemedi.</div>';}
-}
-function toggleNotifBell(event){
-  if(event)event.stopPropagation();
-  const dd=document.getElementById('navNotifDropdown');
-  if(!dd)return;
-  const opening=dd.classList.contains('hidden');
-  document.getElementById('navDropdown')?.classList.add('hidden');
-  dd.classList.toggle('hidden');
-  if(opening)loadNotifDropdown();
-}
-async function readNotification(id){await fetch('/api/notifications/'+encodeURIComponent(id)+'/read',{method:'PUT',headers:API_HEADERS()});await loadNotifDropdown();await refreshNotifBadge();}
+/* Bildirim zili artık notify-bell.js'te: admin ve teknisyen panelleri de
+   aynı zili kullanıyor, kod tek yerde duruyor. */
+
 
 function formatDate(d){if(!d||isNaN(d))return'-';return new Intl.DateTimeFormat('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);}
 function escapeHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -407,4 +386,4 @@ function closeMobileMenu(){setMobileMenu(false);}
 function initMobileMenuControls(){const button=document.getElementById('mobileMenuBtn'),overlay=document.getElementById('mobileOverlay');if(button){button.setAttribute('aria-expanded','false');button.addEventListener('click',toggleMobileMenu,{passive:false});}if(overlay)overlay.addEventListener('click',e=>{e.preventDefault();closeMobileMenu();});}
 function toggleUserMenu(event){if(event)event.stopPropagation();const dd=document.getElementById('navDropdown');if(!dd)return;document.getElementById('navNotifDropdown')?.classList.add('hidden');dd.classList.toggle('hidden');}
 function doLogout(){localStorage.removeItem('token');sessionStorage.removeItem('token');localStorage.removeItem('sd_user');sessionStorage.removeItem('sd_user');location.href='index.html';}
-window.showPage=showPage;window.setSalesFilter=setSalesFilter;window.showCompanyDetail=showCompanyDetail;window.closeCompanyDetail=closeCompanyDetail;window.readNotification=readNotification;window.toggleNotifBell=toggleNotifBell;window.toggleUserMenu=toggleUserMenu;window.doLogout=doLogout;
+window.showPage=showPage;window.setSalesFilter=setSalesFilter;window.showCompanyDetail=showCompanyDetail;window.closeCompanyDetail=closeCompanyDetail;window.toggleUserMenu=toggleUserMenu;window.doLogout=doLogout;

@@ -168,6 +168,116 @@ function ozet(c){
   return bits.join(' · ');
 }
 
+/* ══ Ziyaret Talebi ════════════════════════════════════════════════
+   Satışçı "bu firmaya gidilsin" der; firmanın atanmış teknisyeninin
+   ekranına bildirim düşer, admin hepsini görür. Kayıtlar sunucuda
+   (sd_visit_requests) tutulur ve yalnız /api/visit-requests yazar —
+   bu dosya okur ve düğmeleri basar. */
+var VR_OPEN=['open','planned'];
+var VR_META={
+  open    :{lbl:'Ziyaret talebi açık'   ,ico:'🔔',cls:'open'},
+  planned :{lbl:'Teknisyen planladı'    ,ico:'📅',cls:'planned'},
+  done    :{lbl:'Ziyaret tamamlandı'    ,ico:'✅',cls:'done'},
+  cancelled:{lbl:'Talep geri çekildi'   ,ico:'✖️',cls:'done'}
+};
+function role(){
+  try{
+    var s=JSON.parse(sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist')||'{}');
+    return String((s&&s.userData&&s.userData.role)||'').toLowerCase();
+  }catch(e){return'';}
+}
+function allRequests(){return SD.load('sd_visit_requests',[])||[];}
+function requestsOf(c){return allRequests().filter(function(r){return String(r.companyId)===String(c.id);})
+  .sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});}
+function openRequestOf(c){return requestsOf(c).find(function(r){return VR_OPEN.indexOf(String(r.status))>=0;})||null;}
+
+function vrHeaders(){return{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||sessionStorage.getItem('token')||'')};}
+function vrError(msg){
+  var box=document.getElementById('c360VrMsg');
+  if(box){box.textContent=msg;box.className='c360-vr-msg err';}
+  else if(global.UI&&UI.toast)UI.toast(msg,'error');
+}
+/* Talep değiştikten sonra: sunucudan tazele, kartı yeniden çiz, zili güncelle
+   ve paneli haberdar et (liste/rozet yenilensin). */
+function afterVisitRequest(companyId){
+  return SD.remoteReady({force:true}).then(function(){
+    var c=companyById(companyId);
+    if(c&&document.getElementById('c360Body'))document.getElementById('c360Body').innerHTML=cardHTML(c);
+    if(global.NotifyBell)NotifyBell.refresh();
+    if(typeof global.onVisitRequestChange==='function')global.onVisitRequestChange(companyId);
+  });
+}
+global.c360RequestVisit=function(companyId){
+  var note=document.getElementById('c360VrNote'),acil=document.getElementById('c360VrUrgent');
+  var btn=document.getElementById('c360VrSend');
+  if(btn){btn.disabled=true;btn.textContent='Gönderiliyor…';}
+  fetch('/api/visit-requests',{method:'POST',headers:vrHeaders(),body:JSON.stringify({
+    companyId:String(companyId),
+    reason:note?note.value:'',
+    urgency:(acil&&acil.checked)?'high':'normal'
+  })}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j};});})
+    .then(function(x){
+      if(!x.ok){vrError(x.j.error||'Talep gönderilemedi');if(btn){btn.disabled=false;btn.textContent='Talebi Gönder';}return;}
+      afterVisitRequest(companyId);
+    })
+    .catch(function(e){vrError('Talep gönderilemedi: '+e.message);if(btn){btn.disabled=false;btn.textContent='Talebi Gönder';}});
+};
+global.c360SetRequestStatus=function(id,status,companyId){
+  fetch('/api/visit-requests/'+encodeURIComponent(id),{method:'PUT',headers:vrHeaders(),body:JSON.stringify({status:status})})
+    .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j};});})
+    .then(function(x){if(!x.ok){vrError(x.j.error||'Güncellenemedi');return;}afterVisitRequest(companyId);})
+    .catch(function(e){vrError('Güncellenemedi: '+e.message);});
+};
+global.c360ToggleRequestForm=function(){
+  var f=document.getElementById('c360VrForm'),b=document.getElementById('c360VrOpenBtn');
+  if(!f)return;
+  f.classList.toggle('hidden');
+  if(b)b.classList.toggle('hidden',!f.classList.contains('hidden'));
+  var n=document.getElementById('c360VrNote');if(n&&!f.classList.contains('hidden'))n.focus();
+};
+
+function visitRequestHTML(c){
+  var rl=role(),req=openRequestOf(c),gecmis=requestsOf(c),son=gecmis[0];
+
+  if(req){
+    var m=VR_META[req.status]||VR_META.open,acts=[];
+    if(rl==='tech'||rl==='admin'){
+      if(req.status==='open')acts.push('<button class="btn btn-outline btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'planned\',\''+esc(c.id)+'\')">Planladım</button>');
+      acts.push('<button class="btn btn-primary btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'done\',\''+esc(c.id)+'\')">Ziyareti Tamamladım</button>');
+    }
+    if(rl==='sales')acts.push('<button class="btn btn-ghost btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\')">Talebi Geri Çek</button>');
+    if(rl==='admin')acts.push('<button class="btn btn-ghost btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\')">İptal Et</button>');
+    return '<div class="c360-vr '+m.cls+'">'
+      +'<b>'+m.ico+' '+esc(m.lbl)+(req.urgency==='high'?' <i class="c360-vr-acil">ACİL</i>':'')+'</b>'
+      +'<span>'+esc(req.salesRepName||'Satışçı')+' istedi · '+fmtDate(req.createdAt)
+        +' · teknik servis: '+esc((req.techCode?req.techCode+' · ':'')+(req.techName||'—'))
+        +(req.reason?' · Not: '+esc(req.reason):'')+'</span>'
+      +(acts.length?'<div class="c360-vr-acts">'+acts.join('')+'</div>':'')
+      +'<div id="c360VrMsg" class="c360-vr-msg hidden"></div></div>';
+  }
+
+  if(rl==='sales'){
+    var uyari=c.techId?'':'<div class="c360-vr-msg err">Bu firmaya teknik servis atanmamış; talep gönderilemez.</div>';
+    return '<div class="c360-vr ask">'
+      +(c.techId
+        ?'<button class="btn btn-primary btn-sm" id="c360VrOpenBtn" onclick="c360ToggleRequestForm()">🔔 Teknik Servis İste</button>'
+         +'<div class="c360-vr-form hidden" id="c360VrForm">'
+         +'<textarea id="c360VrNote" class="inp" rows="2" placeholder="Neden gidilmeli? (opsiyonel — teknisyene bu not gider)"></textarea>'
+         +'<label class="c360-vr-urgent"><input type="checkbox" id="c360VrUrgent"> Acil</label>'
+         +'<div class="c360-vr-acts">'
+         +'<button class="btn btn-primary btn-sm" id="c360VrSend" onclick="c360RequestVisit(\''+esc(c.id)+'\')">Talebi Gönder</button>'
+         +'<button class="btn btn-ghost btn-sm" onclick="c360ToggleRequestForm()">Vazgeç</button></div>'
+         +'<div id="c360VrMsg" class="c360-vr-msg hidden"></div></div>'
+        :uyari)
+      +(son?'<span class="c360-vr-last">Son talep: '+esc((VR_META[son.status]||{}).lbl||son.status)+' · '+fmtDate(son.updatedAt||son.createdAt)+'</span>':'')
+      +'</div>';
+  }
+
+  if(son)return '<div class="c360-vr done"><b>'+((VR_META[son.status]||{}).ico||'•')+' Son ziyaret talebi: '+esc((VR_META[son.status]||{}).lbl||son.status)+'</b>'
+    +'<span>'+esc(son.salesRepName||'Satışçı')+' · '+fmtDate(son.updatedAt||son.createdAt)+(son.reason?' · Not: '+esc(son.reason):'')+'</span></div>';
+  return '';
+}
+
 /* ── kart ──────────────────────────────────────────────────────── */
 function ensureCompany360(){
   if(document.getElementById('company360Modal'))return;
@@ -214,6 +324,9 @@ function cardHTML(c){
       +'<div><span>Teknisyen</span><b>'+esc(tech?tech.code+' · '+tech.name:'Atanmamış')+'</b></div>'
       +'<div><span>Periyot</span><b>'+esc((c.weeks||[]).map(function(w){return w+'. hafta';}).join(', ')||'—')+'</b></div>'
     +'</div>'
+    /* Ziyaret talebi skor yorumunun ÜSTÜNDE: kartın tek aksiyon alanı, okumaya
+       devam etmeden görülmeli. */
+    +visitRequestHTML(c)
     +advHtml
     +'<h3 class="c360-title">Firma Zaman Çizgisi</h3>'
     +(timeline.length
@@ -239,7 +352,8 @@ global.C360={
   techName:techName,companyById:companyById,cadenceWeeks:cadenceWeeks,
   currentWeekOfMonth:currentWeekOfMonth,plannedThisWeek:plannedThisWeek,
   scoreDetail:scoreDetail,grade:grade,scoreClass:scoreClass,scoreAdvice:scoreAdvice,gunFarki:gunFarki,
-  durum:durum,priorityFor:priorityFor,ozet:ozet,cardHTML:cardHTML
+  durum:durum,priorityFor:priorityFor,ozet:ozet,cardHTML:cardHTML,
+  role:role,allRequests:allRequests,requestsOf:requestsOf,openRequestOf:openRequestOf,VR_META:VR_META
 };
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureCompany360);

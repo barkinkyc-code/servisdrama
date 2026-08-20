@@ -31,7 +31,7 @@
    aynı soruyu cevaplıyordu ("kaç firma gecikmiş?" / "gecikmişleri
    göster"). Tek satırda birleşti: rakama basınca liste o gruba iner. */
 .sales-body .sls-chips{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;
 }
 .sales-body .sls-chip{
   display:flex;flex-direction:column;align-items:flex-start;gap:2px;
@@ -47,10 +47,12 @@
 .sales-body .sls-chip.c-blue b{color:var(--blue);}
 .sales-body .sls-chip.c-green b{color:var(--green);}
 .sales-body .sls-chip.c-purple b{color:#7C3AED;}
+.sales-body .sls-chip.c-amber b{color:var(--amber);}
 .sales-body .sls-chip.active{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 .sales-body .sls-chip.c-red.active{border-color:var(--red);box-shadow:0 0 0 3px rgba(220,38,38,.1);}
 .sales-body .sls-chip.c-green.active{border-color:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.1);}
 .sales-body .sls-chip.c-purple.active{border-color:#7C3AED;box-shadow:0 0 0 3px rgba(124,58,237,.1);}
+.sales-body .sls-chip.c-amber.active{border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,.12);}
 
 /* ── Liste başlığı + sıralama düğmesi ── */
 .sales-body .sls-list-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
@@ -75,6 +77,9 @@
 /* Skor rozeti Firma 360° kartındakiyle aynı (.ops-score, ops-v2.css); listede
    biraz küçültülür ki firma adını bastırmasın. */
 .sales-body .co-right .ops-score{min-width:38px;height:32px;font-size:12.5px;}
+/* Firma satırındaki açık ziyaret talebi rozeti */
+.sales-body .co-vr{padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800;background:var(--amber-l);color:var(--amber);}
+.sales-body .co-vr.planned{background:var(--blue-l);color:var(--blue);}
 
 
 
@@ -87,34 +92,9 @@
 }
 
 
-/* ── Bildirim zili (üst çubuk, isim yanında) ── */
-.sales-body .nav-bell-menu{position:relative;}
-.sales-body .nav-bell-btn{
-  position:relative;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);
-  background:var(--surface);color:var(--text2);display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:all var(--tr);
-}
-.sales-body .nav-bell-btn:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue);}
-.sales-body .nav-bell-btn svg{width:18px;height:18px;}
-.sales-body .nav-bell-badge{
-  position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 3px;border-radius:99px;
-  background:var(--red);color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;
-  border:2px solid var(--surface);
-}
-.sales-body .nav-notif-dropdown{width:340px;max-width:calc(100vw - 32px);}
-.sales-body .nav-notif-list{max-height:400px;overflow-y:auto;}
-.sales-body .nav-notif-item{
-  padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--tr);
-}
-.sales-body .nav-notif-item:last-child{border-bottom:none;}
-.sales-body .nav-notif-item:hover{background:var(--surface2);}
-.sales-body .nav-notif-item b{display:block;font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
-.sales-body .nav-notif-item div{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:4px;}
-.sales-body .nav-notif-item small{font-size:11px;color:var(--text3);}
-.sales-body .nav-notif-item:not(.unread){opacity:.55;}
-.sales-body .nav-notif-item.unread{background:var(--blue-l);}
-.sales-body .nav-notif-item.unread:hover{background:var(--blue-m);}
-.sales-body .nav-notif-empty{padding:28px 16px;text-align:center;font-size:13px;color:var(--text3);}
+/* Bildirim zilinin stilleri ops-v2.css'te: zil artık admin/teknisyen
+   panelinde de var (notify-bell.js), tek yerde tanımlı. */
+
 
 /* ── Ziyaret Geçmişi: admin Raporlar sayfasındaki .wr-* rapor görünümüyle aynı dil ── */
 .sales-body .wr-top{
@@ -263,7 +243,6 @@
   .sales-body .wr-kpis{grid-template-columns:1fr 1fr;}
   .sales-body .wr-week-picker{flex-direction:column;align-items:stretch;}
   .sales-body .wr-week-picker input[type="week"]{width:100%;}
-  .sales-body .nav-notif-dropdown{position:fixed;top:64px;right:8px;left:8px;width:auto;max-width:none;}
   .sales-body .ay-hero{flex-direction:column;text-align:center;padding:22px 18px;}
   .sales-body .ay-grid{grid-template-columns:1fr;}
   .sales-modal-body{padding:16px;}
