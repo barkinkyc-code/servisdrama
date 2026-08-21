@@ -1388,44 +1388,47 @@ function renderStat(){
 function renderTechAdmin(){
   var ts=SD.technicians,list=document.getElementById('techAdminList');if(!list)return;list.innerHTML='';
   ts.forEach(function(t){
-    var row=document.createElement('div');row.className='tech-row';
-    row.style.cssText='display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);padding:14px 16px;margin-bottom:8px;box-shadow:var(--sh-xs);';
-    var av=document.createElement('div');av.className='tech-avatar';av.style.cssText='width:42px;height:42px;border-radius:50%;background:'+BL.avatarColor(t.name)+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;';av.textContent=BL.getInitials(t.name);
-    var info=document.createElement('div');info.className='tech-info';info.style.cssText='flex:1;min-width:0;';
-    info.innerHTML='<div style="font-weight:700;font-size:14px;color:var(--text);">'+t.name+' <span style="background:var(--blue-l);color:var(--blue);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;">'+t.code+'</span></div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+(t.phone||'Telefon yok')+' · '+(t.email||'E-posta yok')+'</div>';
+    var row=document.createElement('div');row.className='user-card';
+    var color=BL.avatarColor(t.name);
+    var initials=BL.getInitials(t.name);
+    var av=document.createElement('div');av.className='user-av';av.style.cssText='background:'+color+';';av.textContent=initials;
+    var info=document.createElement('div');info.className='user-info';
+    var leaveText=(t.leaveStart||t.leaveEnd)?(' · 🌴 İzin: '+(t.leaveStart||'—')+' ~ '+(t.leaveEnd||'—')):'';
+    info.innerHTML='<div class="user-name">'+salesEsc(t.name)+' <span class="user-role-badge role-tech" style="background:var(--blue-l);color:var(--blue);margin-left:6px;">'+salesEsc(t.code)+'</span><span class="user-role-badge role-tech" style="margin-left:4px;">Teknisyen</span></div>'
+      +'<div class="user-meta"><span>📞 '+(salesEsc(t.phone)||'Telefon yok')+'</span><span>✉️ '+(salesEsc(t.email)||'E-posta yok')+'</span><span>'+leaveText+'</span></div>';
+
     var fields=document.createElement('div');fields.className='tech-fields';fields.style.cssText='display:flex;flex-direction:column;gap:5px;min-width:220px;';
     ['name','phone','email'].forEach(function(f){
       var inp=document.createElement('input');
-      inp.style.cssText='padding:7px 10px;font-size:12.5px;border:1.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit;transition:border-color .15s;';
+      inp.className='inp inp-sm';
+      inp.style.cssText='padding:5px 8px;font-size:12px;';
       inp.value=t[f]||'';inp.placeholder={name:'Ad Soyad',phone:'Telefon',email:'E-posta'}[f];
-      inp.addEventListener('focus',function(){inp.style.borderColor='#2563EB';});
-      inp.addEventListener('blur',function(){inp.style.borderColor='';});
       inp.addEventListener('change',function(){var arr=SD.technicians,tech=arr.find(function(x){return x.id===t.id;});if(tech)tech[f]=inp.value.trim();SD.technicians=arr;UI.toast('Güncellendi.','success');});
       fields.appendChild(inp);
     });
-    /* İzin tarihi aralığı: doluysa günlük rapor maili o aralıkta teknisyeni
-       "İzinli" kartıyla gösterir (leaveStart/leaveEnd, YYYY-MM-DD). */
     var leaveWrap=document.createElement('div');
     leaveWrap.style.cssText='display:flex;align-items:center;gap:6px;';
     var leaveLbl=document.createElement('span');leaveLbl.textContent='🌴 İzin:';leaveLbl.style.cssText='font-size:11.5px;font-weight:700;color:var(--text3);white-space:nowrap;';
     leaveWrap.appendChild(leaveLbl);
     ['leaveStart','leaveEnd'].forEach(function(f){
-      var inp=document.createElement('input');inp.type='date';
-      inp.style.cssText='padding:6px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit;flex:1;min-width:0;';
+      var inp=document.createElement('input');inp.type='date';inp.className='inp inp-sm';
+      inp.style.cssText='padding:3px 6px;font-size:11px;flex:1;min-width:0;';
       inp.value=t[f]||'';inp.title=f==='leaveStart'?'İzin başlangıcı':'İzin bitişi';
       inp.addEventListener('change',function(){
         var arr=SD.technicians,tech=arr.find(function(x){return x.id===t.id;});
         if(tech)tech[f]=inp.value;
         SD.technicians=arr;
+        renderTechAdmin();
         UI.toast(inp.value?'İzin tarihi kaydedildi.':'İzin tarihi kaldırıldı.','success');
       });
       leaveWrap.appendChild(inp);
     });
     fields.appendChild(leaveWrap);
+
     var db=document.createElement('button');db.className='btn-icon red';db.title='Sil';
     db.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" stroke-linecap="round"/></svg>';
-    (function(tid){db.addEventListener('click',function(){if(SD.technicians.length<=1){UI.toast('En az 1 teknisyen gerekli.','warning');return;}UI.confirm('Teknisyeni sil?',function(){var arr=SD.technicians.filter(function(x){return x.id!==tid;});SD.technicians=arr;if(SD.activeTechId===tid)SD.activeTechId=arr[0].id;renderTechAdmin();});});})( t.id);
+    (function(tid){db.addEventListener('click',function(){if(SD.technicians.length<=1){UI.toast('En az 1 teknisyen gerekli.','warning');return;}UI.confirm('Teknisyeni sil?',function(){var arr=SD.technicians.filter(function(x){return x.id!==tid;});SD.technicians=arr;if(SD.activeTechId===tid)SD.activeTechId=arr[0].id;renderTechAdmin();});});})(t.id);
+
     row.appendChild(av);row.appendChild(info);row.appendChild(fields);row.appendChild(db);list.appendChild(row);
   });
 }
@@ -1482,16 +1485,27 @@ function paintSalesAdmin(){
 }
 function salesViewRowHtml(s){
   var pasif=s.status==='inactive',id=salesEsc(s.id);
-  return '<div class="settings-row" style="align-items:flex-start;gap:12px;'+(pasif?'opacity:.62;':'')+'">'
-    +'<div style="flex:1;min-width:0">'
-    +'<div style="font-weight:700">'+salesEsc(s.name)+' <span class="badge">'+salesEsc(s.code||'KOD YOK')+'</span>'
-    +(pasif?' <span class="badge" style="background:var(--red-l);color:var(--danger);">Pasif</span>':'')+'</div>'
-    +'<div style="font-size:12px;color:var(--text3);margin-top:3px">'+salesEsc(s.username)+' · '+salesEsc(s.email||'e-posta yok')
-    +' · '+salesEsc(s.phone||'telefon yok')+' · '+salesCompanyCount(s)+' firma</div></div>'
-    +'<button class="btn btn-ghost btn-sm" onclick="openSalesEdit(\''+id+'\')">Düzenle</button>'
-    +(pasif
-      ?'<button class="btn btn-ghost btn-sm" onclick="reactivateSales(\''+id+'\')">Aktif Yap</button>'
-      :'<button class="btn btn-ghost btn-sm" onclick="deactivateSales(\''+id+'\')">Pasif Yap</button>')
+  var color=BL.avatarColor(s.name||s.username||'?');
+  var initials=BL.getInitials(s.name||s.username||'?');
+  var count=salesCompanyCount(s);
+  return '<div class="user-card" style="'+(pasif?'opacity:.65;':'')+'">'
+    +'<div class="user-av" style="background:'+color+';">'+initials+'</div>'
+    +'<div class="user-info">'
+      +'<div class="user-name">'+salesEsc(s.name)+' <span class="user-role-badge role-tech" style="background:var(--amber-l);color:var(--amber-d);margin-left:6px;">'+salesEsc(s.code||'KOD YOK')+'</span>'
+      +(pasif?' <span class="user-role-badge" style="background:var(--red-l);color:var(--red);margin-left:4px;">Pasif</span>':' <span class="user-role-badge role-tech" style="background:var(--green-l);color:var(--green);margin-left:4px;">Satış Temsilcisi</span>')+'</div>'
+      +'<div class="user-meta">'
+        +'<span>@'+salesEsc(s.username)+'</span>'
+        +(s.phone?'<span>📞 '+salesEsc(s.phone)+'</span>':'')
+        +(s.email?'<span>✉️ '+salesEsc(s.email)+'</span>':'')
+        +'<span>💼 '+count+' firma</span>'
+      +'</div>'
+    +'</div>'
+    +'<div class="user-acts">'
+      +'<button class="btn-icon" title="Düzenle" onclick="openSalesEdit(\''+id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+      +(pasif
+        ?'<button class="btn-icon" title="Aktif Yap" onclick="reactivateSales(\''+id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>'
+        :'<button class="btn-icon red" title="Pasif Yap" onclick="deactivateSales(\''+id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>')
+    +'</div>'
     +'</div>';
 }
 function salesEditRowHtml(s){

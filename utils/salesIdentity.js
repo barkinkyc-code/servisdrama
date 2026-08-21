@@ -122,10 +122,26 @@ function filterStateForSalesRep(state, salesRep) {
   return filtered;
 }
 
+function technicianIdentityForUser(current, user) {
+  const username = String(user?.username || '').toLowerCase();
+  const users = Array.isArray(current?.sd_users) ? current.sd_users : [];
+  const techs = Array.isArray(current?.sd_te) ? current.sd_te : [];
+  const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
+  let tech = appUser && techs.find(t => String(t.id) === String(appUser.techId));
+
+  if (!tech) {
+    if (username === 'semih.aglan') tech = techs.find(t => String(t.code) === '1015') || { id: 't1', code: '1015' };
+    if (username === 'suleyman' || username === 'suleyman.kucuk') tech = techs.find(t => String(t.code) === '1016') || { id: 't2', code: '1016' };
+  }
+
+  return tech ? { id: String(tech.id || ''), techId: String(tech.id || ''), code: String(tech.code || '') } : null;
+}
+
 module.exports = {
   resolveSalesRepIdentity,
   getSalesRepIdentitySet,
   companyBelongsToSalesRep,
   getCompanySalesRep,
-  filterStateForSalesRep
+  filterStateForSalesRep,
+  technicianIdentityForUser
 };

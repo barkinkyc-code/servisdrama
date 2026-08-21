@@ -13,7 +13,8 @@ const { readState, mutateState } = require('../utils/stateStore');
 const {
   resolveSalesRepIdentity,
   getSalesRepIdentitySet,
-  companyBelongsToSalesRep
+  companyBelongsToSalesRep,
+  technicianIdentityForUser
 } = require('../utils/salesIdentity');
 const { sendPushForNotification } = require('../utils/webPush');
 
@@ -25,19 +26,8 @@ const isTech = u => String(u?.role || '').toLowerCase() === 'tech';
 const OPEN_STATUSES = ['open', 'planned'];
 const ALL_STATUSES = ['open', 'planned', 'done', 'cancelled'];
 
-// Teknisyen kimliği: JWT yalnızca {id,username,role} taşır, sd_te'den çözülür.
-// routes/notifications.js ve routes/state.js ile aynı eski/legacy eşleme.
 function techIdentityForUser(state, user) {
-  const username = String(user?.username || '').toLowerCase();
-  const users = Array.isArray(state?.sd_users) ? state.sd_users : [];
-  const techs = Array.isArray(state?.sd_te) ? state.sd_te : [];
-  const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
-  let tech = appUser && techs.find(t => String(t.id) === String(appUser.techId));
-  if (!tech) {
-    if (username === 'semih.aglan') tech = techs.find(t => String(t.code) === '1015');
-    if (username === 'suleyman' || username === 'suleyman.kucuk') tech = techs.find(t => String(t.code) === '1016');
-  }
-  return tech || null;
+  return technicianIdentityForUser(state, user);
 }
 
 function allRequests(state) {

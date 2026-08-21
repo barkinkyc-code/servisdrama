@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const auth = require('../middleware/auth');
-const { resolveSalesRepIdentity, filterStateForSalesRep } = require('../utils/salesIdentity');
+const { resolveSalesRepIdentity, filterStateForSalesRep, technicianIdentityForUser } = require('../utils/salesIdentity');
 const router = express.Router();
 
 async function readState() {
@@ -39,20 +39,7 @@ function technicianCodeForUser(current, user) {
 }
 
 
-function technicianIdentityForUser(current, user) {
-  const username = String(user?.username || '').toLowerCase();
-  const users = Array.isArray(current.sd_users) ? current.sd_users : [];
-  const techs = Array.isArray(current.sd_te) ? current.sd_te : [];
-  const appUser = users.find(u => String(u.username || '').toLowerCase() === username);
-  let tech = appUser && techs.find(t => String(t.id) === String(appUser.techId));
 
-  if (!tech) {
-    if (username === 'semih.aglan') tech = techs.find(t => String(t.code) === '1015') || { id: 't1', code: '1015' };
-    if (username === 'suleyman' || username === 'suleyman.kucuk') tech = techs.find(t => String(t.code) === '1016') || { id: 't2', code: '1016' };
-  }
-
-  return tech ? { techId: String(tech.id || ''), code: String(tech.code || '') } : { techId: '', code: '' };
-}
 
 /* Ziyaret talepleri SUNUCU otoritesindedir: yalnızca /api/visit-requests yazar.
    Admin paneli state'i bütün olarak PUT ettiği için, tarayıcısındaki liste eski
