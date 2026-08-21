@@ -110,15 +110,28 @@
 
   /* Ayarlar: otomatik rapor ve Excel alanı */
   var oldRenderSettings=window.renderSettingsTab;
-  if(typeof oldRenderSettings==='function')window.renderSettingsTab=function(tab){if(!SD_isOwner()&&tab!=='profil'){goto('ziyaret');return;}oldRenderSettings.apply(this,arguments);if(tab==='mail'||tab==='veri')setTimeout(function(){injectOwnerTools(tab);},0);};
+  if(typeof oldRenderSettings==='function')window.renderSettingsTab=function(tab){
+    if(!SD_isOwner()&&tab!=='profil'){goto('ziyaret');return;}
+    oldRenderSettings.apply(this,arguments);
+    var targetTab = tab || (typeof A !== 'undefined' ? A.settingsTab : 'mail');
+    if(targetTab==='mail'||targetTab==='veri')setTimeout(function(){injectOwnerTools(targetTab);},0);
+  };
   function injectOwnerTools(tab){
     var content=document.getElementById('settingsContent');if(!content)return;
     var cfg=SD.config||{};
-    if(tab==='mail'&&!document.getElementById('autoSummaryCard')){
+    var curTab = tab || (typeof A !== 'undefined' ? A.settingsTab : 'mail');
+
+    // Yanlış sekmedeki kartları temizle
+    var summaryCard = document.getElementById('autoSummaryCard');
+    var excelCard = document.getElementById('excelExportCard');
+    if(curTab !== 'mail' && summaryCard) summaryCard.remove();
+    if(curTab !== 'veri' && excelCard) excelCard.remove();
+
+    if(curTab==='mail'&&!document.getElementById('autoSummaryCard')){
       var card=document.createElement('div');card.className='settings-card';card.id='autoSummaryCard';
       card.innerHTML='<div class="settings-ttl">✉️ Otomatik Gün Özeti</div><p class="setting-note">Türkiye saatine göre günlük rapor gönderimini ve TO/CC alıcılarını yönetin.</p><div class="schedule-grid"><label>Gönderim saati<input class="inp" type="time" id="dailySummaryTime" value="'+esc((!cfg.dailySummaryTime||cfg.dailySummaryTime==='18:00')?'19:00':cfg.dailySummaryTime)+'"></label><label>TO alıcıları<textarea class="inp" id="dailySummaryTo" rows="3" placeholder="Her satıra bir e-posta">'+esc((cfg.dailySummaryTo||RAPOR_TO_LIST||[]).join('\n'))+'</textarea></label><label>CC alıcıları<textarea class="inp" id="dailySummaryCc" rows="3" placeholder="Her satıra bir e-posta">'+esc((cfg.dailySummaryCc||RAPOR_CC_LIST||[]).join('\n'))+'</textarea></label></div><div class="settings-acts"><button class="btn btn-primary btn-sm" onclick="saveDailySummarySettings()">Ayarları Kaydet</button><button class="btn btn-outline btn-sm" onclick="sendDailySummaryNow()">Şimdi Test Gönder</button></div>';
       content.appendChild(card);
-    } else if(tab==='veri'&&!document.getElementById('excelExportCard')){
+    } else if(curTab==='veri'&&!document.getElementById('excelExportCard')){
       var card=document.createElement('div');card.className='settings-card';card.id='excelExportCard';
       card.innerHTML='<div class="settings-ttl">📊 Ziyaret ve Numune Excel Dışa Aktarımı</div><div class="export-grid"><label>Başlangıç<input class="inp" type="date" id="exportStart"></label><label>Bitiş<input class="inp" type="date" id="exportEnd"></label><button class="btn btn-primary" onclick="exportOperationalExcel()">Excel İndir</button></div>';
       content.appendChild(card);
