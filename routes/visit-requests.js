@@ -119,12 +119,16 @@ router.post('/', async (req, res) => {
       };
       state.sd_visit_requests = allRequests(state).concat([request]);
 
-      // Teknisyenin ekranına düşen bildirim. Admin tüm bildirimleri gördüğü için
-      // ayrıca bir admin kopyası üretilmez (bkz. routes/notifications.js visible()).
-      // Başlık sabit: "Ziyaret Talebi" (aciliyete göre değişmez). Metin talebi
-      // AÇAN satışçıyı adıyla söyler — teknisyen kartı açmadan kimin istediğini
-      // görsün diye.
+      // Ziyaret talebi bildirimi HERKESE gider (broadcast:true) — yalnız
+      // atanmış teknisyene değil, sistemdeki her role (routes/notifications.js
+      // visible() ve utils/webPush.js eligibleSubscriptions bu bayrağı
+      // rol/kişi filtresini atlamak için kullanır). recipientTechId yine de
+      // METADATA olarak tutulur ("asıl atanmış teknisyen kim" bilgisi için —
+      // ör. 360° kartında gösterilebilir), teslimatı ARTIK BELİRLEMEZ.
+      // Başlık sabit: "Ziyaret Talebi". Metin talebi AÇAN satışçıyı adıyla
+      // söyler — kartı açmadan kimin istediği görülsün diye.
       notifForPush = pushNotification(state, {
+        broadcast: true,
         recipientTechId: String(tech.id),
         recipientRole: 'tech',
         companyId,

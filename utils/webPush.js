@@ -124,8 +124,15 @@ function subscriberMatchesTech(state, sub, recipientTechId) {
   return !!(tid && tid === String(recipientTechId));
 }
 
+/* broadcast:true → rol/kişi ayrımı yapılmadan KAYITLI TÜM abonelere gider
+   (routes/notifications.js'teki aynı bayrakla aynı anlama gelir: bu bildirim
+   tek bir kişiye değil herkese ait). Push atabilmek zaten kullanıcının daha
+   önce bildirim izni verip abone olmuş olmasını gerektirir — hiç abone
+   olmamış birine push gitmesi teknik olarak mümkün değil, yalnız uygulama
+   içi zilde görünür. */
 function eligibleSubscriptions(state, notif) {
   const subs = state.sd_push_subscriptions || [];
+  if (notif.broadcast === true) return subs;
   return subs.filter(sub => {
     if (notif.recipientUserId && subscriberMatchesUserId(state, sub, notif.recipientUserId)) return true;
     if (notif.recipientTechId && subscriberMatchesTech(state, sub, notif.recipientTechId)) return true;
@@ -149,7 +156,7 @@ async function sendPushForNotification(notif) {
     const { state } = await readState();
     if (!prefsAllow(state.sd_push_prefs, notif.type)) return { sent: 0, reason: 'pref-off' };
 
-    if (!notif.recipientUserId && !notif.recipientTechId) { console.warn('[push] '+notif.type+' — bildirimin alıcısı yok (recipientUserId/recipientTechId boş).'); return { sent: 0, reason: 'no-recipient' }; }
+    if (notif.broadcast !== true && !notif.recipientUserId && !notif.recipientTechId) { console.warn('[push] '+notif.type+' — bildirimin alıcısı yok (recipientUserId/recipientTechId boş).'); return { sent: 0, reason: 'no-recipient' }; }
     const subs = eligibleSubscriptions(state, notif);
     if (!subs.length) { console.warn('[push] '+notif.type+' — hedeflenen kullanıcının kayıtlı push aboneliği yok (recipientUserId='+(notif.recipientUserId||'-')+' recipientTechId='+(notif.recipientTechId||'-')+').'); return { sent: 0, reason: 'no-subscription' }; }
 
