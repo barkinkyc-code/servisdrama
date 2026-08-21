@@ -200,10 +200,17 @@
 .c360-vr-acil{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:#c33434;color:#fff;font:800 9.5px/1.6 inherit;font-style:normal;letter-spacing:.05em}
 .c360-vr-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .c360-vr-form{margin-top:10px}
+.c360-vr-note-lbl{display:block;margin-bottom:6px;font-size:11.5px;font-weight:700;color:#4a5a76}
 .c360-vr-form textarea{width:100%;resize:vertical}
-.c360-vr-urgent{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#5b6779;cursor:pointer;user-select:none}
-.c360-vr-urgent input{width:15px;height:15px;accent-color:#c33434;cursor:pointer}
 .c360-vr-last{display:block;margin-top:9px;font-size:11px;color:#8a96a7}
+/* "Teknik Servis İste" — talep açma çağrısı: sade metin+düğme yerine dikkat
+   çeken ama sakin bir kart. Amber vurgu "dikkat gerektiren bir aksiyon"
+   izlenimi verir; kırmızı/acil değil, sarı/nötr — profesyonel bir servis
+   talebi arayüzü, alarm değil. */
+.c360-vr.ask{padding:16px;text-align:center;background:#fffaf0;border-color:#f3e2b8}
+.c360-vr-cta{width:100%;justify-content:center;padding:12px 16px!important;font-size:13.5px!important;font-weight:800!important;letter-spacing:-.005em}
+.c360-vr-cta .sd-ico{width:17px;height:17px}
+.c360-vr.ask .c360-vr-form{text-align:left}
 .c360-vr-msg{margin-top:9px;padding:8px 11px;border-radius:9px;font-size:11.5px;font-weight:600}
 .c360-vr-msg.hidden{display:none}
 .c360-vr-msg.err{background:#ffecec;color:#b83232}
@@ -236,6 +243,21 @@
 .vr-quick-modal{max-width:420px}
 .vr-quick-modal .modal-body{padding:18px 20px}
 .vr-quick-modal .c360-vr{margin-top:0}
+/* Hızlı talep penceresinde firma adının altındaki son ziyaretler şeridi */
+.c360-vr-recent{margin-bottom:14px;padding:12px 14px;border-radius:12px;background:#f7f9fc;border:1px solid #edf1f5}
+.c360-vr-recent b{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#8894a5;margin-bottom:8px}
+.c360-vr-recent ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.c360-vr-recent li{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px}
+.c360-vr-recent li time{font-weight:700;color:#263247}
+.c360-vr-recent li span{color:#7a879b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c360-vr-recent.empty{color:#8894a5;font-size:12px;text-align:center}
+
+/* Teknisyene zorunlu ekran: kapatma düğmesi olmadığı belli olsun diye üstte
+   ince turuncu şerit + neden burada olduğunu söyleyen not. */
+.vr-force-modal .modal-hd{border-bottom-color:#f3ddb0;background:#fffaf0}
+.vr-force-note{display:flex;align-items:center;gap:9px;margin-bottom:14px;padding:11px 13px;border-radius:11px;
+  background:#fff6e6;border:1px solid #f3ddb0;color:#875000;font-size:12px;font-weight:700}
+.vr-force-note .sd-ico{width:16px;height:16px;flex:0 0 16px}
 
 /* Hareket azaltma tercihi: giriş animasyonları kapanır. Animasyon yarıda
    kalırsa alt sayfa 14px kayık durabiliyor; hareketi hiç başlatmamak hem

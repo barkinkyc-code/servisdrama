@@ -102,8 +102,12 @@ router.post('/', async (req, res) => {
       const open = allRequests(state).find(r => String(r.companyId) === companyId && OPEN_STATUSES.includes(String(r.status)));
       if (open) throw Object.assign(new Error('Bu firma için zaten açık bir ziyaret talebi var.'), { statusCode: 409, existing: open });
 
-      const urgency = req.body?.urgency === 'high' ? 'high' : 'normal';
-      const reason = String(req.body?.reason || '').trim().slice(0, 500);
+      // Not zorunlu: sebepsiz talep teknisyene "neden gidilmedi" bilgisi vermez.
+      // Satışçı küçük harfle yazsa bile BÜYÜK HARFE çevrilerek kaydedilir —
+      // toLocaleUpperCase('tr') kullanılır (düz .toUpperCase() Türkçe 'i'yi
+      // 'İ' değil 'I' yapar, "ıstanbul"→"ISTANBUL" yerine "İSTANBUL" olmalı).
+      const reason = String(req.body?.reason || '').trim().slice(0, 500).toLocaleUpperCase('tr');
+      if (!reason) throw Object.assign(new Error('Neden gidilmediğini belirtmeden talep gönderilemez.'), { statusCode: 400 });
       const now = new Date().toISOString();
       const salesRepName = rep?.name || req.user.username;
 
@@ -112,7 +116,7 @@ router.post('/', async (req, res) => {
         companyId, companyName: company.name,
         salesRepId: rep?.id || '', salesRepName,
         techId: String(tech.id), techCode: String(tech.code || ''), techName: tech.name || '',
-        reason, urgency,
+        reason, urgency: 'normal', // "Acil" seçeneği arayüzden kaldırıldı — profesyonel/sade tek akış
         status: 'open',
         createdAt: now, createdByUserId: req.user.id, createdByRole: req.user.role,
         updatedAt: now, history: [{ at: now, by: salesRepName, role: req.user.role, status: 'open' }]

@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../config/database');
 const auth = require('../middleware/auth');
 const { resolveSalesRepIdentity, filterStateForSalesRep, technicianIdentityForUser } = require('../utils/salesIdentity');
+const { sendPushForNotification } = require('../utils/webPush');
 const router = express.Router();
 
 async function readState() {
@@ -135,6 +136,98 @@ function mergeTechnicianArray(currentArray, incomingArray, code) {
   return Array.from(unique.values());
 }
 
+// "GG.AA.YYYY", "YYYY-AA-GG" veya epoch ms okur — company-360.js'teki
+// parseAnyDate ile aynı, sunucu tarafında bağımsız kopya (istemci koduna
+// bağımlı olmadan çalışsın diye).
+function parseAnyDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+  const n = Number(v);
+  if (n > 100000000000) return new Date(n);
+  const s = String(v);
+  let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+function ddmmyyyy(d) { return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear(); }
+
+/* Teknisyen ziyaretini senkronize ettiğinde, KENDİSİNE atanmış AÇIK ziyaret
+   taleplerini otomatik "tamamlandı" yapar — talep "gidilsin" der, teknisyen
+   gidip ziyareti kaydettiğinde talebin açık kalması ve ayrıca elle
+   "Tamamladım" tıklamayı hatırlaması gerekmemeli. Yalnızca talebin AÇILDIĞI
+   TARİHTEN SONRAKİ bir ziyaret sayılır — talep açılmadan ÖNCEKİ eski bir
+   ziyaretin (ör. ilk kurulum, geçmiş veri senkronizasyonu) yanlışlıkla
+   kapatmasına karşı. Kapanınca sistemdeki HERKESE broadcast bildirim gider
+   (routes/visit-requests.js'teki 'visit_request' açılış bildirimiyle aynı
+   yayın modeli) — "şu tarihli talep kapanmıştır" bilgisi. */
+function autoCloseVisitRequestsForTech(currentRequests, mergedVi, mergedEx, techId, actor) {
+  const requests = Array.isArray(currentRequests) ? currentRequests : [];
+  const hasOpenForTech = requests.some(r => String(r?.status) === 'open' && String(r?.techId || '') === String(techId));
+  if (!hasOpenForTech) return { visitRequests: requests, notifications: [] };
+
+  const notifications = [];
+  const now = new Date().toISOString();
+  const visitedSince = (companyId, since) => {
+    let found = false;
+    Object.keys(mergedVi || {}).forEach(key => {
+      if (found || companyIdFromKey_state(key) !== String(companyId)) return;
+      Object.values(entriesOf(mergedVi[key])).forEach(e => {
+        if (found || !e || e.status !== 'done') return;
+        const dates = (e.dates && e.dates.length ? e.dates : [e.date]).filter(Boolean);
+        dates.forEach(dstr => {
+          const d = parseAnyDate(dstr) || (e.ts ? new Date(Number(e.ts)) : null);
+          if (d && (!since || d >= since)) found = true;
+        });
+        if (!dates.length && e.ts) {
+          const d = new Date(Number(e.ts));
+          if (!isNaN(d.getTime()) && (!since || d >= since)) found = true;
+        }
+      });
+    });
+    if (!found) {
+      (mergedEx || []).forEach(e => {
+        if (found || String(e?.firmaId || e?.companyId || '') !== String(companyId)) return;
+        const d = parseAnyDate(e.date) || (e.ts ? new Date(Number(e.ts)) : null);
+        if (d && (!since || d >= since)) found = true;
+      });
+    }
+    return found;
+  };
+
+  const visitRequests = requests.map(r => {
+    if (String(r?.status) !== 'open' || String(r?.techId || '') !== String(techId)) return r;
+    const reqCreated = parseAnyDate(r.createdAt);
+    if (!visitedSince(r.companyId, reqCreated)) return r;
+
+    notifications.push({
+      broadcast: true,
+      companyId: r.companyId,
+      visitRequestId: r.id,
+      type: 'visit_request_done',
+      title: 'Ziyaret Talebi Kapandı',
+      message: (r.companyName || '') + ' — ' + ddmmyyyy(reqCreated || new Date()) + ' tarihli talep kapanmıştır.'
+    });
+
+    return {
+      ...r,
+      status: 'done',
+      updatedAt: now,
+      updatedByUserId: actor.userId,
+      updatedByRole: 'tech',
+      closedAt: now,
+      note: r.note || 'Otomatik: teknisyen ziyareti kaydetti.',
+      history: (Array.isArray(r.history) ? r.history : [])
+        .concat([{ at: now, by: actor.code || actor.username, role: 'tech', status: 'done', note: 'Otomatik kapatma — ziyaret kaydedildi.' }])
+    };
+  });
+
+  return { visitRequests, notifications };
+}
+function companyIdFromKey_state(k) { return String(k).split(/[|_]/)[0]; }
+
 // Teknisyen yalnızca kendi 1015/1016 alt kaydını değiştirebilir.
 // Böylece telefonun gönderdiği tam snapshot başka teknisyenin ziyaretini ezmez.
 function mergeTechnicianVisits(currentVisits, incomingVisits, code) {
@@ -224,6 +317,9 @@ router.put('/', auth, async (req, res) => {
 
     const isOwner = String(req.user.role || '').toLowerCase() === 'admin';
     let state = incomingState;
+    // Otomatik kapanan ziyaret taleplerinin broadcast bildirimi transaction
+    // KAPANDIKTAN SONRA gönderilir (push ağ çağrısı DB kilidini uzatmasın).
+    const notifsToPush = [];
 
     if (db.dialect === 'postgres') {
       client = await db.raw.connect();
@@ -247,8 +343,22 @@ router.put('/', auth, async (req, res) => {
         safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
         safeState.sd_co = mergeTechnicianCompanyLocations(current.sd_co, incomingState.sd_co, identity, req.user);
         state = safeState;
+
+        // state (=safeState), current'ın klonu — sd_notifications zaten
+        // current ile aynı, yeni bildirimler doğrudan buna eklenir.
+        const closed = autoCloseVisitRequestsForTech(current.sd_visit_requests, state.sd_vi, state.sd_ex, identity.techId, { userId: req.user.id, code, username: req.user.username });
+        state.sd_visit_requests = closed.visitRequests;
+        if (closed.notifications.length) {
+          state.sd_notifications = Array.isArray(state.sd_notifications) ? state.sd_notifications : [];
+          closed.notifications.forEach(n => {
+            const full = { id: 'not_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), createdAt: new Date().toISOString(), read: false, status: 'unread', ...n };
+            state.sd_notifications.push(full);
+            notifsToPush.push(full);
+          });
+        }
+      } else {
+        state.sd_visit_requests = preserveVisitRequests(current);
       }
-      state.sd_visit_requests = preserveVisitRequests(current);
       Object.assign(state, preservePushState(current));
 
       await client.query(
@@ -275,8 +385,20 @@ router.put('/', auth, async (req, res) => {
           safeState.sd_dp = mergeTechnicianArray(current.sd_dp, incomingState.sd_dp, code);
           safeState.sd_co = mergeTechnicianCompanyLocations(current.sd_co, incomingState.sd_co, identity, req.user);
           state = safeState;
+
+          const closed = autoCloseVisitRequestsForTech(current.sd_visit_requests, state.sd_vi, state.sd_ex, identity.techId, { userId: req.user.id, code, username: req.user.username });
+          state.sd_visit_requests = closed.visitRequests;
+          if (closed.notifications.length) {
+            state.sd_notifications = Array.isArray(state.sd_notifications) ? state.sd_notifications : [];
+            closed.notifications.forEach(n => {
+              const full = { id: 'not_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), createdAt: new Date().toISOString(), read: false, status: 'unread', ...n };
+              state.sd_notifications.push(full);
+              notifsToPush.push(full);
+            });
+          }
+        } else {
+          state.sd_visit_requests = preserveVisitRequests(current);
         }
-        state.sd_visit_requests = preserveVisitRequests(current);
         Object.assign(state, preservePushState(current));
         await new Promise((resolve, reject) => db.run(
           "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
@@ -289,6 +411,11 @@ router.put('/', auth, async (req, res) => {
         throw e;
       }
     }
+
+    // Transaction kapandı — otomatik kapanan taleplerin broadcast push'u ŞİMDİ
+    // gönderilir (await edilir: Vercel serverless cevaptan sonrasını
+    // garanti bitirmiyor, bkz. routes/visit-requests.js'teki aynı not).
+    for (const n of notifsToPush) { await sendPushForNotification(n).catch(() => {}); }
 
     res.set('Cache-Control', 'no-store');
     res.json({ success: true, updatedAt: new Date().toISOString(), ownerWrite: isOwner, technicianWrite: !isOwner });

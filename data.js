@@ -664,6 +664,7 @@ var SD=(function(){
     get visits(){return load('sd_vi',{});},
     get extras(){return load('sd_ex',[]);},
     get departures(){return load('sd_dp',[]);},
+    get visitRequests(){return load('sd_visit_requests',[]);},
     get config(){return load('sd_cfg',{});},
     get activeTechId(){return load('sd_ac',null);},
     get users(){return load('sd_users',[]);},

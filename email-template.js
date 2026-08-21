@@ -105,7 +105,7 @@
 
   function collectData(ctx){
     var _SD=(ctx&&ctx.SD)||SD,_DT=(ctx&&ctx.DT)||DT,_BL=(ctx&&ctx.BL)||BL;
-    var today=(ctx&&ctx.today)||new Date(),companies=_SD.companies||[],visits=_SD.visits||{},techs=_SD.technicians||[],extras=_SD.extras||[];
+    var today=(ctx&&ctx.today)||new Date(),companies=_SD.companies||[],visits=_SD.visits||{},techs=_SD.technicians||[],extras=_SD.extras||[],visitRequests=_SD.visitRequests||[];
     var todayDDmm=_DT.ddmm(today),weekKey=_DT.wkey(today),weeks=_DT.monthWeeks(today.getFullYear(),today.getMonth());
     var weekIndex=weeks.findIndex(function(m){return m.getTime()===_DT.monday(today).getTime();})+1;
     if(weekIndex<1)weekIndex=1;
@@ -156,12 +156,48 @@
        çalışan (izinli olmayan) personeli sayar. */
     var activeCount=people.length;
     people=people.concat(onLeavePeople);
-    return {today:today,people:people,activeCount:activeCount,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0)};
+
+    /* Ziyaret talepleri: BUGÜN açılmış olanlar (satıştan gelen "öncelikli
+       git" istekleri) — kurulum/personel kartlarıyla aynı "bugün ne oldu"
+       mantığı. Kapanmışlar da (durum=kapandı) dahil edilir ki rapor okuyan
+       kişi hem yeni talebi hem aynı gün kapandığını görsün. */
+    var visitRequestsToday=visitRequests.filter(function(r){
+      var d=new Date(r.createdAt);
+      return !isNaN(d)&&_DT.ddmmyyyy(d)===_DT.ddmmyyyy(today);
+    }).sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''));});
+
+    return {today:today,people:people,activeCount:activeCount,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0),visitRequests:visitRequestsToday};
+  }
+
+  /* Ziyaret talebi durumu → rapordaki rozet rengi. installationRows'daki
+     "Tamamlandı/Devam ediyor" rozetiyle aynı kalıp (renkli çerçeve+zemin),
+     yalnızca dört duruma göre genişletildi. */
+  var VR_STATUS_STYLE={
+    open:{t:'Bekliyor',bd:'#f3d9a8',bg:'#fff7e6',c:'#875000'},
+    planned:{t:'Planlandı',bd:'#bfdbfe',bg:'#eff6ff',c:'#1565d8'},
+    done:{t:'Tamamlandı',bd:'#b7e4d5',bg:'#ecfdf5',c:'#047857'},
+    cancelled:{t:'İptal Edildi',bd:'#d1d5db',bg:'#f3f4f6',c:'#6b7280'}
+  };
+  function visitRequestRowHTML(r){
+    var st=VR_STATUS_STYLE[r.status]||VR_STATUS_STYLE.open;
+    var kime=(r.techCode?esc(r.techCode)+' · ':'')+esc(r.techName||'—');
+    var detay=esc(r.salesRepName||'Satışçı')+' istedi → '+kime+(r.reason?' · Not: '+esc(r.reason):'');
+    return '<tr><td class="pad" style="padding:14px 30px 10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eff6ff" style="background-color:#eff6ff;border-left:5px solid #1565d8;border-top:1px solid #bfdbfe;border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;"><tr>'
+      +'<td style="padding:18px 12px 18px 18px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:12px;line-height:18px;font-weight:bold;color:#1565d8;letter-spacing:.5px;">ZİYARET TALEBİ</div><div class="install-company" style="padding-top:5px;font-size:15px;line-height:21px;font-weight:bold;color:#13233f;">'+esc(r.companyName||'')+'</div><div class="install-date" style="padding-top:5px;font-size:13px;line-height:20px;color:#65748a;">'+detay+'</div></td>'
+      +'<td class="install-status" width="116" align="center" valign="middle" style="width:116px;padding:18px 12px 18px 8px;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;padding:8px 9px;border:1px solid '+st.bd+';background-color:'+st.bg+';color:'+st.c+';font-size:12px;line-height:18px;white-space:nowrap;">'+st.t+'</span></td>'
+      +'</tr></table></td></tr>';
   }
 
   function buildOutlookRaporHTML(ctx){
     var _DT=(ctx&&ctx.DT)||DT;
     var data=collectData(ctx),today=data.today,reportDate=trDate(today),week=_DT.isoWeek(today)+'. Hafta';
+    /* Ziyaret talepleri bölümü YALNIZCA bugün talep varsa eklenir — sessiz bir
+       günde raporun geri kalanına (kurulum/personel bölümleri, HİÇBİRİ
+       değişmedi) her zaman boş bir bölüm eklemek gürültü olurdu. */
+    var visitRequestSection=data.visitRequests.length
+      ?('<tr><td class="pad" style="padding:14px 30px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="160" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:bold;color:#13233f;white-space:nowrap;">Ziyaret Talepleri</td><td valign="middle" style="padding-left:12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#cbd5e1" style="height:1px;background-color:#cbd5e1;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr></table></td></tr>'
+        +data.visitRequests.map(visitRequestRowHTML).join(''))
+      :'';
     var installationRows='';
     data.installations.forEach(function(inst){
       var startText=formatSetupDate(inst.start)+(inst.startTime?' · '+esc(inst.startTime):'');
@@ -185,7 +221,7 @@
       +'<tr><td class="pad" bgcolor="#102b50" style="padding:34px 30px;background-color:#102b50;"><table role="presentation" width="100%"><tr><td class="mobile-block" width="55%" valign="middle"><div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;letter-spacing:2px;font-weight:bold;color:#42a1ff;">SERVİSDRAMA</div><h1 class="hero-title" style="margin:8px 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:40px;color:#ffffff;">Günlük Ziyaret Özeti</h1><div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#d8e5f3;">Sahadaki teknik ekip faaliyetlerinin özeti.</div></td><td class="mobile-block mobile-left" width="45%" valign="middle" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td width="25" valign="middle"><img src="cid:servisdrama-calendar-white" width="18" height="18" alt="" style="display:block;width:18px;height:18px;"></td><td valign="middle" style="padding-right:14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:bold;color:#ffffff;white-space:nowrap;">'+esc(reportDate)+'</td><td width="1" bgcolor="#70839a" style="width:1px;background-color:#70839a;font-size:1px;line-height:32px;">&nbsp;</td><td width="25" valign="middle" style="padding-left:14px;"><img src="cid:servisdrama-calendar-white" width="18" height="18" alt="" style="display:block;width:18px;height:18px;"></td><td valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#ffffff;white-space:nowrap;">'+esc(week)+'</td></tr></table></td></tr></table></td></tr>'
       +'<tr><td class="pad" style="padding:26px 30px 12px;"><table role="presentation" width="100%" style="border:1px solid #dbe3ec;"><tr><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#1565d8;">'+data.total+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Teknik Ziyaret</div></td><td width="33.33%" align="center" style="padding:20px 8px;border-right:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#f59a00;">'+data.installations.length+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Kurulum</div></td><td width="33.33%" align="center" style="padding:20px 8px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:24px;line-height:28px;font-weight:bold;color:#078578;">'+(data.activeCount!=null?data.activeCount:data.people.length)+'</div><div class="metric" style="font-size:14px;line-height:20px;font-weight:bold;color:#13233f;">Personel</div></td></tr></table></td></tr>'
       +installationRows+'<tr><td class="pad" style="padding:14px 30px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="116" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:bold;color:#13233f;white-space:nowrap;">Teknik Ekip</td><td valign="middle" style="padding-left:12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#cbd5e1" style="height:1px;background-color:#cbd5e1;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr></table></td></tr>'
-      +staffRows+emptyRows+'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Automated Report • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
+      +staffRows+emptyRows+visitRequestSection+'<tr><td class="pad" align="center" style="padding:22px 30px;border-top:1px solid #dbe3ec;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#7a8799;"><strong style="color:#1565d8;">ServisDrama</strong> • Automated Report • Powered by BKAYACI<br><span style="color:#98a4b4;">Bu e-posta gizlidir ve yalnızca ilgili kişilerle paylaşılmalıdır.</span></td></tr>'
       +'</table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>';
   }
 

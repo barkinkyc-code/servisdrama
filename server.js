@@ -215,6 +215,7 @@ const REPORT_DT = {
   isoWeek(d){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=(x.getUTCDay()+6)%7;x.setUTCDate(x.getUTCDate()-day+3);const t4=new Date(Date.UTC(x.getUTCFullYear(),0,4));return 1+Math.round(((x-t4)/864e5-3+((t4.getUTCDay()+6)%7))/7);},
   wkey(d){return d.getFullYear()+'-W'+String(REPORT_DT.isoWeek(d)).padStart(2,'0');},
   ddmm(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0');},
+  ddmmyyyy(d){return REPORT_DT.ddmm(d)+'.'+d.getFullYear();},
   monthWeeks(y,m){const first=new Date(y,m,1),last=new Date(y,m+1,0),weeks=[];let cur=REPORT_DT.monday(first);while(cur<=last){weeks.push(new Date(cur));cur=new Date(cur);cur.setDate(cur.getDate()+7);}return weeks;}
 };
 const REPORT_BL = {
@@ -232,7 +233,8 @@ function stateToReportSD(state){
     visits: state.sd_vi||{},
     technicians: state.sd_te||[],
     extras: state.sd_ex||[],
-    visitEntryFor: reportVisitEntryFor
+    visitEntryFor: reportVisitEntryFor,
+    visitRequests: state.sd_visit_requests||[]
   };
 }
 

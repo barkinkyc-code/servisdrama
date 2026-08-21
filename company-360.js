@@ -160,10 +160,12 @@ function priorityFor(c){
 }
 
 /* Liste kartlarının tek satırlık "neden" metni: kart açılmadan da ne olduğu
-   anlaşılsın diye. Uzun cümle değil, en fazla iki kırılım. */
+   anlaşılsın diye. Skor rozeti mobilde kaldırıldığı için bu satır tek bilgi
+   kaynağı — son ziyaretin hem TARİHİ hem KAÇ GÜN önce olduğu, hem de hangi
+   teknik servis kodunun gittiği tek satırda. */
 function ozet(c){
   var lv=lastVisit(c),openS=samplesOf(c).filter(sampleOpen).length,bits=[];
-  bits.push(lv?(gunFarki(c,lv)+' gün önce · '+techName(lv._tech||lv.tc||lv.techCode)):'Ziyaret kaydı yok');
+  bits.push(lv?('Son ziyaret: '+fmtDate(lv._date)+' · '+gunFarki(c,lv)+' gün önce · '+techName(lv._tech||lv.tc||lv.techCode)):'Ziyaret kaydı yok');
   if(openS)bits.push(openS+' açık numune');
   return bits.join(' · ');
 }
@@ -216,19 +218,25 @@ function afterVisitRequest(companyId){
     var body=document.getElementById('c360Body');
     if(c&&body&&body.dataset.companyId===String(companyId))body.innerHTML=cardHTML(c);
     var quick=document.getElementById('vrQuickBody');
-    if(c&&quick&&quick.dataset.companyId===String(companyId))quick.innerHTML=visitRequestHTML(c);
+    if(c&&quick&&quick.dataset.companyId===String(companyId))quick.innerHTML=recentVisitsHTML(c,3)+visitRequestHTML(c);
     if(global.NotifyBell)NotifyBell.refresh();
     if(typeof global.onVisitRequestChange==='function')global.onVisitRequestChange(companyId);
+    // Zorunlu ekran: bu talep artık 'open' değilse listeden düşer — bir
+    // sonraki açık talep varsa onu gösterir, yoksa ekranı serbest bırakır.
+    if(typeof showNextForcedRequest==='function')showNextForcedRequest();
   });
 }
 global.c360RequestVisit=function(companyId,btn){
-  var box=vrBox(btn),note=box&&box.querySelector('.c360-vr-note'),acil=box&&box.querySelector('.c360-vr-urgent-input'),
+  var box=vrBox(btn),note=box&&box.querySelector('.c360-vr-note'),
     msg=box&&box.querySelector('.c360-vr-msg');
+  var reason=note?note.value.trim():'';
+  // Not zorunlu: "neden gidilmedi" yazılmadan talep gönderilmez — teknisyen
+  // sebepsiz bir talep alıp ne yapacağını bilemesin diye.
+  if(!reason){vrError('Lütfen nedenini yazın — not olmadan talep gönderilemez.',msg);if(note)note.focus();return;}
   if(btn){btn.disabled=true;btn.textContent='Gönderiliyor…';}
   fetch('/api/visit-requests',{method:'POST',headers:vrHeaders(),body:JSON.stringify({
     companyId:String(companyId),
-    reason:note?note.value:'',
-    urgency:(acil&&acil.checked)?'high':'normal'
+    reason:reason
   })}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j};});})
     .then(function(x){
       if(!x.ok){vrError(x.j.error||'Talep gönderilemedi',msg);if(btn){btn.disabled=false;btn.textContent='Talebi Gönder';}return;}
@@ -275,10 +283,10 @@ function visitRequestHTML(c){
     var uyari=c.techId?'':'<div class="c360-vr-msg err">Bu firmaya teknik servis atanmamış; talep gönderilemez.</div>';
     return '<div class="c360-vr ask">'
       +(c.techId
-        ?'<button class="btn btn-primary btn-sm c360-vr-cta c360-vr-open-btn" onclick="c360ToggleRequestForm(this)">'+sdico('mapPin')+'Teknik Servis İste</button>'
+        ?'<button class="btn btn-primary btn-sm c360-vr-cta c360-vr-open-btn" onclick="c360ToggleRequestForm(this)">'+sdico('alert')+'Teknik Servis İste</button>'
          +'<div class="c360-vr-form hidden">'
-         +'<textarea class="inp c360-vr-note" rows="2" placeholder="Neden gidilmeli? (opsiyonel — teknisyene bu not gider)"></textarea>'
-         +'<label class="c360-vr-urgent"><input type="checkbox" class="c360-vr-urgent-input"> Acil</label>'
+         +'<label class="c360-vr-note-lbl">Neden gidilmedi?</label>'
+         +'<textarea class="inp c360-vr-note" rows="2" placeholder="Kısaca açıklayın — teknisyene bu not gider" required></textarea>'
          +'<div class="c360-vr-acts">'
          +'<button class="btn btn-primary btn-sm" onclick="c360RequestVisit(\''+esc(c.id)+'\',this)">Talebi Gönder</button>'
          +'<button class="btn btn-ghost btn-sm" onclick="c360ToggleRequestForm(this)">Vazgeç</button></div>'
@@ -368,6 +376,17 @@ global.ensureCompany360=ensureCompany360;
    İÇİNDEN açılıyordu, telefonda iki dokunuş (satıra gir → aşağı kaydır →
    düğmeyi bul) gerektiriyordu. Aynı visitRequestHTML(c) çıktısı kullanılır;
    yalnızca hangi kutuda gösterildiği değişir. */
+/* Hızlı talep penceresinde firma adının altında son ziyaretler — satışçı
+   "zaten mı gidilmiş" diye 360° kartını ayrıca açmak zorunda kalmasın diye.
+   En fazla 3, en yeniden en eskiye (visitsOf zaten bu sırada döner). */
+function recentVisitsHTML(c,max){
+  var vs=visitsOf(c).slice(0,max||3);
+  if(!vs.length)return '<div class="c360-vr-recent empty">Bu firma için ziyaret kaydı yok.</div>';
+  return '<div class="c360-vr-recent"><b>Son Ziyaretler</b><ul>'
+    +vs.map(function(v){return '<li><time>'+fmtDate(v._date)+'</time><span>'+esc(techName(v._tech||v.tc||v.techCode))+'</span></li>';}).join('')
+    +'</ul></div>';
+}
+
 function ensureVrQuickModal(){
   if(document.getElementById('vrQuickModal'))return;
   document.body.insertAdjacentHTML('beforeend',
@@ -386,9 +405,62 @@ global.openVisitRequestQuick=function(id,ev){
   document.getElementById('vrQuickTitle').textContent=c.name;
   var body=document.getElementById('vrQuickBody');
   body.dataset.companyId=String(c.id);
-  body.innerHTML=visitRequestHTML(c);
+  body.innerHTML=recentVisitsHTML(c,3)+visitRequestHTML(c);
   UI.openModal('vrQuickModal');
 };
+
+/* ══ Teknisyene ZORUNLU ekran ═══════════════════════════════════════
+   "Teknisyene bildirim düşünce, o bildirime cevap vermeden ekranı
+   kapatamasın." Yalnızca KENDİSİNE atanmış (recipientTechId=kendisi),
+   HÂLÂ AÇIK bir talep varsa devreye girer — broadcast sayesinde talebi
+   sistemdeki herkes görür ama yalnız atanan teknisyen buraya kilitlenir,
+   diğer teknisyenler/satışçılar/admin serbestçe gezinebilir. Kapatma
+   düğmesi YOK, karartıya tıklamak da kapatmaz — yalnız "Planladım" veya
+   "Ziyareti Tamamladım" durumu 'open' dışına taşır ve bu yolla açılır. */
+function myTechId(){
+  try{var t=SD.sessionTech&&SD.sessionTech();return t?String(t.id):'';}catch(e){return'';}
+}
+function myOpenAssignedRequests(){
+  var tid=myTechId();
+  if(!tid)return[];
+  return allRequests().filter(function(r){return String(r.techId)===tid&&String(r.status)==='open';})
+    .sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''));});
+}
+function ensureForceModal(){
+  if(document.getElementById('vrForceModal'))return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="overlay hidden" id="vrForceModal"><div class="modal vr-quick-modal vr-force-modal">'
+   +'<div class="modal-hd"><h2 id="vrForceTitle">Ziyaret Talebi</h2></div>'
+   +'<div class="modal-body" id="vrForceBody"></div></div></div>');
+  // Kasıtlı olarak: karartıya tıklama dinleyicisi YOK, .modal-x düğmesi YOK.
+}
+function showNextForcedRequest(){
+  if(role()!=='tech')return;
+  var open=myOpenAssignedRequests();
+  var modal=document.getElementById('vrForceModal');
+  if(!open.length){if(modal)UI.closeModal('vrForceModal');return;}
+  var r=open[0],c=companyById(r.companyId);
+  if(!c)return;
+  ensureForceModal();
+  document.getElementById('vrForceTitle').textContent=c.name+' · Ziyaret Talebi';
+  var body=document.getElementById('vrForceBody');
+  body.dataset.companyId=String(c.id);
+  body.innerHTML='<div class="vr-force-note">'+sdico('alert')+'Devam etmek için bu talebe yanıt verin.</div>'
+    +recentVisitsHTML(c,3)+visitRequestHTML(c);
+  UI.openModal('vrForceModal');
+}
+global.showNextForcedRequest=showNextForcedRequest;
+/* Veri yüklenene kadar (remoteReady asenkron) kısa aralıklarla dener,
+   sonra periyodik yoklamaya geçer — yeni bir talep push ile değil, tekrar
+   sekmeye dönüldüğünde de yakalansın diye (bkz. visibilitychange). */
+function bootForcedRequests(){
+  var tries=0,iv=setInterval(function(){
+    tries++;
+    if((SD.companies||[]).length||tries>40){clearInterval(iv);showNextForcedRequest();}
+  },250);
+  setInterval(showNextForcedRequest,60000);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')showNextForcedRequest();});
+}
 
 /* ops-v2.js ve satışçı paneli aynı hesapları yeniden yazmasın diye dışa açılır. */
 global.C360={
@@ -421,6 +493,6 @@ function tryOpenFromPushLink(){
   },250);
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ensureCompany360();tryOpenFromPushLink();});
-else {ensureCompany360();tryOpenFromPushLink();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ensureCompany360();tryOpenFromPushLink();bootForcedRequests();});
+else {ensureCompany360();tryOpenFromPushLink();bootForcedRequests();}
 })(window);

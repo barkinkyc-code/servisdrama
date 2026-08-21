@@ -251,9 +251,17 @@
   .sales-body .page{padding:16px;}
   /* Sayı düğmeleri mobilde iki sütuna iner; dokunma hedefi 44px'in altına düşmez. */
   .sales-body .sls-chips{grid-template-columns:1fr 1fr;}
+  /* Ziyaret Geçmişi sekmesi mobilde kaldırılır: telefonda satışçının asıl işi
+     Firmalarım'dan yönetilir, ayrı bir rapor sayfası küçük ekranda gereksiz
+     yer kaplıyordu. Masaüstünde (sidebar) dokunulmadı. */
+  .sales-body .topbar-nav [data-page="ziyaretler"]{display:none!important;}
   .sales-body .co-card{flex-wrap:wrap;}
   .sales-body .co-right{flex-direction:row;align-items:center;width:100%;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
   .sales-body .co-vr-btn{width:40px;height:40px;}
+  /* Skor kartı (0-100 rozet) mobilde firma satırından kaldırılır: telefonda
+     satırın altındaki "X gün önce · teknisyen" metni zaten aynı bilgiyi
+     (ne kadar gecikmiş) veriyor, sayısal skor küçük ekranda ekstra gürültü. */
+  .sales-body .co-right .ops-score{display:none!important;}
   .sales-body #mobileMenuBtn{min-width:44px;min-height:44px;}
   /* Ziyaret geçmişi raporu: mobilde tek sütun, tablo yatay kaydırılabilir */
   .sales-body .wr-top{flex-direction:column;align-items:flex-start;padding:20px;}

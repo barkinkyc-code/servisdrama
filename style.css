@@ -1358,6 +1358,13 @@ body{padding-top:var(--fixed-topbar-height)!important;}
   .overlay-mobile{display:none!important;position:fixed!important;top:76px!important;left:0!important;right:0!important;bottom:0!important;z-index:2999!important;}
   .overlay-mobile.show{display:block!important;}
   .mobile-hamburger{display:flex!important;position:relative!important;z-index:3003!important;touch-action:manipulation!important;pointer-events:auto!important;}
+  /* Hamburger menü açıkken isme/avatara tıklayınca açılan kullanıcı menüsü
+     (.nav-dropdown, z-index:300) menünün ARKASINDA kalıyordu — .topbar-nav
+     bu breakpoint'te position:fixed + z-index:3002 ile tüm genişliği kaplıyor.
+     Kullanıcı menüsü aynı .topbar içinde ama farklı bir daldan geldiği için
+     kendi z-index'iyle yarışıyor; üstüne çıkması için mobilde ayrıca
+     yükseltilir. */
+  .topbar .nav-dropdown{z-index:3010!important;}
 }
 
 /* ═══ RAPOR MODAL RESPONSIVE ═══ */
