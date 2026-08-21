@@ -22,11 +22,43 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting (only in production)
 if (process.env.NODE_ENV === 'production') {
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 dakika
-    max: 100 // limit her IP için 100 requests
+  /* Vercel/ters vekil arkasında istemcinin gerçek IP'si X-Forwarded-For
+     başlığında gelir. 'trust proxy' ayarlanmazsa express bütün istekleri TEK
+     vekil IP'sine yazar; limit herkes için ORTAK bir kovaya düşer ve tek bir
+     kullanıcının trafiği bütün ekibin girişini kilitler. 1 = "ilk vekile
+     güven" (true değil: express-rate-limit true'yu güvensiz sayıp uyarıyor). */
+  app.set('trust proxy', 1);
+
+  /* 429 gövdesi JSON döner. Varsayılan yanıt DÜZ METİN ("Too many requests,
+     please try again later.") olduğu için giriş ekranındaki res.json() çağrısı
+     "Unexpected token 'T', \"Too many r\"... is not valid JSON" hatası verip
+     kullanıcıya anlamsız bir mesaj gösteriyordu. */
+  const tooMany = (req, res) => res.status(429).json({
+    success: false,
+    error: 'Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin.'
   });
-  app.use(limiter);
+
+  /* Limit YALNIZ /api altına uygulanır. Eskiden app.use(limiter) ile statik
+     dosyalar da sayılıyordu: tek bir panel açılışı 20+ dosya (css/js/ikon)
+     çektiği için 15 dakikalık 100 istek hakkı 3-4 sayfa yenilemesinde bitiyor,
+     giriş ekranı bile 429 alıyordu. */
+  app.use('/api', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 1000,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: tooMany
+  }));
+
+  /* Giriş ve şifre sıfırlama uçları kaba kuvvete karşı ayrıca sınırlanır —
+     insan kullanımı için 15 dakikada 30 deneme fazlasıyla yeterli. */
+  app.use(['/api/auth/login', '/api/auth/forgot-password'], rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: tooMany
+  }));
 }
 
 // Static files

@@ -163,9 +163,14 @@ function ddmmyyyy(d) { return String(d.getDate()).padStart(2, '0') + '.' + Strin
    kapatmasına karşı. Kapanınca sistemdeki HERKESE broadcast bildirim gider
    (routes/visit-requests.js'teki 'visit_request' açılış bildirimiyle aynı
    yayın modeli) — "şu tarihli talep kapanmıştır" bilgisi. */
+/* Ziyaret KAYDI gelince kapanacak durumlar. 'planned' da dahildir: teknisyen
+   önce "Planladım" deyip sonra normal akışta firmaya gidip ziyareti
+   işaretlediğinde talep açık kalıyordu — satışçı tarafında talep hiç
+   kapanmıyor, teknisyenin ayrıca "Ziyareti Tamamladım"a basması gerekiyordu. */
+const AUTO_CLOSE_STATUSES = ['open', 'planned'];
 function autoCloseVisitRequestsForTech(currentRequests, mergedVi, mergedEx, techId, actor) {
   const requests = Array.isArray(currentRequests) ? currentRequests : [];
-  const hasOpenForTech = requests.some(r => String(r?.status) === 'open' && String(r?.techId || '') === String(techId));
+  const hasOpenForTech = requests.some(r => AUTO_CLOSE_STATUSES.includes(String(r?.status)) && String(r?.techId || '') === String(techId));
   if (!hasOpenForTech) return { visitRequests: requests, notifications: [] };
 
   const notifications = [];
@@ -198,7 +203,7 @@ function autoCloseVisitRequestsForTech(currentRequests, mergedVi, mergedEx, tech
   };
 
   const visitRequests = requests.map(r => {
-    if (String(r?.status) !== 'open' || String(r?.techId || '') !== String(techId)) return r;
+    if (!AUTO_CLOSE_STATUSES.includes(String(r?.status)) || String(r?.techId || '') !== String(techId)) return r;
     const reqCreated = parseAnyDate(r.createdAt);
     if (!visitedSince(r.companyId, reqCreated)) return r;
 
