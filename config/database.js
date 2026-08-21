@@ -12,6 +12,11 @@ function pgSql(sql) {
 }
 
 async function seedUsersPg(pool) {
+  const userCountRes = await pool.query(`SELECT COUNT(*) FROM users`);
+  if (parseInt(userCountRes.rows[0]?.count || 0, 10) >= 6) {
+    return;
+  }
+
   /* Migration: eski 'suleyman' kullanıcı adını 'suleyman.kucuk' olarak düzelt (seed listesinden ÖNCE çalışmalı) */
   const oldUser = await pool.query(`SELECT id FROM users WHERE username = 'suleyman'`);
   if (oldUser.rowCount) {
@@ -157,29 +162,32 @@ if (usePostgres) {
     `, async err => {
       if (err) return reject(err);
       try {
-        /* Migration: eski 'suleyman' kullanıcı adını 'suleyman.kucuk' olarak düzelt (seed listesinden ÖNCE çalışmalı) */
-        const oldRow = await new Promise((res,rej) => sqlite.get("SELECT id FROM users WHERE username='suleyman'", [], (e,row) => e?rej(e):res(row)));
-        if (oldRow) {
-          const dupeRow = await new Promise((res,rej) => sqlite.get("SELECT id FROM users WHERE username='suleyman.kucuk'", [], (e,row) => e?rej(e):res(row)));
-          if (dupeRow) {
-            await new Promise((res,rej) => sqlite.run("DELETE FROM users WHERE username='suleyman'", [], e => e?rej(e):res()));
-          } else {
-            const oldHash = await bcrypt.hash('1016', 10);
-            await new Promise((res,rej) => sqlite.run("UPDATE users SET username='suleyman.kucuk', password=? WHERE username='suleyman'", [oldHash], e => e?rej(e):res()));
+        const uCountRow = await new Promise((res,rej) => sqlite.get("SELECT COUNT(*) as count FROM users", [], (e,row) => e?rej(e):res(row)));
+        if (!uCountRow || parseInt(uCountRow.count || 0, 10) < 6) {
+          /* Migration: eski 'suleyman' kullanıcı adını 'suleyman.kucuk' olarak düzelt (seed listesinden ÖNCE çalışmalı) */
+          const oldRow = await new Promise((res,rej) => sqlite.get("SELECT id FROM users WHERE username='suleyman'", [], (e,row) => e?rej(e):res(row)));
+          if (oldRow) {
+            const dupeRow = await new Promise((res,rej) => sqlite.get("SELECT id FROM users WHERE username='suleyman.kucuk'", [], (e,row) => e?rej(e):res(row)));
+            if (dupeRow) {
+              await new Promise((res,rej) => sqlite.run("DELETE FROM users WHERE username='suleyman'", [], e => e?rej(e):res()));
+            } else {
+              const oldHash = await bcrypt.hash('1016', 10);
+              await new Promise((res,rej) => sqlite.run("UPDATE users SET username='suleyman.kucuk', password=? WHERE username='suleyman'", [oldHash], e => e?rej(e):res()));
+            }
           }
-        }
 
-        const users = [
-          ['barkin.kayaci', process.env.ADMIN_PASSWORD || '1452580000', 'Barkın Kayacı', 'barkin.kayaci@dramamakine.com', 'admin'],
-          ['semih.aglan', '1015', 'Semih Ağlan', 'semih.aglan@dramamakine.com', 'tech'],
-          ['suleyman.kucuk', '1016', 'Süleyman Küçük', 'suleyman.kucuk@dramamakine.com', 'tech'],
-          ['esra.onur', process.env.SALES1_PASSWORD || '1019', 'Esra Onur', 'esra.onur@dramamakine.com', 'sales'],
-          ['ersin.ertugen', process.env.SALES2_PASSWORD || '1014', 'Ersin Ertügen', 'ersin.ertugen@dramamakine.com', 'sales'],
-          ['yagiz.erel', process.env.SALES3_PASSWORD || '1004', 'Yağız Erel', 'yagiz.erel@dramamakine.com', 'sales']
-        ];
-        for (const u of users) {
-          const hash = await bcrypt.hash(u[1], 10);
-          await new Promise(r => sqlite.run('INSERT OR IGNORE INTO users (username,password,name,email,role) VALUES (?,?,?,?,?)',[u[0],hash,u[2],u[3],u[4]],()=>r()));
+          const users = [
+            ['barkin.kayaci', process.env.ADMIN_PASSWORD || '1452580000', 'Barkın Kayacı', 'barkin.kayaci@dramamakine.com', 'admin'],
+            ['semih.aglan', '1015', 'Semih Ağlan', 'semih.aglan@dramamakine.com', 'tech'],
+            ['suleyman.kucuk', '1016', 'Süleyman Küçük', 'suleyman.kucuk@dramamakine.com', 'tech'],
+            ['esra.onur', process.env.SALES1_PASSWORD || '1019', 'Esra Onur', 'esra.onur@dramamakine.com', 'sales'],
+            ['ersin.ertugen', process.env.SALES2_PASSWORD || '1014', 'Ersin Ertügen', 'ersin.ertugen@dramamakine.com', 'sales'],
+            ['yagiz.erel', process.env.SALES3_PASSWORD || '1004', 'Yağız Erel', 'yagiz.erel@dramamakine.com', 'sales']
+          ];
+          for (const u of users) {
+            const hash = await bcrypt.hash(u[1], 10);
+            await new Promise(r => sqlite.run('INSERT OR IGNORE INTO users (username,password,name,email,role) VALUES (?,?,?,?,?)',[u[0],hash,u[2],u[3],u[4]],()=>r()));
+          }
         }
         const initial = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'initial-state.json'),'utf8'));
         sqlite.run("INSERT OR IGNORE INTO app_state (state_key,payload) VALUES ('main',?)",[JSON.stringify(initial)],()=>resolve());
