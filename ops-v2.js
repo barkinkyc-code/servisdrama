@@ -53,7 +53,8 @@ function renderVisitRequests(){
     +(rows.length
       ?'<div class="vr-list">'+rows.map(function(r){
           var m=meta[r.status]||{lbl:r.status,ico:'•',cls:'open'};
-          return'<div class="vr-row"><div class="vr-ico">'+(m.ico||'•')+'</div>'
+          var ikon=(typeof window.SDIcon==='function')?SDIcon(m.ico||'dot'):'';
+          return'<div class="vr-row"><div class="vr-ico">'+ikon+'</div>'
             +'<div class="vr-main"><b><button class="ops-link" onclick="openCompany360(\''+esc(r.companyId)+'\')">'+esc(r.companyName||r.companyId)+'</button></b>'
             +'<span>'+esc(r.salesRepName||'Satışçı')+' istedi · '+fmtDate(r.createdAt)
             +' → '+esc((r.techCode?r.techCode+' · ':'')+(r.techName||'teknisyen yok'))

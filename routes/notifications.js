@@ -22,13 +22,24 @@ function techIdentityForUser(state, user) {
   return tech || null;
 }
 
+/* Teknisyenin zili YALNIZCA satıştan gelen işi taşır: ziyaret talebi ve
+   satışçının aldığı numune. Gecikme/skor uyarıları zile düşmez — onlar
+   teknisyende ilk girişte açılan Erken Uyarı banner'ında toplanır
+   (early-warning.js). İkisi tek listede karışınca satıştan gelen gerçek iş
+   sistem gürültüsünün altında kayboluyordu. */
+const TECH_BELL_TYPES = new Set([
+  'visit_request', 'visit_request_open', 'visit_request_planned',
+  'visit_request_done', 'visit_request_cancelled', 'sample_taken_by_sales'
+]);
+
 function visible(state, user) {
   const all = Array.isArray(state.sd_notifications) ? state.sd_notifications : [];
   if (isAdmin(user)) return all;
   if (isTech(user)) {
     const tech = techIdentityForUser(state, user);
     if (!tech) return [];
-    return all.filter(n => String(n.recipientTechId || '') === String(tech.id));
+    return all.filter(n => String(n.recipientTechId || '') === String(tech.id)
+      && TECH_BELL_TYPES.has(String(n.type || '')));
   }
   const rep = resolveSalesRepIdentity(state, user);
   if (!rep) return [];

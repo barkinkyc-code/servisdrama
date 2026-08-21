@@ -35,9 +35,10 @@ function initializeUI(user){
   const logo=document.getElementById('topbarLogo');if(logo)logo.addEventListener('click',()=>{showPage('firmalar');closeMobileMenu();});
   initMobileMenuControls();
   const sampleModal=document.getElementById('sampleAddModal');if(sampleModal)sampleModal.onclick=e=>{if(e.target===sampleModal)closeSampleAddModal();};
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCompanyDetail();closeSampleAddModal();document.getElementById('navNotifDropdown')?.classList.add('hidden');document.getElementById('navDropdown')?.classList.add('hidden');}});
+  /* Zilin kendi kapanma mantığı notify-bell.js'te (backdrop + body kilidi de
+     orada açılıyor); buradan .hidden eklemek yarım kapanmaya yol açıyordu. */
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCompanyDetail();closeSampleAddModal();document.getElementById('navDropdown')?.classList.add('hidden');}});
   document.addEventListener('click',e=>{
-    if(!e.target.closest('#navBellMenu'))document.getElementById('navNotifDropdown')?.classList.add('hidden');
     if(!e.target.closest('#navUserMenu'))document.getElementById('navDropdown')?.classList.add('hidden');
   });
   initCompanyControls();
@@ -85,14 +86,17 @@ function showPage(name){
 /* Gruplar aksiyona göre: eksikler üstte, gidilenler altta. "Riskli/Kritik/Plan
    dışı" gibi ara etiketler sahada aynı işe çıktığı için tek "Gecikmiş"te
    toplandı — liste okunur kalsın diye. */
+/* icon değerleri icons.js (SDIcon) anahtarlarıdır — emoji her işletim sisteminde
+   farklı çiziliyor, hizalanmıyor ve rengi almıyordu. */
 const CHIPS=[
-  {key:'all'      ,lbl:'Tüm Firmalarım'     ,icon:'🏢',cls:'gray' },
-  {key:'gecikmis' ,lbl:'Gecikmiş'           ,icon:'⏰',cls:'red'  },
-  {key:'gidilecek',lbl:'Bu Hafta Gidilecek' ,icon:'📅',cls:'blue' },
-  {key:'gidildi'  ,lbl:'Bu Hafta Gidildi'   ,icon:'✅',cls:'green'},
-  {key:'numune'   ,lbl:'Açık Numune'        ,icon:'🧪',cls:'purple'},
-  {key:'talep'    ,lbl:'Ziyaret Talebim'    ,icon:'🔔',cls:'amber'}
+  {key:'all'      ,lbl:'Tüm Firmalarım'     ,icon:'building'     ,cls:'gray' },
+  {key:'gecikmis' ,lbl:'Gecikmiş'           ,icon:'clock'        ,cls:'red'  },
+  {key:'gidilecek',lbl:'Bu Hafta Gidilecek' ,icon:'calendar'     ,cls:'blue' },
+  {key:'gidildi'  ,lbl:'Bu Hafta Gidildi'   ,icon:'checkCircle'  ,cls:'green'},
+  {key:'numune'   ,lbl:'Açık Numune'        ,icon:'flask'        ,cls:'purple'},
+  {key:'talep'    ,lbl:'Ziyaret Talebim'    ,icon:'mapPin'       ,cls:'amber'}
 ];
+function sdico(n,c){return (typeof window.SDIcon==='function')?SDIcon(n,c):'';}
 const DURUM_SIRA={gecikmis:0,gidilecek:1,planinda:2,gidildi:3};
 const salesView={key:'all',q:'',sort:'aciliyet'};
 
@@ -128,7 +132,7 @@ function renderCompanies(){
   document.getElementById('salesChips').innerHTML=CHIPS.map(ch=>{
     const n=all.filter(c=>chipMatches(c,ch.key)).length;
     return `<button type="button" class="sls-chip c-${ch.cls}${salesView.key===ch.key?' active':''}" onclick="setSalesFilter('${ch.key}')">`
-      +`<b>${n}</b><span>${ch.icon} ${escapeHtml(ch.lbl)}</span></button>`;
+      +`<b>${n}</b><span>${sdico(ch.icon)}${escapeHtml(ch.lbl)}</span></button>`;
   }).join('');
 
   let cs=all.filter(c=>chipMatches(c,salesView.key));
@@ -154,7 +158,7 @@ function renderCompanies(){
     /* Açık ziyaret talebi satırda görünür: satışçı hangi firmayı istediğini ve
        teknisyenin planlayıp planlamadığını kartı açmadan bilsin. */
     const talep=req
-      ? `<span class="co-vr ${req.status}">${req.status==='planned'?'📅 Teknisyen planladı':'🔔 Ziyaret talebi açık'}${req.urgency==='high'?' · ACİL':''}</span>`
+      ? `<span class="co-vr ${req.status}">${sdico(req.status==='planned'?'calendarCheck':'mapPin')}${req.status==='planned'?'Teknisyen planladı':'Ziyaret talebi açık'}${req.urgency==='high'?' · ACİL':''}</span>`
       : '';
     return `<div class="co-card" role="button" tabindex="0" onclick="${open}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${open};}">
       <div class="co-icon">${escapeHtml(initials(c.name))}</div>

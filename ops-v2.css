@@ -5,33 +5,33 @@
 /* Erken uyarı zili — yanındaki avatarla AYNI çapta durur. Avatar responsive
    olarak 32/42/38px alıyor (style.css), zil de aynı kırılımları izler; sabit
    kalırsa komşusundan büyük/küçük görünüp orantısız duruyordu. */
-.ew-bell,.nav-bell-btn{position:relative;width:32px;height:32px;flex-shrink:0;border-radius:50%;
+.nav-bell-btn{position:relative;width:32px;height:32px;flex-shrink:0;border-radius:50%;
   border:1px solid var(--border);background:var(--surface);color:var(--text2);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   transition:background var(--tr),border-color var(--tr),color var(--tr)}
-.ew-bell:hover,.nav-bell-btn:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue)}
-.ew-bell:active,.nav-bell-btn:active{transform:scale(.96)}
-.ew-bell:focus-visible,.nav-bell-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.ew-bell svg,.nav-bell-btn svg{width:16px;height:16px;display:block}
+.nav-bell-btn:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue)}
+.nav-bell-btn:active{transform:scale(.96)}
+.nav-bell-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.nav-bell-btn svg{width:16px;height:16px;display:block}
 /* Rakam dikeyde LINE-HEIGHT ile değil FLEX ile ortalanır: box-sizing:border-box
    altında height - border kadar içerik kutusu kalıyor, line-height ondan uzun
    olduğu için rakam aşağı kayıp ortasız duruyordu. tabular-nums ise 1 ile 11
    arasında rozetin zıplamasını önler. */
-.ew-bell-badge,.nav-bell-badge{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;padding:0 2px;
+.nav-bell-badge{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;padding:0 2px;
   display:flex;align-items:center;justify-content:center;
   border-radius:99px;border:2px solid var(--surface);background:var(--red);color:#fff;
   font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;
   pointer-events:none}
-.ew-bell-badge.hidden,.nav-bell-badge.hidden{display:none}
+.nav-bell-badge.hidden{display:none}
 @media(max-width:768px){
-  .ew-bell,.nav-bell-btn{width:42px;height:42px}
-  .ew-bell svg,.nav-bell-btn svg{width:20px;height:20px}
-  .ew-bell-badge,.nav-bell-badge{min-width:18px;height:18px}
+  .nav-bell-btn{width:42px;height:42px}
+  .nav-bell-btn svg{width:20px;height:20px}
+  .nav-bell-badge{min-width:18px;height:18px}
 }
 @media(max-width:390px){
-  .ew-bell,.nav-bell-btn{width:38px;height:38px}
-  .ew-bell svg,.nav-bell-btn svg{width:18px;height:18px}
-  .ew-bell-badge,.nav-bell-badge{min-width:17px;height:17px}
+  .nav-bell-btn{width:38px;height:38px}
+  .nav-bell-btn svg{width:18px;height:18px}
+  .nav-bell-badge{min-width:17px;height:17px}
 }
 .ew-modal{width:min(780px,94vw);max-height:88dvh;display:flex;flex-direction:column}
 .ew-body{overflow:auto}
@@ -63,30 +63,119 @@
 .c360-info b.c360-durum.d-red{color:#c33434}
 .c360-info b.c360-durum.d-gray{color:#64748b}
 
-/* ═══ Bildirim zili açılır listesi (notify-bell.js) ═══
-   Zil düğmesinin kendisi .ew-bell ile aynı ölçüyü paylaşır (yukarıda);
-   burada yalnız açılır liste tanımlıdır. admin.html ve sales.html ortak. */
+/* ═══ Ortak SVG ikon (icons.js) ═══
+   Tek çizgi kalınlığı, currentColor. Emoji yerine bunlar kullanılır:
+   emoji her işletim sisteminde farklı çiziliyor, hizalanmıyor ve metin
+   rengini almıyordu. */
+.sd-ico{width:1em;height:1em;display:block;flex:0 0 auto}
+
+/* ═══ Bildirim zili (notify-bell.js) ═══
+   Zil YALNIZCA satıştan gelen işi taşır (ziyaret talebi, numune).
+   Masaüstünde açılır kutu, telefonda alttan gelen sayfa. */
 .nav-bell-menu{position:relative}
-.nav-notif-dropdown{width:360px;max-width:calc(100vw - 32px)}
-.nav-dd-allread{margin-left:auto;background:none;border:0;padding:0;cursor:pointer;font:700 11.5px/1 inherit;color:var(--blue)}
-.nav-dd-allread:hover{text-decoration:underline}
-.nav-notif-list{max-height:420px;overflow-y:auto}
-.nav-notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--tr)}
-.nav-notif-item:last-child{border-bottom:none}
-.nav-notif-item:hover{background:var(--surface2)}
-.nav-notif-item b{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
-.nav-notif-ico{font-size:14px;line-height:1}
-.nav-notif-item div{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:4px}
-.nav-notif-item small{font-size:11px;color:var(--text3)}
-.nav-notif-item:not(.unread){opacity:.6}
-.nav-notif-item.unread{background:var(--blue-l)}
-.nav-notif-item.unread:hover{background:var(--blue-m)}
-.nav-notif-empty{padding:28px 16px;text-align:center;font-size:13px;color:var(--text3)}
-/* style.css mobilde ".topbar .nav-dropdown{position:absolute}" diyor; aynı
-   özgüllükte (.topbar .nav-…) yazılmazsa açılır liste 38px zilin genişliğine
-   sıkışıyor. */
+.nav-bell-btn .sd-ico{width:17px;height:17px}
+
+.nb-backdrop{position:fixed;inset:0;z-index:1190;background:rgba(15,23,42,.34);backdrop-filter:blur(2px)}
+.nb-backdrop.hidden{display:none}
+
+/* Panel body'nin çocuğudur (bkz. notify-bell.js ensureMarkup): .topbar
+   transform taşıdığı için içeride kalan position:fixed kutular başlığa göre
+   konumlanıyordu. Masaüstü konumu JS ile verilir. */
+.nb-panel{position:fixed;z-index:1200;width:380px;max-width:calc(100vw - 24px);padding:0;overflow:hidden;
+  display:flex;flex-direction:column;border-radius:16px;
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--sh-xl);
+  animation:nb-in .16s ease-out}
+@keyframes nb-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.nb-panel.hidden{display:none}
+.nb-grip{display:none}
+.nb-head{display:flex;align-items:center;gap:8px;padding:14px 14px 12px 16px;border-bottom:1px solid var(--border)}
+.nb-head b{font-size:14px;font-weight:800;color:var(--text)}
+.nb-head-sub{font-size:11.5px;font-weight:700;color:var(--blue)}
+.nb-close{margin-left:auto;width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:var(--surface2);color:var(--text3);cursor:pointer}
+.nb-close:hover{background:var(--red-l);color:var(--red)}
+.nb-close .sd-ico{width:15px;height:15px}
+
+.nb-list{overflow-y:auto;max-height:min(60vh,440px);-webkit-overflow-scrolling:touch}
+.nb-item{display:flex;align-items:flex-start;gap:11px;width:100%;padding:13px 14px;border:0;
+  border-bottom:1px solid var(--border);background:none;text-align:left;font:inherit;cursor:pointer;
+  position:relative;transition:background var(--tr)}
+.nb-item:last-child{border-bottom:0}
+.nb-item:hover{background:var(--surface2)}
+.nb-item:active{background:var(--border)}
+/* Yeni bildirim: sol kenarda ince renk şeridi + hafif zemin. Rozet zil açılır
+   açılmaz sıfırlandığı için, neyin yeni olduğu bu vurguyla görülür. */
+.nb-item.yeni{background:rgba(37,99,235,.055)}
+.nb-item.yeni::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.nb-ico{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;
+  background:var(--surface2);color:var(--text3)}
+.nb-ico .sd-ico{width:17px;height:17px}
+.nb-ico.req{background:#fff4e0;color:#b0700a}
+.nb-ico.plan{background:#e8f0ff;color:#2a5fd0}
+.nb-ico.done{background:#e6f7ee;color:#15794a}
+.nb-ico.off{background:#f1f4f8;color:#7b8798}
+.nb-ico.lab{background:#f2ecff;color:#6d3fd1}
+.nb-body{min-width:0;flex:1}
+.nb-body b{display:block;font-size:13px;font-weight:700;color:var(--text);line-height:1.35}
+.nb-msg{margin-top:2px;font-size:12px;color:var(--text2);line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nb-body time{display:block;margin-top:5px;font-size:11px;color:var(--text3)}
+.nb-go{align-self:center;color:var(--muted)}
+.nb-go .sd-ico{width:16px;height:16px}
+.nb-empty{padding:38px 22px;text-align:center;color:var(--text3)}
+.nb-empty-ico{width:34px!important;height:34px!important;margin:0 auto 12px;color:var(--muted)}
+.nb-empty b{display:block;font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:5px}
+.nb-empty span{font-size:12px;line-height:1.55}
+
+/* Telefon: alttan gelen sayfa. Üst köşeye sıkışan 380px'lik kutu tek elle
+   okunmuyordu; dvh, iOS'ta URL çubuğu görünürken de doğru yükseklik verir. */
 @media(max-width:768px){
-  .topbar .nav-notif-dropdown{position:fixed;top:64px;right:8px;left:8px;width:auto;max-width:none}
+  .nb-panel{left:0;right:0;bottom:0;top:auto;width:auto;max-width:none;
+    border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(15,23,42,.22);
+    padding-bottom:env(safe-area-inset-bottom);animation:nb-up .18s ease-out}
+  .nb-grip{display:block;width:38px;height:4px;margin:9px auto 2px;border-radius:99px;background:var(--border2)}
+  .nb-head{padding:8px 12px 11px 16px}
+  .nb-list{max-height:min(66dvh,560px)}
+  .nb-item{padding:14px;min-height:64px}
+  .nb-close{width:36px;height:36px}
+  body.nb-open{overflow:hidden}
+}
+@keyframes nb-up{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
+
+/* ═══ Erken Uyarı şeridi (early-warning.js) ═══
+   Zil değil şerit: erken uyarı süregelen bir DURUM, "yeni olay" değil.
+   Açılışta ekranı kaplayan modal yerine, işi engellemeyen ve günlük
+   kapatılabilen bir bant. */
+.ew-banner{display:flex;align-items:flex-start;gap:13px;margin:20px 32px 0;padding:14px 16px;
+  border:1px solid #f0dcb4;border-left:4px solid #e2a03f;border-radius:14px;background:#fffaf0;
+  box-shadow:0 4px 16px rgba(15,23,42,.045)}
+.ew-banner.hidden{display:none}
+.ew-banner.kritik{border-color:#f2c9c9;border-left-color:#d24b4b;background:#fff6f6}
+.ew-banner-ico{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;
+  background:#fdefd6;color:#a7700c}
+.ew-banner.kritik .ew-banner-ico{background:#fbe0e0;color:#bf3a3a}
+.ew-banner-ico .sd-ico{width:18px;height:18px}
+.ew-banner-main{flex:1;min-width:0}
+.ew-banner-main>b{display:block;font-size:13.5px;font-weight:800;color:#3f3018;letter-spacing:-.01em}
+.ew-banner.kritik .ew-banner-main>b{color:#5a1f1f}
+.ew-banner-rows{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.ew-banner-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:7px;font-size:12px;line-height:1.5}
+.ew-banner-link{border:0;background:none;padding:0;font:800 12px/1.5 inherit;color:#1f4fbf;cursor:pointer;text-align:left}
+.ew-banner-link:hover{text-decoration:underline}
+.ew-banner-link.as-text{color:#3f3018;cursor:default}
+.ew-banner-row span{color:#7b6a4e;min-width:0}
+.ew-banner.kritik .ew-banner-row span{color:#8a5c5c}
+.ew-banner-more{margin-top:3px;font-size:11.5px;font-weight:700;color:#9a8a6e}
+.ew-banner-acts{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ew-banner-x{width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:rgba(0,0,0,.05);color:#8a7a5e;cursor:pointer}
+.ew-banner-x:hover{background:rgba(0,0,0,.1);color:#5a4e3a}
+.ew-banner-x .sd-ico{width:15px;height:15px}
+@media(max-width:768px){
+  .ew-banner{margin:14px 14px 0;padding:13px;gap:11px;flex-wrap:wrap}
+  .ew-banner-acts{order:3;width:100%;justify-content:space-between;margin-top:4px}
+  .ew-banner-acts .btn{flex:1;min-height:40px}
+  .ew-banner-x{width:40px;height:40px}
 }
 
 /* ═══ Firma 360° · Ziyaret Talebi bloğu (company-360.js) ═══
@@ -123,3 +212,17 @@
 .vr-tag.done{background:#eaf8f0;color:#17814a}
 .vr-tag.cancelled{background:#f4f6f9;color:#7b8798}
 @media(max-width:560px){.vr-row{grid-template-columns:28px minmax(0,1fr)}.vr-tag{grid-column:2;justify-self:start}}
+
+/* Ziyaret talebi bloğunda ikon + metin hizası */
+.c360-vr>b{display:flex;align-items:center;gap:7px}
+.c360-vr>b .sd-ico{width:15px;height:15px;flex:0 0 15px}
+.c360-vr-cta{display:inline-flex;align-items:center;gap:7px}
+.c360-vr-cta .sd-ico{width:15px;height:15px}
+.vr-ico .sd-ico{width:16px;height:16px}
+
+/* Hareket azaltma tercihi: giriş animasyonları kapanır. Animasyon yarıda
+   kalırsa alt sayfa 14px kayık durabiliyor; hareketi hiç başlatmamak hem
+   erişilebilir hem güvenli. */
+@media(prefers-reduced-motion:reduce){
+  .nb-panel,.nb-backdrop{animation:none!important}
+}

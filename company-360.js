@@ -174,12 +174,15 @@ function ozet(c){
    (sd_visit_requests) tutulur ve yalnız /api/visit-requests yazar —
    bu dosya okur ve düğmeleri basar. */
 var VR_OPEN=['open','planned'];
+/* ico değerleri icons.js (SDIcon) anahtarlarıdır — emoji değil: emoji her OS'ta
+   farklı çiziliyor ve metin rengini almıyordu. */
 var VR_META={
-  open    :{lbl:'Ziyaret talebi açık'   ,ico:'🔔',cls:'open'},
-  planned :{lbl:'Teknisyen planladı'    ,ico:'📅',cls:'planned'},
-  done    :{lbl:'Ziyaret tamamlandı'    ,ico:'✅',cls:'done'},
-  cancelled:{lbl:'Talep geri çekildi'   ,ico:'✖️',cls:'done'}
+  open     :{lbl:'Ziyaret talebi açık',ico:'mapPin'       ,cls:'open'   },
+  planned  :{lbl:'Teknisyen planladı' ,ico:'calendarCheck',cls:'planned'},
+  done     :{lbl:'Ziyaret tamamlandı' ,ico:'checkCircle'  ,cls:'done'   },
+  cancelled:{lbl:'Talep geri çekildi' ,ico:'xCircle'      ,cls:'done'   }
 };
+function sdico(n,c){return (typeof global.SDIcon==='function')?SDIcon(n,c):'';}
 function role(){
   try{
     var s=JSON.parse(sessionStorage.getItem('sd_session')||localStorage.getItem('sd_session_persist')||'{}');
@@ -248,7 +251,7 @@ function visitRequestHTML(c){
     if(rl==='sales')acts.push('<button class="btn btn-ghost btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\')">Talebi Geri Çek</button>');
     if(rl==='admin')acts.push('<button class="btn btn-ghost btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\')">İptal Et</button>');
     return '<div class="c360-vr '+m.cls+'">'
-      +'<b>'+m.ico+' '+esc(m.lbl)+(req.urgency==='high'?' <i class="c360-vr-acil">ACİL</i>':'')+'</b>'
+      +'<b>'+sdico(m.ico)+esc(m.lbl)+(req.urgency==='high'?' <i class="c360-vr-acil">ACİL</i>':'')+'</b>'
       +'<span>'+esc(req.salesRepName||'Satışçı')+' istedi · '+fmtDate(req.createdAt)
         +' · teknik servis: '+esc((req.techCode?req.techCode+' · ':'')+(req.techName||'—'))
         +(req.reason?' · Not: '+esc(req.reason):'')+'</span>'
@@ -260,7 +263,7 @@ function visitRequestHTML(c){
     var uyari=c.techId?'':'<div class="c360-vr-msg err">Bu firmaya teknik servis atanmamış; talep gönderilemez.</div>';
     return '<div class="c360-vr ask">'
       +(c.techId
-        ?'<button class="btn btn-primary btn-sm" id="c360VrOpenBtn" onclick="c360ToggleRequestForm()">🔔 Teknik Servis İste</button>'
+        ?'<button class="btn btn-primary btn-sm c360-vr-cta" id="c360VrOpenBtn" onclick="c360ToggleRequestForm()">'+sdico('mapPin')+'Teknik Servis İste</button>'
          +'<div class="c360-vr-form hidden" id="c360VrForm">'
          +'<textarea id="c360VrNote" class="inp" rows="2" placeholder="Neden gidilmeli? (opsiyonel — teknisyene bu not gider)"></textarea>'
          +'<label class="c360-vr-urgent"><input type="checkbox" id="c360VrUrgent"> Acil</label>'
@@ -273,7 +276,7 @@ function visitRequestHTML(c){
       +'</div>';
   }
 
-  if(son)return '<div class="c360-vr done"><b>'+((VR_META[son.status]||{}).ico||'•')+' Son ziyaret talebi: '+esc((VR_META[son.status]||{}).lbl||son.status)+'</b>'
+  if(son)return '<div class="c360-vr done"><b>'+sdico((VR_META[son.status]||{}).ico||'dot')+'Son ziyaret talebi: '+esc((VR_META[son.status]||{}).lbl||son.status)+'</b>'
     +'<span>'+esc(son.salesRepName||'Satışçı')+' · '+fmtDate(son.updatedAt||son.createdAt)+(son.reason?' · Not: '+esc(son.reason):'')+'</span></div>';
   return '';
 }

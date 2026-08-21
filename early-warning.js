@@ -12,9 +12,12 @@
 
    KAPSAM: teknisyen girişinde yalnızca KENDİ firmaları ve kendi tamamlama
    oranı; admin girişinde her şey. Aynı hesap üç yerde kullanılır:
-     - açılışta bir kez çıkan uyarı ekranı
-     - kullanıcı adının yanındaki zil + sayaç
+     - ilk girişte sayfanın üstünde çıkan kapatılabilir uyarı şeridi (banner)
+     - şeritteki "Tümünü Gör" ile açılan pencere
      - İstatistikler › Erken Uyarı sekmesi (admin)
+
+   Zil DEĞİL: erken uyarı süregelen bir durumdur, okundu/okunmadı kavramı
+   yoktur. Zil (notify-bell.js) yalnızca satıştan gelen işi taşır.
 
    Skor ve izin kuralı yeniden yazılmaz; weekly-report-data.js'ten
    weeklyScoreDetail / weeklyTechOnLeaveWeek olarak kullanılır — böylece
@@ -395,37 +398,82 @@ function openEarlyWarningModal(){
   if(global.UI&&UI.openModal)UI.openModal('earlyWarningModal');
 }
 
-/* Kullanıcı adının yanındaki zil + sayaç */
-function refreshBell(){
-  var btn=document.getElementById('ewBell'),badge=document.getElementById('ewBellBadge');
-  if(!btn||!badge)return 0;
-  var n=0;
-  try{n=totalOf(collectWarnings());}catch(e){return 0;}
-  badge.textContent=n>99?'99+':String(n);
-  badge.classList.toggle('hidden',n===0);
-  btn.title=n?(n+' erken uyarı — görmek için tıklayın'):'Erken uyarı yok';
-  return n;
+/* ── İlk girişte banner ───────────────────────────────────────────
+   Erken uyarı ARTIK ZİL DEĞİL. İki nedenle:
+     · Zil "yeni bir olay oldu" demektir; erken uyarı ise süregelen bir
+       durumdur — okundu/okunmadı kavramı yoktur, her gün aynı üç firma
+       için rozet göstermek anlamsız gürültü üretiyordu.
+     · Açılışta ekranı kaplayan modal, teknisyeni işine başlamadan önce
+       bir pencere kapatmaya zorluyordu.
+   Yerine sayfanın üstünde, işi engellemeyen, kapatılabilir bir şerit
+   var. Zil bundan sonra yalnızca satıştan gelen işi taşır. */
+function ico(n,c){return (typeof global.SDIcon==='function')?SDIcon(n,c):'';}
+function bannerKey(){return 'sd_ew_banner_'+new Date().toISOString().slice(0,10);}
+function bannerKapali(){try{return localStorage.getItem(bannerKey())==='1';}catch(e){return false;}}
+global.ewDismissBanner=function(){
+  try{localStorage.setItem(bannerKey(),'1');}catch(e){}
+  var el=document.getElementById('ewBanner');
+  if(el)el.remove();
+};
+function ensureBanner(){
+  var host=document.getElementById('mainContent');
+  if(!host)return null;
+  var el=document.getElementById('ewBanner');
+  if(el)return el;
+  el=document.createElement('div');
+  el.id='ewBanner';el.className='ew-banner hidden';
+  host.insertBefore(el,host.firstChild);
+  return el;
 }
-/* Açılışta günde bir kez otomatik açılır; uyarı yoksa hiç açılmaz ki
-   ekran boşuna kapatılmak zorunda kalınmasın. */
-function autoOpenOnce(){
-  var n=refreshBell();
-  if(!n)return;
-  var key='sd_ew_auto_'+new Date().toISOString().slice(0,10);
-  try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1');}catch(e){}
-  openEarlyWarningModal();
+/* Banner'da en fazla 3 satır: şerit bir liste değil, "şuna bak" işareti.
+   Tamamı "Tümünü Gör" ile aynı eski pencerede açılır. */
+var BANNER_LIMIT=3;
+function renderBanner(){
+  var el=ensureBanner();
+  if(!el)return 0;
+  if(bannerKapali()){el.classList.add('hidden');return 0;}
+  var w,total=0,kritik=0;
+  try{w=collectWarnings();total=totalOf(w);kritik=criticalOf(w);}catch(e){return 0;}
+  if(!total){el.classList.add('hidden');el.innerHTML='';return 0;}
+
+  var hepsi=[];
+  GROUPS.forEach(function(g){w[g.key].forEach(function(x){hepsi.push(x);});});
+  hepsi.sort(function(a,b){return (b.kritik?1:0)-(a.kritik?1:0);});
+  var goster=hepsi.slice(0,BANNER_LIMIT),kalan=hepsi.length-goster.length;
+  var c360Hazir=(typeof global.openCompany360==='function');
+
+  el.className='ew-banner'+(kritik?' kritik':'');
+  el.innerHTML=
+     '<div class="ew-banner-ico">'+ico(kritik?'alert':'trendDown')+'</div>'
+    +'<div class="ew-banner-main">'
+      +'<b>'+total+' firmada kötüye gidiş var'+(kritik?' · '+kritik+' kritik':'')+'</b>'
+      +'<div class="ew-banner-rows">'
+      +goster.map(function(x){
+          var ad=(x.firmaId&&c360Hazir)
+            ?'<button type="button" class="ew-banner-link" onclick="ewOpenCompany(\''+esc(x.firmaId)+'\')">'+esc(x.ad)+'</button>'
+            :'<span class="ew-banner-link as-text">'+esc(x.ad)+'</span>';
+          return'<div class="ew-banner-row">'+ad+'<span>'+esc(x.aciklama)+'</span></div>';
+        }).join('')
+      +(kalan>0?'<div class="ew-banner-more">+'+kalan+' uyarı daha</div>':'')
+      +'</div>'
+    +'</div>'
+    +'<div class="ew-banner-acts">'
+      +'<button type="button" class="btn btn-outline btn-sm" onclick="openEarlyWarningModal()">Tümünü Gör</button>'
+      +'<button type="button" class="ew-banner-x" onclick="ewDismissBanner()" aria-label="Bugünlük kapat" title="Bugünlük kapat">'+ico('x')+'</button>'
+    +'</div>';
+  return total;
 }
+/* Geriye uyum: eski zil çağrıları hata vermesin (zil kaldırıldı). */
+function refreshBell(){return 0;}
 function init(){
   if(!global.SD||!global.DT||!global.BL)return;
-  if(!document.getElementById('ewBell'))return;   /* yalnızca admin.html */
+  if(!document.getElementById('mainContent'))return;   /* yalnızca admin.html */
   ensureModal();
-  autoOpenOnce();
-  /* Uzak veri açılıştan SONRA gelebilir (remoteReady artık beklenmiyor). İlk
-     denemede uyarı sayısı 0 çıkıp ekran hiç açılmayabiliyordu; veri geldikten
-     sonra tekrar denenir. autoOpenOnce zaten gün/oturum bayrağıyla korunuyor,
-     yani iki kez açılmaz. */
-  setTimeout(function(){try{refreshBell();autoOpenOnce();}catch(e){}},4000);
-  setTimeout(function(){try{refreshBell();autoOpenOnce();}catch(e){}},9000);
+  renderBanner();
+  /* Uzak veri açılıştan SONRA gelebilir (remoteReady beklenmiyor); ilk
+     denemede uyarı sayısı 0 çıkıp şerit hiç görünmeyebiliyordu. */
+  setTimeout(function(){try{renderBanner();}catch(e){}},4000);
+  setTimeout(function(){try{renderBanner();}catch(e){}},9000);
 }
 function boot(){setTimeout(init,900);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
@@ -466,6 +514,7 @@ global.ewOpenCompany=function(id){
 };
 global.renderEarlyWarning=renderEarlyWarning;
 global.openEarlyWarningModal=openEarlyWarningModal;
-global.refreshEarlyWarningBell=refreshBell;
+global.refreshEarlyWarningBell=refreshBell;   /* geriye uyum: zil kaldırıldı, 0 döner */
+global.renderEarlyWarningBanner=renderBanner;
 global.collectEarlyWarnings=collectWarnings;
 })(typeof window!=='undefined'?window:this);

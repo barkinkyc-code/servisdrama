@@ -42,7 +42,9 @@
 .sales-body .sls-chip:hover{transform:translateY(-2px);box-shadow:var(--sh-xs);}
 .sales-body .sls-chip:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
 .sales-body .sls-chip b{font-size:24px;font-weight:800;line-height:1;color:var(--text);}
-.sales-body .sls-chip span{font-size:11.5px;font-weight:600;color:var(--text3);line-height:1.3;}
+/* İkon + etiket tek satırda hizalı: SVG 1em, metinle aynı çizgide durur. */
+.sales-body .sls-chip span{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--text3);line-height:1.3;}
+.sales-body .sls-chip span .sd-ico{width:14px;height:14px;opacity:.85;}
 .sales-body .sls-chip.c-red b{color:var(--red);}
 .sales-body .sls-chip.c-blue b{color:var(--blue);}
 .sales-body .sls-chip.c-green b{color:var(--green);}
@@ -78,7 +80,8 @@
    biraz küçültülür ki firma adını bastırmasın. */
 .sales-body .co-right .ops-score{min-width:38px;height:32px;font-size:12.5px;}
 /* Firma satırındaki açık ziyaret talebi rozeti */
-.sales-body .co-vr{padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800;background:var(--amber-l);color:var(--amber);}
+.sales-body .co-vr{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:800;background:var(--amber-l);color:var(--amber);}
+.sales-body .co-vr .sd-ico{width:12px;height:12px;}
 .sales-body .co-vr.planned{background:var(--blue-l);color:var(--blue);}
 
 
