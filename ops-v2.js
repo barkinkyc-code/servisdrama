@@ -38,8 +38,83 @@ function ensureUI(){
   window.onIstatTabShow=function(tab){if(tab==='saha')renderSaha();if(tab==='talepler')renderVisitRequests();if(tab==='performans')renderPerformance();if(tab==='denetim')renderAudit();if(tab==='uyari'&&typeof renderEarlyWarning==='function')renderEarlyWarning();};
 }
 /* Ziyaret Talepleri (admin) — satışçının açtığı, teknisyene bildirim düşen
-   talepler tek listede. Kayıtlar sunucudan (sd_visit_requests) gelir; buradan
-   yalnızca okunur, durum değişikliği firmanın 360° kartından yapılır. */
+   talepler tek listede. Kayıtlar sunucudan (sd_visit_requests) gelir.
+   Yönetici buradan talebi DÜZELTEBİLİR (not / atanan teknik servis / durum)
+   ve tamamen SİLEBİLİR; teknisyen ve satışçı bu panele hiç erişemez
+   (ensureUI yalnız role==='admin' için ekler, sunucu da ayrıca doğrular). */
+var VR_STATUS_OPTS=[['open','Açık'],['planned','Planlandı'],['done','Tamamlandı'],['cancelled','İptal edildi']];
+function vrHeaders(){return{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('token')||sessionStorage.getItem('token')||'')};}
+function vrEditBox(id){return document.getElementById('vrEdit_'+id);}
+function vrMsg(box,text,type){
+  var el=box&&box.querySelector('.vr-edit-msg');if(!el)return;
+  el.textContent=text;el.className='vr-edit-msg'+(type?' '+type:'');
+}
+/* Sunucu değişikliği kabul ettikten sonra: veriyi tazele, listeyi ve zili
+   yeniden çiz. 360° kartı da açıksa company-360.js'in kancası onu tazeler. */
+function vrRefresh(){
+  return SD.remoteReady({force:true}).then(function(){
+    renderVisitRequests();
+    if(window.NotifyBell&&NotifyBell.refresh)NotifyBell.refresh();
+  });
+}
+window.opsToggleEditVisitRequest=function(id){
+  var box=vrEditBox(id);if(!box)return;
+  var acilacak=box.classList.contains('hidden');
+  document.querySelectorAll('.vr-edit').forEach(function(x){x.classList.add('hidden');});
+  if(acilacak){box.classList.remove('hidden');var t=box.querySelector('.vr-edit-note');if(t)t.focus();}
+};
+window.opsSaveVisitRequest=function(id,btn){
+  var box=vrEditBox(id);if(!box)return;
+  var reason=(box.querySelector('.vr-edit-note')||{}).value||'';
+  var techId=(box.querySelector('.vr-edit-tech')||{}).value||'';
+  var status=(box.querySelector('.vr-edit-status')||{}).value||'';
+  if(!String(reason).trim()){vrMsg(box,'Talep notu boş bırakılamaz.','err');return;}
+  if(btn){btn.disabled=true;btn.textContent='Kaydediliyor…';}
+  fetch('/api/visit-requests/'+encodeURIComponent(id),{method:'PUT',headers:vrHeaders(),
+    body:JSON.stringify({reason:reason,techId:techId,status:status})})
+    .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j};});})
+    .then(function(x){
+      if(!x.ok){
+        // Hiçbir alan değişmeden Kaydet'e basılırsa sunucu 400 döner; bu bir
+        // hata değil, formu sessizce kapatmak yeterli.
+        if(/Değişiklik yok/i.test(x.j.error||'')){opsToggleEditVisitRequest(id);return;}
+        vrMsg(box,x.j.error||'Kaydedilemedi','err');if(btn){btn.disabled=false;btn.textContent='Kaydet';}return;
+      }
+      UI.toast('Ziyaret talebi güncellendi.','success');
+      vrRefresh();
+    })
+    .catch(function(e){vrMsg(box,'Kaydedilemedi: '+e.message,'err');if(btn){btn.disabled=false;btn.textContent='Kaydet';}});
+};
+window.opsDeleteVisitRequest=function(id,ad){
+  UI.confirm((ad||'Bu')+' firmasının ziyaret talebi kalıcı olarak silinecek. Devam edilsin mi?',function(){
+    fetch('/api/visit-requests/'+encodeURIComponent(id),{method:'DELETE',headers:vrHeaders()})
+      .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j};});})
+      .then(function(x){
+        if(!x.ok){UI.toast(x.j.error||'Silinemedi','error');return;}
+        UI.toast('Ziyaret talebi silindi.','success');
+        vrRefresh();
+      })
+      .catch(function(e){UI.toast('Silinemedi: '+e.message,'error');});
+  });
+};
+function vrEditFormHTML(r){
+  var techs=(SD.technicians||[]);
+  return '<div class="vr-edit hidden" id="vrEdit_'+esc(r.id)+'">'
+    +'<label class="vr-edit-lbl">Talep notu</label>'
+    +'<textarea class="inp vr-edit-note" rows="2">'+esc(r.reason||'')+'</textarea>'
+    +'<div class="vr-edit-grid">'
+      +'<div><label class="vr-edit-lbl">Teknik servis</label><select class="inp vr-edit-tech">'
+        +techs.map(function(t){return '<option value="'+esc(t.id)+'"'+(String(t.id)===String(r.techId)?' selected':'')+'>'+esc((t.code?t.code+' · ':'')+(t.name||''))+'</option>';}).join('')
+      +'</select></div>'
+      +'<div><label class="vr-edit-lbl">Durum</label><select class="inp vr-edit-status">'
+        +VR_STATUS_OPTS.map(function(o){return '<option value="'+o[0]+'"'+(String(r.status)===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')
+      +'</select></div>'
+    +'</div>'
+    +'<div class="vr-edit-acts">'
+      +'<button class="btn btn-primary btn-sm" onclick="opsSaveVisitRequest(\''+esc(r.id)+'\',this)">Kaydet</button>'
+      +'<button class="btn btn-ghost btn-sm" onclick="opsToggleEditVisitRequest(\''+esc(r.id)+'\')">Vazgeç</button>'
+    +'</div><div class="vr-edit-msg hidden"></div></div>';
+}
 function renderVisitRequests(){
   var host=document.getElementById('opsVisitRequests');if(!host)return;
   var rows=(SD.load('sd_visit_requests',[])||[]).slice()
@@ -48,19 +123,26 @@ function renderVisitRequests(){
   var acik=rows.filter(function(r){return r.status==='open';}).length,
       plan=rows.filter(function(r){return r.status==='planned';}).length;
   host.innerHTML='<div class="ops-card"><div class="ops-card-hd"><div><h3>Ziyaret Talepleri</h3>'
-    +'<p>Satışçı talep açtığında firmanın atanmış teknisyenine otomatik bildirim gider.</p></div>'
+    +'<p>Satışçı talep açtığında firmanın atanmış teknisyenine otomatik bildirim gider. Talebi buradan düzeltebilir veya silebilirsiniz.</p></div>'
     +'<span class="ops-pill">'+acik+' bekleyen · '+plan+' planlandı</span></div>'
     +(rows.length
       ?'<div class="vr-list">'+rows.map(function(r){
           var m=meta[r.status]||{lbl:r.status,ico:'•',cls:'open'};
           var ikon=(typeof window.SDIcon==='function')?SDIcon(m.ico||'dot'):'';
-          return'<div class="vr-row"><div class="vr-ico">'+ikon+'</div>'
-            +'<div class="vr-main"><b><button class="ops-link" onclick="openCompany360(\''+esc(r.companyId)+'\')">'+esc(r.companyName||r.companyId)+'</button></b>'
-            +'<span>'+esc(r.salesRepName||'Satışçı')+' istedi · '+fmtDate(r.createdAt)
+          var ad=esc(r.companyName||r.companyId);
+          return'<div class="vr-item"><div class="vr-row"><div class="vr-ico">'+ikon+'</div>'
+            +'<div class="vr-main"><b><button class="ops-link" onclick="openCompany360(\''+esc(r.companyId)+'\')">'+ad+'</button></b>'
+            +'<span>'+esc(r.salesRepName||'Satışçı')+' · '+fmtDate(r.createdAt)
             +' → '+esc((r.techCode?r.techCode+' · ':'')+(r.techName||'teknisyen yok'))
-            +(r.urgency==='high'?' · ACİL':'')
             +(r.reason?' · '+esc(r.reason):'')+'</span></div>'
-            +'<span class="vr-tag '+esc(r.status)+'">'+esc(m.lbl||r.status)+'</span></div>';
+            +'<div class="vr-side"><span class="vr-tag '+esc(r.status)+'">'+esc(m.lbl||r.status)+'</span>'
+            +'<div class="vr-acts">'
+              +'<button class="vr-act" title="Düzelt" onclick="opsToggleEditVisitRequest(\''+esc(r.id)+'\')">'
+                +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>'
+              +'<button class="vr-act danger" title="Sil" onclick="opsDeleteVisitRequest(\''+esc(r.id)+'\',\''+ad.replace(/'/g,'')+'\')">'
+                +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>'
+            +'</div></div></div>'
+            +vrEditFormHTML(r)+'</div>';
         }).join('')+'</div>'
       :'<div class="ops-empty">Henüz ziyaret talebi yok. Satışçılar firma kartından talep açtığında burada görünür.</div>')
     +'</div>';

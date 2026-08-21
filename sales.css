@@ -262,6 +262,11 @@
      satırın altındaki "X gün önce · teknisyen" metni zaten aynı bilgiyi
      (ne kadar gecikmiş) veriyor, sayısal skor küçük ekranda ekstra gürültü. */
   .sales-body .co-right .ops-score{display:none!important;}
+  /* "Talebi Geri Çek" mobilde gizlenir: telefonda talep açıldıktan sonra geri
+     alma akışı yanlışlıkla tetikleniyordu; geri çekme masaüstünden yapılır.
+     Yalnız TEK eylemi geri çekme olan kutu gizlenir — talep formundaki
+     "Talebi Gönder / Vazgeç" satırı (.c360-vr-acts) etkilenmez. */
+  .sales-body .c360-vr-acts-cancel{display:none!important;}
   .sales-body #mobileMenuBtn{min-width:44px;min-height:44px;}
   /* Ziyaret geçmişi raporu: mobilde tek sütun, tablo yatay kaydırılabilir */
   .sales-body .wr-top{flex-direction:column;align-items:flex-start;padding:20px;}

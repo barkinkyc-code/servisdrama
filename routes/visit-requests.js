@@ -155,12 +155,14 @@ router.post('/', async (req, res) => {
   }
 });
 
-/* Durum değişikliği.
+/* Durum değişikliği + (yalnız admin) içerik düzeltme.
    teknisyen : planned / done  (yalnız kendi firmalarında)
    satışçı   : cancelled       (yalnız kendi açtığı talebi geri çeker)
-   admin     : hepsi
-   Her değişiklikte talebi açan satışçıya geri bildirim düşer — talep tek yönlü
-   bir istek değil, kapanan bir döngü olsun diye. */
+   admin     : durum + not + atanan teknisyen
+   Durum her değiştiğinde talebi açan satışçıya geri bildirim düşer — talep tek
+   yönlü bir istek değil, kapanan bir döngü olsun diye. İçerik düzeltmesi
+   (yanlış yazılmış not, yanlış teknisyen) bildirim ÜRETMEZ: yönetici bir
+   yazım hatasını düzeltti diye sahaya push gitmesi gürültü olurdu. */
 const TECH_ALLOWED = ['planned', 'done'];
 const STATUS_TEXT = { open: 'yeniden açıldı', planned: 'planlandı', done: 'tamamlandı', cancelled: 'iptal edildi' };
 
@@ -172,27 +174,64 @@ router.put('/:id', async (req, res) => {
       const current = mine.find(r => String(r.id) === String(req.params.id));
       if (!current) throw Object.assign(new Error('Ziyaret talebi bulunamadı'), { statusCode: 404 });
 
-      const status = String(req.body?.status || '');
-      if (!ALL_STATUSES.includes(status)) throw Object.assign(new Error('Geçersiz durum'), { statusCode: 400 });
-      if (isTech(req.user) && !TECH_ALLOWED.includes(status)) throw Object.assign(new Error('Teknisyen talebi yalnızca planlandı/tamamlandı yapabilir'), { statusCode: 403 });
-      if (isSales(req.user) && status !== 'cancelled') throw Object.assign(new Error('Satışçı talebi yalnızca geri çekebilir'), { statusCode: 403 });
-      if (String(current.status) === status) throw Object.assign(new Error('Talep zaten bu durumda'), { statusCode: 400 });
-
       const now = new Date().toISOString();
       const who = req.user.username || req.user.id;
       const note = String(req.body?.note || '').trim().slice(0, 500);
+      const patch = {}, changes = [];
+
+      const statusRaw = req.body?.status;
+      let status = '';
+      if (statusRaw !== undefined && String(statusRaw) !== '') {
+        status = String(statusRaw);
+        if (!ALL_STATUSES.includes(status)) throw Object.assign(new Error('Geçersiz durum'), { statusCode: 400 });
+        if (isTech(req.user) && !TECH_ALLOWED.includes(status)) throw Object.assign(new Error('Teknisyen talebi yalnızca planlandı/tamamlandı yapabilir'), { statusCode: 403 });
+        if (isSales(req.user) && status !== 'cancelled') throw Object.assign(new Error('Satışçı talebi yalnızca geri çekebilir'), { statusCode: 403 });
+        if (String(current.status) === status && req.body?.reason === undefined && req.body?.techId === undefined) {
+          throw Object.assign(new Error('Talep zaten bu durumda'), { statusCode: 400 });
+        }
+        if (String(current.status) !== status) {
+          patch.status = status;
+          patch.closedAt = (status === 'done' || status === 'cancelled') ? now : null;
+          changes.push('durum → ' + (STATUS_TEXT[status] || status));
+        }
+      }
+
+      if (req.body?.reason !== undefined) {
+        if (!isAdmin(req.user)) throw Object.assign(new Error('Talep notunu yalnızca yönetici düzenleyebilir'), { statusCode: 403 });
+        // Satışçının kaydında olduğu gibi burada da Türkçe kurallı BÜYÜK HARF.
+        const reason = String(req.body.reason).trim().slice(0, 500).toLocaleUpperCase('tr');
+        if (!reason) throw Object.assign(new Error('Talep notu boş bırakılamaz.'), { statusCode: 400 });
+        if (reason !== String(current.reason || '')) { patch.reason = reason; changes.push('not düzeltildi'); }
+      }
+
+      if (req.body?.techId !== undefined) {
+        if (!isAdmin(req.user)) throw Object.assign(new Error('Teknik servis atamasını yalnızca yönetici değiştirebilir'), { statusCode: 403 });
+        const tech = (state.sd_te || []).find(t => String(t.id) === String(req.body.techId));
+        if (!tech) throw Object.assign(new Error('Teknisyen bulunamadı'), { statusCode: 400 });
+        if (String(tech.id) !== String(current.techId || '')) {
+          patch.techId = String(tech.id);
+          patch.techCode = String(tech.code || '');
+          patch.techName = tech.name || '';
+          changes.push('teknik servis → ' + (tech.code || tech.name || ''));
+        }
+      }
+
+      if (!Object.keys(patch).length) throw Object.assign(new Error('Değişiklik yok'), { statusCode: 400 });
 
       updated = {
         ...current,
-        status,
+        ...patch,
         note: note || current.note || '',
         updatedAt: now, updatedByUserId: req.user.id, updatedByRole: req.user.role,
-        closedAt: (status === 'done' || status === 'cancelled') ? now : null,
-        history: (Array.isArray(current.history) ? current.history : []).concat([{ at: now, by: who, role: req.user.role, status, note }])
+        history: (Array.isArray(current.history) ? current.history : []).concat([{
+          at: now, by: who, role: req.user.role,
+          status: patch.status || current.status,
+          note: note || changes.join(' · ')
+        }])
       };
       state.sd_visit_requests = allRequests(state).map(r => String(r.id) === String(current.id) ? updated : r);
 
-      if (current.salesRepId && !isSales(req.user)) {
+      if (patch.status && current.salesRepId && !isSales(req.user)) {
         notifForPush = pushNotification(state, {
           recipientUserId: String(current.salesRepId),
           recipientRole: 'sales',
@@ -207,6 +246,27 @@ router.put('/:id', async (req, res) => {
     if (notifForPush) await sendPushForNotification(notifForPush).catch(() => {});
     res.json({ success: true, request: updated });
   } catch (e) { res.status(e.statusCode || 500).json({ error: e.message || 'Güncellenemedi' }); }
+});
+
+/* Talebi tamamen sil — yalnız admin. "İptal" (status=cancelled) kaydı geçmişte
+   bırakır; bu uç ise yanlışlıkla açılmış/çift talepleri kayıttan komple kaldırır.
+   Talebe bağlı bildirimler de silinir: aksi halde zilde kalan kayda tıklanınca
+   artık var olmayan bir talebin kartı açılırdı. */
+router.delete('/:id', async (req, res) => {
+  try {
+    if (!isAdmin(req.user)) throw Object.assign(new Error('Ziyaret talebini yalnızca yönetici silebilir'), { statusCode: 403 });
+    let removed;
+    await mutateState(state => {
+      const all = allRequests(state);
+      removed = all.find(r => String(r.id) === String(req.params.id));
+      if (!removed) throw Object.assign(new Error('Ziyaret talebi bulunamadı'), { statusCode: 404 });
+      state.sd_visit_requests = all.filter(r => String(r.id) !== String(req.params.id));
+      if (Array.isArray(state.sd_notifications)) {
+        state.sd_notifications = state.sd_notifications.filter(n => String(n.visitRequestId || '') !== String(req.params.id));
+      }
+    }, req.user.id);
+    res.json({ success: true, removed });
+  } catch (e) { res.status(e.statusCode || 500).json({ error: e.message || 'Ziyaret talebi silinemedi' }); }
 });
 
 module.exports = router;

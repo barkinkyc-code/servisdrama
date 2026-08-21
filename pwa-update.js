@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD_ID = '20260821-push-v1';
+  const BUILD_ID = '20260821-talep-v4';
   const RELOAD_KEY = `sd_pwa_reloaded_${BUILD_ID}`;
   let registration = null;
   let checking = false;

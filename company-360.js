@@ -179,10 +179,10 @@ var VR_OPEN=['open','planned'];
 /* ico değerleri icons.js (SDIcon) anahtarlarıdır — emoji değil: emoji her OS'ta
    farklı çiziliyor ve metin rengini almıyordu. */
 var VR_META={
-  open     :{lbl:'Ziyaret talebi açık',ico:'mapPin'       ,cls:'open'   },
-  planned  :{lbl:'Teknisyen planladı' ,ico:'calendarCheck',cls:'planned'},
-  done     :{lbl:'Ziyaret tamamlandı' ,ico:'checkCircle'  ,cls:'done'   },
-  cancelled:{lbl:'Talep geri çekildi' ,ico:'xCircle'      ,cls:'done'   }
+  open     :{lbl:'Ziyaret Talebi Açıldı',ico:'mapPin'       ,cls:'open'   },
+  planned  :{lbl:'Teknisyen Planladı'   ,ico:'calendarCheck',cls:'planned'},
+  done     :{lbl:'Ziyaret Tamamlandı'   ,ico:'checkCircle'  ,cls:'done'   },
+  cancelled:{lbl:'Talep Geri Çekildi'   ,ico:'xCircle'      ,cls:'done'   }
 };
 function sdico(n,c){return (typeof global.SDIcon==='function')?SDIcon(n,c):'';}
 function role(){
@@ -226,6 +226,16 @@ function afterVisitRequest(companyId){
     if(typeof showNextForcedRequest==='function')showNextForcedRequest();
   });
 }
+/* Talep gönderildikten sonra satışçının açtığı pencere (hızlı talep ya da
+   Firma 360°) kendiliğinden kapanır — gönderdikten sonra elle kapatmak
+   gerekiyordu ve satışçı "gitti mi" diye ekranda kalıyordu.
+   vrForceModal HARİÇ: o ekran yalnız talebe yanıt verilince açılır. */
+function closeEnclosingModal(el){
+  var ov=el&&el.closest?el.closest('.overlay'):null;
+  if(!ov||!ov.id||ov.id==='vrForceModal')return false;
+  if(global.UI&&UI.closeModal)UI.closeModal(ov.id);else ov.classList.add('hidden');
+  return true;
+}
 global.c360RequestVisit=function(companyId,btn){
   var box=vrBox(btn),note=box&&box.querySelector('.c360-vr-note'),
     msg=box&&box.querySelector('.c360-vr-msg');
@@ -240,6 +250,7 @@ global.c360RequestVisit=function(companyId,btn){
   })}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j};});})
     .then(function(x){
       if(!x.ok){vrError(x.j.error||'Talep gönderilemedi',msg);if(btn){btn.disabled=false;btn.textContent='Talebi Gönder';}return;}
+      if(closeEnclosingModal(btn)&&global.UI&&UI.toast)UI.toast('Ziyaret talebi gönderildi.','success');
       afterVisitRequest(companyId);
     })
     .catch(function(e){vrError('Talep gönderilemedi: '+e.message,msg);if(btn){btn.disabled=false;btn.textContent='Talebi Gönder';}});
@@ -268,14 +279,19 @@ function visitRequestHTML(c){
       if(req.status==='open')acts.push('<button class="btn btn-outline btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'planned\',\''+esc(c.id)+'\',this)">Planladım</button>');
       acts.push('<button class="btn btn-primary btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'done\',\''+esc(c.id)+'\',this)">Ziyareti Tamamladım</button>');
     }
-    if(rl==='sales')acts.push('<button class="btn btn-ghost btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\',this)">Talebi Geri Çek</button>');
+    if(rl==='sales')acts.push('<button class="btn btn-ghost btn-sm c360-vr-cancel" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\',this)">Talebi Geri Çek</button>');
     if(rl==='admin')acts.push('<button class="btn btn-ghost btn-sm" onclick="c360SetRequestStatus(\''+esc(req.id)+'\',\'cancelled\',\''+esc(c.id)+'\',this)">İptal Et</button>');
     return '<div class="c360-vr '+m.cls+'">'
       +'<b>'+sdico(m.ico)+esc(m.lbl)+(req.urgency==='high'?' <i class="c360-vr-acil">ACİL</i>':'')+'</b>'
-      +'<span>'+esc(req.salesRepName||'Satışçı')+' istedi · '+fmtDate(req.createdAt)
-        +' · teknik servis: '+esc((req.techCode?req.techCode+' · ':'')+(req.techName||'—'))
-        +(req.reason?' · Not: '+esc(req.reason):'')+'</span>'
-      +(acts.length?'<div class="c360-vr-acts">'+acts.join('')+'</div>':'')
+      +'<span>'+esc(req.salesRepName||'Satışçı')+' · '+fmtDate(req.createdAt)
+        +' · Teknik Servis: '+esc((req.techCode?req.techCode+' · ':'')+(req.techName||'—'))+'</span>'
+      // Not kendi satırında: künye satırının kuyruğuna eklendiğinde uzun notlar
+      // tarih/teknisyen bilgisini sarma sonucu okunmaz hâle getiriyordu.
+      +(req.reason?'<span class="c360-vr-note-line"><b>Not:</b> '+esc(req.reason)+'</span>':'')
+      // Satışçının tek eylemi "Talebi Geri Çek" olduğunda kutu ayrıca işaretlenir:
+      // mobilde bu satır komple gizlenir (bkz. sales.css) — telefonda talep açan
+      // satışçının geri çekme yetkisi yok, düğme boş bir şerit bırakmasın.
+      +(acts.length?'<div class="c360-vr-acts'+((rl==='sales'&&acts.length===1)?' c360-vr-acts-cancel':'')+'">'+acts.join('')+'</div>':'')
       +'<div class="c360-vr-msg hidden"></div></div>';
   }
 
@@ -297,7 +313,8 @@ function visitRequestHTML(c){
   }
 
   if(son)return '<div class="c360-vr done"><b>'+sdico((VR_META[son.status]||{}).ico||'dot')+'Son ziyaret talebi: '+esc((VR_META[son.status]||{}).lbl||son.status)+'</b>'
-    +'<span>'+esc(son.salesRepName||'Satışçı')+' · '+fmtDate(son.updatedAt||son.createdAt)+(son.reason?' · Not: '+esc(son.reason):'')+'</span></div>';
+    +'<span>'+esc(son.salesRepName||'Satışçı')+' · '+fmtDate(son.updatedAt||son.createdAt)+'</span>'
+    +(son.reason?'<span class="c360-vr-note-line"><b>Not:</b> '+esc(son.reason)+'</span>':'')+'</div>';
   return '';
 }
 

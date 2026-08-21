@@ -48,6 +48,37 @@
     var days=Math.max(0,Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate())-result)/86400000));
     return {date:String(result.getDate()).padStart(2,'0')+'.'+String(result.getMonth()+1).padStart(2,'0')+'.'+result.getFullYear(),days:days+' gün geçti'};
   }
+  /* Talep satırındaki "son gidilen tarih + kaç gün geçti".
+     previousVisit() ile aynı veriye bakar, iki farkı var: (1) içinde
+     bulunulan haftanın kaydını DIŞLAMAZ — burada sorulan "bir önceki
+     ziyaret" değil, firmaya EN SON ne zaman gidildiği; (2) çok teknisyenli
+     ({by:{kod:...}}) kayıtları da okur, yalnız üst seviyeyi değil. */
+  function lastVisitInfo(companyId,visits,today){
+    var limit=new Date(today.getFullYear(),today.getMonth(),today.getDate()),latest=null;
+    function consider(entry,weekKey){
+      if(!entry||entry.status!=='done')return;
+      var values=(Array.isArray(entry.dates)&&entry.dates.length)?entry.dates:[entry.date];
+      values.forEach(function(value){
+        var date=parseVisitDate(value,weekKey);
+        if(!date||date>limit)return;
+        if(date.getDate()===31&&date.getMonth()===6&&date.getFullYear()===2026)return; /* milat */
+        if(!latest||date>latest)latest=date;
+      });
+    }
+    Object.keys(visits||{}).forEach(function(key){
+      if(String(key).indexOf(companyId+'_')!==0)return;
+      var record=visits[key]||{};
+      consider(record,key);
+      var by=(record.by&&typeof record.by==='object')?record.by:null;
+      if(by)Object.keys(by).forEach(function(code){consider(by[code],key);});
+    });
+    if(!latest)return{date:'Kayıt yok',days:''};
+    var days=Math.max(0,Math.floor((limit-latest)/86400000));
+    return{
+      date:String(latest.getDate()).padStart(2,'0')+'.'+String(latest.getMonth()+1).padStart(2,'0')+'.'+latest.getFullYear(),
+      days:days+' gün geçti'
+    };
+  }
   function visitRow(visit){
     var marker=visit.isExtra
       ?'<img src="cid:icon-star" width="14" height="14" alt="Önemli" style="display:block;border:0;outline:none;text-decoration:none;width:14px;height:14px;">'
@@ -164,7 +195,11 @@
     var visitRequestsToday=visitRequests.filter(function(r){
       var d=new Date(r.createdAt);
       return !isNaN(d)&&_DT.ddmmyyyy(d)===_DT.ddmmyyyy(today);
-    }).sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''));});
+    }).sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''));})
+      .map(function(r){
+        var last=lastVisitInfo(String(r.companyId||''),visits,today);
+        return Object.assign({},r,{lastVisitDate:last.date,lastVisitDays:last.days});
+      });
 
     return {today:today,people:people,activeCount:activeCount,installations:installations,total:people.reduce(function(n,p){return n+p.visits.length;},0),visitRequests:visitRequestsToday};
   }
@@ -178,13 +213,21 @@
     done:{t:'Tamamlandı',bd:'#b7e4d5',bg:'#ecfdf5',c:'#047857'},
     cancelled:{t:'İptal Edildi',bd:'#d1d5db',bg:'#f3f4f6',c:'#6b7280'}
   };
+  /* Talep satırı bilinçli olarak SIKI: raporda günde birkaç talep birikebiliyor
+     ve kurulum kartı ölçüsünde bir blok kullanıldığında liste sayfayı yutuyordu.
+     Künyede teknisyenin yalnız KODU var (ad değil) — kod zaten tekil ve satırı
+     kısa tutuyor. */
   function visitRequestRowHTML(r){
     var st=VR_STATUS_STYLE[r.status]||VR_STATUS_STYLE.open;
-    var kime=(r.techCode?esc(r.techCode)+' · ':'')+esc(r.techName||'—');
-    var detay=esc(r.salesRepName||'Satışçı')+' istedi → '+kime+(r.reason?' · Not: '+esc(r.reason):'');
-    return '<tr><td class="pad" style="padding:14px 30px 10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eff6ff" style="background-color:#eff6ff;border-left:5px solid #1565d8;border-top:1px solid #bfdbfe;border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;"><tr>'
-      +'<td style="padding:18px 12px 18px 18px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:12px;line-height:18px;font-weight:bold;color:#1565d8;letter-spacing:.5px;">ZİYARET TALEBİ</div><div class="install-company" style="padding-top:5px;font-size:15px;line-height:21px;font-weight:bold;color:#13233f;">'+esc(r.companyName||'')+'</div><div class="install-date" style="padding-top:5px;font-size:13px;line-height:20px;color:#65748a;">'+detay+'</div></td>'
-      +'<td class="install-status" width="116" align="center" valign="middle" style="width:116px;padding:18px 12px 18px 8px;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;padding:8px 9px;border:1px solid '+st.bd+';background-color:'+st.bg+';color:'+st.c+';font-size:12px;line-height:18px;white-space:nowrap;">'+st.t+'</span></td>'
+    var detay=esc(r.salesRepName||'Satışçı')+' &#8594; '+esc(r.techCode||r.techName||'—')
+      +(r.reason?' &#8226; '+esc(r.reason):'');
+    /* Başlığın yanında firmaya en son ne zaman gidildiği: raporu okuyan kişi
+       talebin ne kadar geciktiğini kartı açmadan görsün. */
+    var sonZiyaret=' &#8226; Son ziyaret: '+esc(r.lastVisitDate||'Kayıt yok')
+      +(r.lastVisitDays?' <span style="color:#13233f;font-weight:bold;">&#8226; '+esc(r.lastVisitDays)+'</span>':'');
+    return '<tr><td class="pad" style="padding:0 30px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eff6ff" style="background-color:#eff6ff;border-left:4px solid #1565d8;border-top:1px solid #bfdbfe;border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;"><tr>'
+      +'<td style="padding:9px 8px 10px 12px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:11px;line-height:16px;font-weight:bold;color:#1565d8;letter-spacing:.4px;">ZİYARET TALEBİ<span style="font-weight:normal;letter-spacing:0;color:#65748a;">'+sonZiyaret+'</span></div><div class="install-company" style="padding-top:2px;font-size:14px;line-height:19px;font-weight:bold;color:#13233f;">'+esc(r.companyName||'')+'</div><div class="install-date" style="padding-top:2px;font-size:12px;line-height:17px;color:#65748a;">'+detay+'</div></td>'
+      +'<td class="install-status" width="92" align="center" valign="middle" style="width:92px;padding:9px 10px 10px 6px;font-family:Arial,Helvetica,sans-serif;"><span style="display:inline-block;padding:4px 8px;border:1px solid '+st.bd+';background-color:'+st.bg+';color:'+st.c+';font-size:11px;line-height:16px;white-space:nowrap;">'+st.t+'</span></td>'
       +'</tr></table></td></tr>';
   }
 
@@ -195,7 +238,7 @@
        günde raporun geri kalanına (kurulum/personel bölümleri, HİÇBİRİ
        değişmedi) her zaman boş bir bölüm eklemek gürültü olurdu. */
     var visitRequestSection=data.visitRequests.length
-      ?('<tr><td class="pad" style="padding:14px 30px 12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="160" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:bold;color:#13233f;white-space:nowrap;">Ziyaret Talepleri</td><td valign="middle" style="padding-left:12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#cbd5e1" style="height:1px;background-color:#cbd5e1;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr></table></td></tr>'
+      ?('<tr><td class="pad" style="padding:12px 30px 8px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="160" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:23px;font-weight:bold;color:#13233f;white-space:nowrap;">Ziyaret Talepleri</td><td valign="middle" style="padding-left:12px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#cbd5e1" style="height:1px;background-color:#cbd5e1;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr></table></td></tr>'
         +data.visitRequests.map(visitRequestRowHTML).join(''))
       :'';
     var installationRows='';
