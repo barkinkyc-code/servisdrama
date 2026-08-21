@@ -68,7 +68,10 @@ router.post('/', async (req, res) => {
         state.sd_notifications.push(notifForPush);
       }
     }, req.user.id);
-    if (notifForPush) sendPushForNotification(notifForPush).catch(() => {});
+    // await edilir — Vercel serverless'te cevap gönderildikten SONRA çalışan
+    // kod bitmesi garanti edilmeden dondurulabiliyor (bkz. visit-requests.js
+    // aynı notu). Ateşle-unut yapılsaydı push çoğu zaman hiç gitmezdi.
+    if (notifForPush) await sendPushForNotification(notifForPush).catch(() => {});
     res.status(201).json({ success: true, sample });
   } catch (e) { res.status(e.statusCode || 500).json({ error: e.message || 'Numune eklenemedi' }); }
 });

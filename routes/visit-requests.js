@@ -141,7 +141,13 @@ router.post('/', async (req, res) => {
         message: `${salesRepName}, ${company.name} firmasına ziyaret istiyor.` + (reason ? ` Not: ${reason}` : '')
       });
     }, req.user.id);
-    if (notifForPush) sendPushForNotification(notifForPush).catch(() => {});
+    // AWAIT edilir, ateşle-unut YAPILMAZ: Vercel serverless fonksiyonu HTTP
+    // cevabı gönderilir gönderilmez donduruluyor/sonlandırılıyor (Lambda tabanlı
+    // platformların hepsinde aynı — cevaptan SONRAKİ bekleyen promise'lerin
+    // bitmesi garanti değil). Ateşle-unut yapılsaydı push çoğu zaman yarıda
+    // kesilip hiç gitmezdi; kalıcı sunucuda (node server.js) da zararı yok,
+    // yalnızca birkaç yüz ms gecikme ekler.
+    if (notifForPush) await sendPushForNotification(notifForPush).catch(() => {});
     res.status(201).json({ success: true, request });
   } catch (e) {
     res.status(e.statusCode || 500).json({ error: e.message || 'Ziyaret talebi oluşturulamadı', existing: e.existing });
@@ -197,7 +203,7 @@ router.put('/:id', async (req, res) => {
         });
       }
     }, req.user.id);
-    if (notifForPush) sendPushForNotification(notifForPush).catch(() => {});
+    if (notifForPush) await sendPushForNotification(notifForPush).catch(() => {});
     res.json({ success: true, request: updated });
   } catch (e) { res.status(e.statusCode || 500).json({ error: e.message || 'Güncellenemedi' }); }
 });
