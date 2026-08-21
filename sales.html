@@ -120,9 +120,14 @@
     <div class="content-body">
       <div id="salesChips" class="sls-chips"></div>
       <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg><input id="companySearch" placeholder="Firma ara..."></div>
+      <!-- Sıralama: net, adı olan iki kıstas — tek bir belirsiz "sırala" düğmesi
+           yerine ne olduğu doğrudan görünen bir seçim listesi. -->
       <div class="sls-list-hd">
         <span id="salesListTitle"></span>
-        <button type="button" class="sls-sort" id="salesSortToggle"></button>
+        <select class="inp inp-sm sls-sort-select" id="salesSort" aria-label="Sıralama">
+          <option value="aciliyet">Önce Gidilmeyenler</option>
+          <option value="ad">A'dan Z'ye</option>
+        </select>
       </div>
       <div id="companiesList" class="co-list"></div>
       <p class="empty-state hidden" id="companiesEmpty">Firma bulunamadı.</p>
@@ -215,7 +220,8 @@
 <script src="weekly-report-data.js?v=20260820-ortak-kart"></script>
 <script src="company-360.js?v=20260821-bildirim-v2"></script>
 <script src="notify-bell.js?v=20260821-bildirim-v2"></script>
+<script src="push-notify.js?v=20260821-push-v1"></script>
 <script src="sales.js?v=20260821-bildirim-v2"></script>
-<script src="pwa-update.js?v=20260804-pwa-v1"></script>
+<script src="pwa-update.js?v=20260821-push-v1"></script>
 </body>
 </html>

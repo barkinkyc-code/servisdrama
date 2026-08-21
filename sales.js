@@ -51,8 +51,8 @@ function initializeUI(user){
 function initCompanyControls(){
   const search=document.getElementById('companySearch');
   if(search)search.addEventListener('input',()=>{salesView.q=search.value.toLocaleLowerCase('tr');renderCompanies();});
-  const sort=document.getElementById('salesSortToggle');
-  if(sort)sort.addEventListener('click',()=>{salesView.sort=salesView.sort==='aciliyet'?'ad':'aciliyet';renderCompanies();});
+  const sort=document.getElementById('salesSort');
+  if(sort)sort.addEventListener('change',()=>{salesView.sort=sort.value;renderCompanies();});
 }
 
 /* ═══ Veri erişimi — hesaplar company-360.js'te, burada yalnız kısayol ═══ */
@@ -118,14 +118,14 @@ function renderCompanies(){
   if(!all.length){
     document.getElementById('salesChips').innerHTML='';
     document.getElementById('salesListTitle').textContent='';
-    document.getElementById('salesSortToggle').classList.add('hidden');
+    document.getElementById('salesSort').classList.add('hidden');
     el.innerHTML='';
     emp.classList.remove('hidden');
     emp.textContent='Size atanmış firma bulunmuyor. Lütfen yöneticinizle iletişime geçin.';
     if(sub)sub.textContent='0 firma';
     return;
   }
-  document.getElementById('salesSortToggle').classList.remove('hidden');
+  document.getElementById('salesSort').classList.remove('hidden');
 
   /* Sayı düğmeleri: rakam hem özet hem filtre. Böylece ayrı bir KPI şeridi
      ile ayrı bir filtre kutusu satırına gerek kalmıyor. */
@@ -146,8 +146,8 @@ function renderCompanies(){
   });
 
   if(sub)sub.textContent='Eksikler üstte. Rakamlara basarak listeyi daraltın, firmaya basarak 360° kartını açın.';
-  document.getElementById('salesListTitle').textContent=(salesView.sort==='aciliyet'?'Önce bunlara bakın':'Alfabetik')+' · '+cs.length+' firma';
-  document.getElementById('salesSortToggle').textContent=salesView.sort==='aciliyet'?'A-Z sırala':'Aciliyete göre sırala';
+  document.getElementById('salesListTitle').textContent=cs.length+' firma';
+  const sortSel=document.getElementById('salesSort');if(sortSel)sortSel.value=salesView.sort;
 
   emp.classList.toggle('hidden',cs.length>0);
   emp.textContent=salesView.q?'Aramaya uyan firma bulunamadı.':'Bu grupta firma yok.';
@@ -160,6 +160,11 @@ function renderCompanies(){
     const talep=req
       ? `<span class="co-vr ${req.status}">${sdico(req.status==='planned'?'calendarCheck':'mapPin')}${req.status==='planned'?'Teknisyen planladı':'Ziyaret talebi açık'}${req.urgency==='high'?' · ACİL':''}</span>`
       : '';
+    /* Ziyaret talebi düğmesi: satırın kendisi firmayı açar (showCompanyDetail),
+       bu düğme stopPropagation ile araya girer ve 360° kartını hiç açmadan
+       doğrudan talep penceresini açar — telefonda satıra girip aşağı kaydırıp
+       düğmeyi bulmak yerine tek dokunuş. */
+    const vrBtn=`<button type="button" class="co-vr-btn ${req?req.status:''}" title="${req?'Ziyaret talebini görüntüle':'Teknik servis iste'}" onclick="openVisitRequestQuick('${escapeHtml(c.id)}',event)">${sdico('mapPin')}</button>`;
     return `<div class="co-card" role="button" tabindex="0" onclick="${open}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${open};}">
       <div class="co-icon">${escapeHtml(initials(c.name))}</div>
       <div class="co-body">
@@ -169,6 +174,7 @@ function renderCompanies(){
       <div class="co-right">
         <span class="badge badge-${d.cls}">${escapeHtml(d.label)}</span>
         <div class="ops-score ${sc}" title="Firma skoru">${skor==null?'—':skor}</div>
+        ${vrBtn}
       </div>
     </div>`;
   }).join('');
@@ -389,5 +395,8 @@ function toggleMobileMenu(event){if(event){event.preventDefault();event.stopProp
 function closeMobileMenu(){setMobileMenu(false);}
 function initMobileMenuControls(){const button=document.getElementById('mobileMenuBtn'),overlay=document.getElementById('mobileOverlay');if(button){button.setAttribute('aria-expanded','false');button.addEventListener('click',toggleMobileMenu,{passive:false});}if(overlay)overlay.addEventListener('click',e=>{e.preventDefault();closeMobileMenu();});}
 function toggleUserMenu(event){if(event)event.stopPropagation();const dd=document.getElementById('navDropdown');if(!dd)return;document.getElementById('navNotifDropdown')?.classList.add('hidden');dd.classList.toggle('hidden');}
-function doLogout(){localStorage.removeItem('token');sessionStorage.removeItem('token');localStorage.removeItem('sd_user');sessionStorage.removeItem('sd_user');location.href='index.html';}
+async function doLogout(){
+  try{ if(typeof pushUnsubscribeOnLogout==='function') await Promise.race([pushUnsubscribeOnLogout(),new Promise(r=>setTimeout(r,1200))]); }catch(e){}
+  localStorage.removeItem('token');sessionStorage.removeItem('token');localStorage.removeItem('sd_user');sessionStorage.removeItem('sd_user');location.href='index.html';
+}
 window.showPage=showPage;window.setSalesFilter=setSalesFilter;window.showCompanyDetail=showCompanyDetail;window.closeCompanyDetail=closeCompanyDetail;window.toggleUserMenu=toggleUserMenu;window.doLogout=doLogout;

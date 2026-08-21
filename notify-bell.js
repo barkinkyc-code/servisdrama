@@ -123,6 +123,10 @@ function refreshBadge(){
   }).catch(function(){return 0;});
 }
 
+/* Her satırın okundu/yeni durumu tek yerden hesaplanır — open() ve zamanlayıcı
+   aynı eşlemeyi tekrar yazmasın diye. */
+function mapYeni(rows){return rows.map(function(n){return Object.assign({},n,{_yeni:!(n.read||n.readAt)});});}
+
 function render(rows){
   var list=document.getElementById('navNotifList'),sub=document.getElementById('nbHeadSub');
   if(!list)return;
@@ -133,18 +137,27 @@ function render(rows){
       +'<b>Bildiriminiz yok</b><span>Satıştan bir ziyaret talebi ya da numune bildirimi geldiğinde burada görünür.</span></div>';
     return;
   }
+  /* Satır = tıklanabilir içerik + ayrı bir kapatma düğmesi. <button> içine
+     <button> geçersiz HTML olduğu için ikisi kardeş, ortak bir satır
+     kapsayıcısında (.nb-row). */
   list.innerHTML=rows.map(function(n){
     var m=metaOf(n.type);
-    return '<button type="button" class="nb-item'+(n._yeni?' yeni':'')+'" data-nid="'+esc(n.id)+'" data-co="'+esc(n.companyId||'')+'">'
+    return '<div class="nb-row'+(n._yeni?' yeni':'')+'">'
+      +'<button type="button" class="nb-item'+(n._yeni?' yeni':'')+'" data-nid="'+esc(n.id)+'" data-co="'+esc(n.companyId||'')+'">'
       +'<span class="nb-ico '+m.cls+'">'+ico(m.ico)+'</span>'
       +'<span class="nb-body"><b>'+esc(n.title||'Bildirim')+'</b>'
       +'<span class="nb-msg">'+esc(n.message||'')+'</span>'
       +'<time>'+esc(ne_zaman(n.createdAt))+(n.companyId?' · firma kartını aç':'')+'</time></span>'
       +(n.companyId?'<span class="nb-go">'+ico('chevron')+'</span>':'')
-      +'</button>';
+      +'</button>'
+      +'<button type="button" class="nb-del" data-del="'+esc(n.id)+'" aria-label="Bildirimi kaldır" title="Bildirimi kaldır">'+ico('x')+'</button>'
+      +'</div>';
   }).join('');
   list.querySelectorAll('[data-nid]').forEach(function(el){
     el.addEventListener('click',function(){onItemClick(el.dataset.co);});
+  });
+  list.querySelectorAll('[data-del]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();dismissOne(el.dataset.del);});
   });
 }
 
@@ -155,6 +168,16 @@ function onItemClick(companyId){
     close();
     openCompany360(companyId);
   }
+}
+
+/* X: bildirimi listeden kaldırır. Kalıcı silme YALNIZCA admine açık (denetim
+   izi korunur, bkz. routes/notifications.js); satışçı/teknisyen için "silme"
+   arşivlemektir — sunucuda kayıt durur, kullanıcının listesinde görünmez. */
+function dismissOne(id){
+  cache=cache.filter(function(n){return String(n.id)!==String(id);});
+  render(mapYeni(cache));
+  setBadge(cache.filter(function(n){return !(n.read||n.readAt);}).length);
+  fetch('/api/notifications/'+encodeURIComponent(id)+'/archive',{method:'PUT',headers:headers()}).catch(function(){});
 }
 
 /* Zil açılınca hepsi okundu sayılır ama görünümdeki "yeni" vurgusu kalır. */
@@ -177,9 +200,9 @@ function open(){
   if(btn)btn.setAttribute('aria-expanded','true');
   document.body.classList.add('nb-open');
   isOpen=true;
-  render(cache.map(function(n){return Object.assign({},n,{_yeni:!(n.read||n.readAt)});}));
+  render(mapYeni(cache));
   fetchList().then(function(rows){
-    var goster=rows.map(function(n){return Object.assign({},n,{_yeni:!(n.read||n.readAt)});});
+    var goster=mapYeni(rows);
     render(goster);
     if(goster.some(function(x){return x._yeni;}))markAllRead();
     else setBadge(0);
@@ -215,7 +238,7 @@ function init(){
   if(timer)clearInterval(timer);
   timer=setInterval(function(){
     if(isOpen)fetchList().then(function(rows){
-      render(rows.map(function(n){return Object.assign({},n,{_yeni:!(n.read||n.readAt)});}));
+      render(mapYeni(rows));
       if(rows.some(function(x){return !(x.read||x.readAt);}))markAllRead();
     }).catch(function(){});
     else refreshBadge();

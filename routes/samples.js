@@ -2,6 +2,7 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const { mutateState } = require('../utils/stateStore');
 const { resolveSalesRepIdentity, companyBelongsToSalesRep } = require('../utils/salesIdentity');
+const { sendPushForNotification } = require('../utils/webPush');
 const router = express.Router();
 const isAdmin = u => String(u?.role || '').toLowerCase() === 'admin';
 const isSales = u => String(u?.role || '').toLowerCase() === 'sales';
@@ -14,7 +15,7 @@ router.use((req, res, next) => (isAdmin(req.user) || isSales(req.user)) ? next()
 // Firmaya atanmış teknisyene otomatik bildirim düşer.
 router.post('/', async (req, res) => {
   try {
-    let sample;
+    let sample, notifForPush;
     await mutateState(state => {
       const rep = resolveSalesRepIdentity(state, req.user);
       if (!rep && !isAdmin(req.user)) throw Object.assign(new Error('Satışçı profili bulunamadı'), { statusCode: 403 });
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
       // Atanmış teknisyene bildirim: satışçı numune aldı.
       if (company.techId) {
         state.sd_notifications = Array.isArray(state.sd_notifications) ? state.sd_notifications : [];
-        state.sd_notifications.push({
+        notifForPush = {
           id: 'not_' + Date.now() + '_smp',
           recipientTechId: String(company.techId),
           recipientRole: 'tech',
@@ -63,9 +64,11 @@ router.post('/', async (req, res) => {
           createdAt: new Date().toISOString(),
           read: false,
           status: 'unread'
-        });
+        };
+        state.sd_notifications.push(notifForPush);
       }
     }, req.user.id);
+    if (notifForPush) sendPushForNotification(notifForPush).catch(() => {});
     res.status(201).json({ success: true, sample });
   } catch (e) { res.status(e.statusCode || 500).json({ error: e.message || 'Numune eklenemedi' }); }
 });

@@ -62,6 +62,17 @@ function preserveVisitRequests(current) {
   return Array.isArray(current?.sd_visit_requests) ? current.sd_visit_requests : [];
 }
 
+// Push abonelikleri (uç nokta+anahtar) ve push tercihleri de SUNUCU otoritesinde:
+// yalnızca routes/push.js yazar. İstemci bunları hiç göndermez/görmez (GET'te
+// aşağıda budanır); yine de admin'in toplu state PUT'u önceki kaydı silmesin
+// diye burada da korunur — sd_visit_requests ile aynı desen.
+function preservePushState(current) {
+  return {
+    sd_push_subscriptions: Array.isArray(current?.sd_push_subscriptions) ? current.sd_push_subscriptions : [],
+    sd_push_prefs: (current?.sd_push_prefs && typeof current.sd_push_prefs === 'object') ? current.sd_push_prefs : {}
+  };
+}
+
 function finiteCoordinate(value, min, max) {
   const n = Number(value);
   return Number.isFinite(n) && n >= min && n <= max ? n : null;
@@ -170,6 +181,12 @@ router.get('/', auth, async (req, res) => {
   res.set('Expires', '0');
   try {
     const r = await readState();
+    // Push abonelikleri (uç nokta+şifreleme anahtarı) ve push tercihleri hiçbir
+    // rolün genel state indirmesinde YER ALMAZ — admin dahil. Abonelik nesneleri
+    // yalnızca sunucunun push göndermek için kullandığı veridir; istemcinin
+    // TÜM kullanıcıların uç noktalarını toplu indirmesine gerek yok. Kendi
+    // yönetim ekranları /api/push/prefs ve /api/push/status üzerinden okur.
+    if (r.state) { delete r.state.sd_push_subscriptions; delete r.state.sd_push_prefs; }
     const isAdmin = String(req.user.role || '').toLowerCase() === 'admin';
     const isSalesRep = String(req.user.role || '').toLowerCase() === 'sales';
 
@@ -238,6 +255,7 @@ router.put('/', auth, async (req, res) => {
         state = safeState;
       }
       state.sd_visit_requests = preserveVisitRequests(current);
+      Object.assign(state, preservePushState(current));
 
       await client.query(
         `INSERT INTO app_state(state_key,payload,updated_by,updated_at)
@@ -265,6 +283,7 @@ router.put('/', auth, async (req, res) => {
           state = safeState;
         }
         state.sd_visit_requests = preserveVisitRequests(current);
+        Object.assign(state, preservePushState(current));
         await new Promise((resolve, reject) => db.run(
           "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
           [JSON.stringify(state), req.user.id], e => e ? reject(e) : resolve()

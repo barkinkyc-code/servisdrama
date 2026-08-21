@@ -15,6 +15,7 @@ const {
   getSalesRepIdentitySet,
   companyBelongsToSalesRep
 } = require('../utils/salesIdentity');
+const { sendPushForNotification } = require('../utils/webPush');
 
 const router = express.Router();
 const isAdmin = u => String(u?.role || '').toLowerCase() === 'admin';
@@ -59,15 +60,19 @@ function visible(state, user) {
   return all.filter(r => idSet.has(String(r.salesRepId || '')));
 }
 
+// Oluşturulan bildirim nesnesini döner: mutateState kapandıktan SONRA push
+// gönderilebilsin diye (ağ çağrısı transaction/kilit süresini uzatmasın).
 function pushNotification(state, notif) {
   state.sd_notifications = Array.isArray(state.sd_notifications) ? state.sd_notifications : [];
-  state.sd_notifications.push({
+  const full = {
     id: 'not_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
     createdAt: new Date().toISOString(),
     read: false,
     status: 'unread',
     ...notif
-  });
+  };
+  state.sd_notifications.push(full);
+  return full;
 }
 
 router.use(auth);
@@ -91,7 +96,7 @@ router.get('/', async (req, res) => {
    düğmeye ikinci kez bastığında teknisyenin ekranı aynı firmayla dolmasın. */
 router.post('/', async (req, res) => {
   try {
-    let request;
+    let request, notifForPush;
     await mutateState(state => {
       const rep = resolveSalesRepIdentity(state, req.user);
       if (!rep && !isAdmin(req.user)) throw Object.assign(new Error('Satışçı profili bulunamadı'), { statusCode: 403 });
@@ -126,7 +131,7 @@ router.post('/', async (req, res) => {
 
       // Teknisyenin ekranına düşen bildirim. Admin tüm bildirimleri gördüğü için
       // ayrıca bir admin kopyası üretilmez (bkz. routes/notifications.js visible()).
-      pushNotification(state, {
+      notifForPush = pushNotification(state, {
         recipientTechId: String(tech.id),
         recipientRole: 'tech',
         companyId,
@@ -136,6 +141,7 @@ router.post('/', async (req, res) => {
         message: `${salesRepName}, ${company.name} firmasına ziyaret istiyor.` + (reason ? ` Not: ${reason}` : '')
       });
     }, req.user.id);
+    if (notifForPush) sendPushForNotification(notifForPush).catch(() => {});
     res.status(201).json({ success: true, request });
   } catch (e) {
     res.status(e.statusCode || 500).json({ error: e.message || 'Ziyaret talebi oluşturulamadı', existing: e.existing });
@@ -153,7 +159,7 @@ const STATUS_TEXT = { open: 'yeniden açıldı', planned: 'planlandı', done: 't
 
 router.put('/:id', async (req, res) => {
   try {
-    let updated;
+    let updated, notifForPush;
     await mutateState(state => {
       const mine = visible(state, req.user);
       const current = mine.find(r => String(r.id) === String(req.params.id));
@@ -180,7 +186,7 @@ router.put('/:id', async (req, res) => {
       state.sd_visit_requests = allRequests(state).map(r => String(r.id) === String(current.id) ? updated : r);
 
       if (current.salesRepId && !isSales(req.user)) {
-        pushNotification(state, {
+        notifForPush = pushNotification(state, {
           recipientUserId: String(current.salesRepId),
           recipientRole: 'sales',
           companyId: String(current.companyId),
@@ -191,6 +197,7 @@ router.put('/:id', async (req, res) => {
         });
       }
     }, req.user.id);
+    if (notifForPush) sendPushForNotification(notifForPush).catch(() => {});
     res.json({ success: true, request: updated });
   } catch (e) { res.status(e.statusCode || 500).json({ error: e.message || 'Güncellenemedi' }); }
 });

@@ -1,5 +1,5 @@
 /* ServisDrama update-safe service worker */
-const BUILD_ID = '20260806-tech-route-v1';
+const BUILD_ID = '20260821-push-v1';
 const CACHE_NAME = `servisdrama-${BUILD_ID}`;
 const OFFLINE_FILES = [
   '/',
@@ -75,5 +75,44 @@ self.addEventListener('fetch', event => {
       return response;
     }).catch(() => null);
     return cached || networkPromise || Response.error();
+  })());
+});
+
+/* ── Push bildirimleri (Web Push / VAPID) ─────────────────────────────
+   Sunucu tarafı: utils/webPush.js. Uygulama TAMAMEN KAPALI olsa bile bu iki
+   event, tarayıcı/işletim sistemi tarafından service worker'ı arka planda
+   uyandırıp çalıştırır — mevcut install/activate/fetch/message
+   dinleyicilerine dokunulmadı, yalnızca eklendi. */
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; }
+  catch (_) { data = { title: 'ServisDrama', body: event.data ? event.data.text() : '' }; }
+
+  const title = data.title || 'ServisDrama';
+  const options = {
+    body: data.body || '',
+    icon: '/assets/pwa/icon-192.png',
+    badge: '/assets/pwa/icon-192.png',
+    tag: data.tag || 'servisdrama',
+    renotify: true,
+    vibrate: [80, 40, 80],
+    data: { url: data.url || '/' }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil((async () => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // Zaten açık bir sekme varsa onu hedef sayfaya yönlendirip öne getir;
+    // yeni bir sekme açmak PWA'yı ikinci kez başlatmış gibi görünürdü.
+    const existing = clientsList.find(c => new URL(c.url).origin === self.location.origin);
+    if (existing) {
+      await existing.navigate(url).catch(() => {});
+      return existing.focus();
+    }
+    return self.clients.openWindow(url);
   })());
 });

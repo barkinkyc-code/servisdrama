@@ -97,16 +97,25 @@
 .nb-close .sd-ico{width:15px;height:15px}
 
 .nb-list{overflow-y:auto;max-height:min(60vh,440px);-webkit-overflow-scrolling:touch}
-.nb-item{display:flex;align-items:flex-start;gap:11px;width:100%;padding:13px 14px;border:0;
-  border-bottom:1px solid var(--border);background:none;text-align:left;font:inherit;cursor:pointer;
-  position:relative;transition:background var(--tr)}
-.nb-item:last-child{border-bottom:0}
-.nb-item:hover{background:var(--surface2)}
+/* Satır = tıklanabilir içerik (.nb-item) + ayrı kapatma düğmesi (.nb-del),
+   ortak kapsayıcıda (.nb-row). <button> içine <button> geçersiz HTML olduğu
+   için ikisi kardeş; kenarlık ve hover zemini kapsayıcıda taşınır. */
+.nb-row{display:flex;align-items:stretch;border-bottom:1px solid var(--border);position:relative}
+.nb-row:last-child{border-bottom:0}
+.nb-row:hover{background:var(--surface2)}
+.nb-item{display:flex;align-items:flex-start;gap:11px;flex:1;min-width:0;padding:13px 6px 13px 14px;border:0;
+  background:none;text-align:left;font:inherit;cursor:pointer;transition:background var(--tr)}
 .nb-item:active{background:var(--border)}
 /* Yeni bildirim: sol kenarda ince renk şeridi + hafif zemin. Rozet zil açılır
-   açılmaz sıfırlandığı için, neyin yeni olduğu bu vurguyla görülür. */
-.nb-item.yeni{background:rgba(37,99,235,.055)}
-.nb-item.yeni::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+   açılmaz sıfırlandığı için, neyin yeni olduğu bu vurguyla görülür.
+   :has() yerine JS'in bastığı .nb-row.yeni sınıfı kullanılır — Safari/Chrome
+   eski sürümlerde de çalışsın diye. */
+.nb-row.yeni{background:rgba(37,99,235,.055)}
+.nb-row.yeni::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.nb-del{flex:0 0 auto;width:34px;align-self:stretch;display:grid;place-items:center;border:0;
+  background:none;color:var(--muted);cursor:pointer;transition:background var(--tr),color var(--tr)}
+.nb-del:hover{background:var(--red-l);color:var(--red)}
+.nb-del .sd-ico{width:14px;height:14px}
 .nb-ico{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;
   background:var(--surface2);color:var(--text3)}
 .nb-ico .sd-ico{width:17px;height:17px}
@@ -136,7 +145,8 @@
   .nb-grip{display:block;width:38px;height:4px;margin:9px auto 2px;border-radius:99px;background:var(--border2)}
   .nb-head{padding:8px 12px 11px 16px}
   .nb-list{max-height:min(66dvh,560px)}
-  .nb-item{padding:14px;min-height:64px}
+  .nb-item{padding:14px 4px 14px 14px;min-height:64px}
+  .nb-del{width:44px}
   .nb-close{width:36px;height:36px}
   body.nb-open{overflow:hidden}
 }
@@ -220,9 +230,41 @@
 .c360-vr-cta .sd-ico{width:15px;height:15px}
 .vr-ico .sd-ico{width:16px;height:16px}
 
+/* Hızlı Ziyaret Talebi penceresi (company-360.js openVisitRequestQuick):
+   satışçının ana ekranındaki firma satırından, 360° kartını açmadan. Küçük
+   ve odaklı — yalnızca visitRequestHTML(c) bloğunu taşır. */
+.vr-quick-modal{max-width:420px}
+.vr-quick-modal .modal-body{padding:18px 20px}
+.vr-quick-modal .c360-vr{margin-top:0}
+
 /* Hareket azaltma tercihi: giriş animasyonları kapanır. Animasyon yarıda
    kalırsa alt sayfa 14px kayık durabiliyor; hareketi hiç başlatmamak hem
    erişilebilir hem güvenli. */
 @media(prefers-reduced-motion:reduce){
   .nb-panel,.nb-backdrop{animation:none!important}
+}
+
+/* ═══ Push bildirim şeridi (push-notify.js) ═══
+   Erken uyarı şeridiyle (.ew-banner) aynı görsel dil — burada uygulama-içi
+   bir durum değil, tek seferlik bir izin isteği olduğu için mavi/nötr renk
+   kullanılır, sarı/kırmızı "dikkat" tonları uyandırılmaz. */
+.push-banner{display:flex;align-items:flex-start;gap:13px;margin:20px 32px 0;padding:14px 16px;
+  border:1px solid #cfe0fb;border-left:4px solid #2f6fe0;border-radius:14px;background:#f4f8ff;
+  box-shadow:0 4px 16px rgba(15,23,42,.045)}
+.push-banner-ico{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;
+  background:#e3edff;color:#2f5fc7}
+.push-banner-ico .sd-ico{width:18px;height:18px}
+.push-banner-main{flex:1;min-width:0}
+.push-banner-main>b{display:block;font-size:13.5px;font-weight:800;color:#1b2a4a;letter-spacing:-.01em}
+.push-banner-main>span{display:block;margin-top:4px;font-size:12px;color:#4c5d80;line-height:1.55}
+.push-banner-acts{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.push-banner-x{width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:rgba(0,0,0,.05);color:#5a6a8a;cursor:pointer}
+.push-banner-x:hover{background:rgba(0,0,0,.1);color:#33415e}
+.push-banner-x .sd-ico{width:15px;height:15px}
+@media(max-width:768px){
+  .push-banner{margin:14px 14px 0;padding:13px;gap:11px;flex-wrap:wrap}
+  .push-banner-acts{order:3;width:100%;justify-content:space-between;margin-top:4px}
+  .push-banner-acts .btn{flex:1;min-height:40px}
+  .push-banner-x{width:40px;height:40px}
 }

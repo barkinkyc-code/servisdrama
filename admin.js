@@ -361,7 +361,11 @@ document.addEventListener('DOMContentLoaded',async function(){
 });
 
 /* ═══ LOGOUT ═══ */
-function doLogout(){
+async function doLogout(){
+  // Push aboneliği bu cihaz+tarayıcıya bağlıdır: çıkış öncesi kaldırılmazsa,
+  // aynı cihazı kullanan bir sonraki kullanıcı öncekinin bildirimlerini almaya
+  // devam eder. Ağ yavaşsa çıkışı sonsuza dek bekletmesin diye zaman sınırlı.
+  try{ if(typeof pushUnsubscribeOnLogout==='function') await Promise.race([pushUnsubscribeOnLogout(),new Promise(function(r){setTimeout(r,1200);})]); }catch(e){}
   sessionStorage.removeItem('sd_session');
   localStorage.removeItem('sd_session_persist');
   SD.currentUser=null;

@@ -56,15 +56,15 @@
 .sales-body .sls-chip.c-purple.active{border-color:#7C3AED;box-shadow:0 0 0 3px rgba(124,58,237,.1);}
 .sales-body .sls-chip.c-amber.active{border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,.12);}
 
-/* ── Liste başlığı + sıralama düğmesi ── */
+/* ── Liste başlığı + sıralama seçimi ──────────────────────────────
+   Eskiden tek bir düğme "A-Z sırala"/"Aciliyete göre sırala" arasında
+   metin değiştirerek geçiş yapıyordu — hangi kıstasın şu an aktif olduğu
+   ancak tıklanıp denenerek anlaşılıyordu. Adı belli iki seçenekli bir
+   liste kutusu bunun yerini alır. */
 .sales-body .sls-list-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
 .sales-body .sls-list-hd>span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);}
-.sales-body .sls-sort{
-  background:none;border:none;padding:4px 2px;cursor:pointer;
-  font-size:12.5px;font-weight:700;color:var(--blue);font-family:inherit;
-}
-.sales-body .sls-sort:hover{text-decoration:underline;}
-.sales-body .sls-sort.hidden{display:none;}
+.sales-body .sls-sort-select{width:auto;min-height:34px;padding:6px 30px 6px 12px;font-size:12.5px;font-weight:700;}
+.sales-body .sls-sort-select.hidden{display:none;}
 
 /* ── Firmalarım: firma satırı (.co-list/.co-card ortak style.css'ten gelir) ── */
 .sales-body .co-card{cursor:pointer;}
@@ -83,6 +83,20 @@
 .sales-body .co-vr{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:800;background:var(--amber-l);color:var(--amber);}
 .sales-body .co-vr .sd-ico{width:12px;height:12px;}
 .sales-body .co-vr.planned{background:var(--blue-l);color:var(--blue);}
+
+/* Satırdaki hızlı "ziyaret talebi" düğmesi: 360° kartını açmadan tek dokunuş.
+   Rengi durum taşır — boşsa nötr, açık talep varsa amber, planlandıysa mavi —
+   satırdaki metin rozetiyle (.co-vr) aynı dil, ikinci bir okuma gerekmesin. */
+.sales-body .co-vr-btn{
+  width:36px;height:36px;flex-shrink:0;border-radius:50%;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--text3);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background var(--tr),border-color var(--tr),color var(--tr),transform var(--tr);
+}
+.sales-body .co-vr-btn:hover{background:var(--surface2);border-color:var(--blue-m);color:var(--blue);}
+.sales-body .co-vr-btn:active{transform:scale(.94);}
+.sales-body .co-vr-btn .sd-ico{width:16px;height:16px;}
+.sales-body .co-vr-btn.open{background:var(--amber-l);border-color:var(--amber);color:var(--amber);}
+.sales-body .co-vr-btn.planned{background:var(--blue-l);border-color:var(--blue-m);color:var(--blue);}
 
 
 
@@ -239,6 +253,7 @@
   .sales-body .sls-chips{grid-template-columns:1fr 1fr;}
   .sales-body .co-card{flex-wrap:wrap;}
   .sales-body .co-right{flex-direction:row;align-items:center;width:100%;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+  .sales-body .co-vr-btn{width:40px;height:40px;}
   .sales-body #mobileMenuBtn{min-width:44px;min-height:44px;}
   /* Ziyaret geçmişi raporu: mobilde tek sütun, tablo yatay kaydırılabilir */
   .sales-body .wr-top{flex-direction:column;align-items:flex-start;padding:20px;}
