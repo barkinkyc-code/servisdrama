@@ -1408,6 +1408,12 @@ function buildTruckServiceMailHTML(customerName,technicianCode,technicianName,pl
 
   // Gün hesapla: normal gün + iş günü
   var lastVisitDisplay=lastVisitDate;
+  if(lastVisitDate && plannedDate && typeof SD !== 'undefined' && typeof SD.businessDaysBetween === 'function'){
+    var bDays=SD.businessDaysBetween(lastVisitDate, plannedDate);
+    if(bDays>0){
+      lastVisitDisplay+=' • '+bDays+' iş günü önce';
+    }
+  }
 
   var lastVisitHtml=lastVisitDate?'<tr><td class="data-label" width="200" style="padding:15px 18px; border-bottom:1px solid #C7D8F2; color:#171717; font-family:Arial, Helvetica, sans-serif; font-size:17px; line-height:23px; font-weight:400;">Son Ziyaret</td><td class="data-value" style="padding:15px 18px; border-bottom:1px solid #C7D8F2; color:#0F245E; font-family:Arial, Helvetica, sans-serif; font-size:17px; line-height:23px; font-weight:700;">'+esc(lastVisitDisplay)+'</td></tr>':'';
   var notesHtml=notes?'<tr><td class="data-label" width="200" style="padding:15px 18px 18px; color:#171717; font-family:Arial, Helvetica, sans-serif; font-size:17px; line-height:23px; font-weight:400;">Notlar</td><td class="data-value" style="padding:15px 18px 18px; color:#0F245E; font-family:Arial, Helvetica, sans-serif; font-size:17px; line-height:23px; font-weight:400;">'+esc(notes)+'</td></tr>':'';

@@ -197,10 +197,10 @@ app.get('/api/cron/sales-notifications', async (req, res) => {
 
 
 // Automatic daily summary (Vercel Cron or owner test)
+const { readState, mutateState } = require('./utils/stateStore');
 async function loadMainState(){
-  const db=require('./config/database');await db.ready();
-  if(db.dialect==='postgres'){const r=await db.raw.query("SELECT payload FROM app_state WHERE state_key='main'");return r.rows[0]?.payload||{};}
-  return await new Promise((resolve,reject)=>db.get("SELECT payload FROM app_state WHERE state_key='main'",[],(e,row)=>e?reject(e):resolve(row?JSON.parse(row.payload||'{}'):{})));
+  const { state } = await readState();
+  return state || {};
 }
 function trNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Istanbul'}));}
 
@@ -236,18 +236,10 @@ function stateToReportSD(state){
   };
 }
 
-// state'i kaydettiği tabloya (postgres/sqlite) geri yazar — hem gün özeti
-// hem numune hatırlatma tarafından paylaşılan tek yazma noktası.
 async function persistState(state){
-  const db=require('./config/database');
-  await db.ready();
-  if(db.dialect==='postgres'){
-    await db.raw.query(`INSERT INTO app_state(state_key,payload,updated_at)
-      VALUES('main',$1::jsonb,NOW())
-      ON CONFLICT(state_key) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()`,[JSON.stringify(state)]);
-  }else{
-    await new Promise((resolve,reject)=>db.run("INSERT OR REPLACE INTO app_state(state_key,payload,updated_at) VALUES('main',?,CURRENT_TIMESTAMP)",[JSON.stringify(state)],e=>e?reject(e):resolve()));
-  }
+  await mutateState(s => {
+    Object.assign(s, state);
+  });
 }
 function envMailList(name){
   return String(process.env[name]||'').split(/[\n,;]+/).map(v=>v.trim()).filter(Boolean);

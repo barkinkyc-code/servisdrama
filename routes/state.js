@@ -181,6 +181,13 @@ router.get('/', auth, async (req, res) => {
   res.set('Expires', '0');
   try {
     const r = await readState();
+    if (r.updatedAt) {
+      const etag = 'W/"' + Buffer.from(String(req.user.id) + '_' + String(r.updatedAt)).toString('base64') + '"';
+      res.set('ETag', etag);
+      if (req.headers['if-none-match'] === etag) {
+        return res.status(304).end();
+      }
+    }
     // Push abonelikleri (uç nokta+şifreleme anahtarı) ve push tercihleri hiçbir
     // rolün genel state indirmesinde YER ALMAZ — admin dahil. Abonelik nesneleri
     // yalnızca sunucunun push göndermek için kullandığı veridir; istemcinin

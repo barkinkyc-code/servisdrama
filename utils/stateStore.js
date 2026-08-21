@@ -24,12 +24,16 @@ async function mutateState(mutator, userId = null) {
       await client.query('BEGIN');
       await client.query("INSERT INTO app_state(state_key,payload,updated_at) VALUES('main','{}'::jsonb,NOW()) ON CONFLICT(state_key) DO NOTHING");
       const locked = await client.query("SELECT payload FROM app_state WHERE state_key='main' FOR UPDATE");
+      const initialPayloadStr = JSON.stringify(locked.rows[0]?.payload || {});
       const state = clone(locked.rows[0]?.payload || {}, {});
       const result = await mutator(state, client);
-      await client.query(
-        `UPDATE app_state SET payload=$1::jsonb,updated_by=$2,updated_at=NOW() WHERE state_key='main'`,
-        [JSON.stringify(state), userId]
-      );
+      const newPayloadStr = JSON.stringify(state);
+      if (newPayloadStr !== initialPayloadStr) {
+        await client.query(
+          `UPDATE app_state SET payload=$1::jsonb,updated_by=$2,updated_at=NOW() WHERE state_key='main'`,
+          [newPayloadStr, userId]
+        );
+      }
       await client.query('COMMIT');
       return result;
     } catch (err) {
@@ -41,12 +45,16 @@ async function mutateState(mutator, userId = null) {
   await new Promise((resolve, reject) => db.run('BEGIN IMMEDIATE', e => e ? reject(e) : resolve()));
   try {
     const row = await new Promise((resolve, reject) => db.get("SELECT payload FROM app_state WHERE state_key='main'", [], (e, r) => e ? reject(e) : resolve(r)));
+    const initialPayloadStr = row?.payload || '{}';
     const state = row?.payload ? clone(JSON.parse(row.payload), {}) : {};
     const result = await mutator(state, db);
-    await new Promise((resolve, reject) => db.run(
-      "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
-      [JSON.stringify(state), userId], e => e ? reject(e) : resolve()
-    ));
+    const newPayloadStr = JSON.stringify(state);
+    if (newPayloadStr !== initialPayloadStr) {
+      await new Promise((resolve, reject) => db.run(
+        "INSERT OR REPLACE INTO app_state(state_key,payload,updated_by,updated_at) VALUES('main',?,?,CURRENT_TIMESTAMP)",
+        [newPayloadStr, userId], e => e ? reject(e) : resolve()
+      ));
+    }
     await new Promise((resolve, reject) => db.run('COMMIT', e => e ? reject(e) : resolve()));
     return result;
   } catch (err) {

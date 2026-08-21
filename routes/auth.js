@@ -8,7 +8,7 @@ const auth = require('../middleware/auth');
 const router = express.Router();
 const isAdmin = user => String(user?.role || '').toLowerCase() === 'admin';
 
-const jwtSecret = () => process.env.JWT_SECRET || 'servisdrama-change-this-secret';
+const jwtSecret = () => process.env.JWT_SECRET || 'servisdrama-secret-key-change-in-production';
 const jwtExpire = () => process.env.JWT_EXPIRE || '12h';
 
 router.post('/login', async (req, res) => {
