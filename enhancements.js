@@ -21,6 +21,25 @@
   }
   document.addEventListener('DOMContentLoaded',function(){setTimeout(applyRoleUI,200);new MutationObserver(applyRoleUI).observe(document.body,{childList:true,subtree:true});});
 
+  /* Aşağı çekip yenileme (pull-refresh.js) — yönetici/teknisyen panelinin
+     tazeleme kancası. admin.js'in içindeki 15 saniyelik autoRefreshData()
+     ile AYNI işi yapar ama o fonksiyon kapalı bir kapsamda (DOMContentLoaded
+     closure) tanımlı ve dışarıdan çağrılamıyor; admin.js'e dokunmamak için
+     aynı adımlar burada tekrarlanıyor.
+     goto() ziyaret/firmalar sekmelerini kendiliğinden RENDER ETMEZ (yalnız
+     istatistik/numune/ayarlar/raporlar); o ikisi elle çağrılıyor — aksi halde
+     taze veri geliyor ama ekran donmuş kalıyordu. */
+  window.sdPullRefresh=function(){
+    return SD.remoteReady({force:true}).then(function(){
+      try{SD.seed();}catch(e){}
+      var p=(window.A&&A.page)||localStorage.getItem('lastPage')||'ziyaret';
+      if(typeof window.goto==='function')goto(p);
+      if(p==='ziyaret'&&typeof window.renderVisit==='function')renderVisit();
+      if(p==='firmalar'&&typeof window.renderFirma==='function')renderFirma();
+      if(window.NotifyBell&&NotifyBell.refresh)NotifyBell.refresh();
+    });
+  };
+
   var oldGoto=window.goto;
   if(typeof oldGoto==='function')window.goto=function(p){
   /* Ayarlar sayfası admin'e özel; tek istisna kendi profili (Profilim). */
@@ -195,18 +214,13 @@
     },0);
   };
 
-  /* Mobil pull-to-refresh — açık bir modal varken (ör. Ziyaret Edilmeyenler listesi)
-     devre dışı: aksi halde modal içinde dokunurken oluşan ufak dikey hareket
-     "aşağı çekme" sanılıp sayfayı yeniden yüklüyor, modal kapanmış gibi görünüyordu. */
-  var startY=0,pulling=false,indicator;
-  function anyModalOpen(e){
-    if(document.querySelector('.overlay:not(.hidden)'))return true;
-    var t=e&&e.target;
-    return !!(t&&t.closest&&t.closest('.overlay,.modal'));
-  }
-  document.addEventListener('touchstart',function(e){if(window.scrollY===0&&e.touches.length===1&&!anyModalOpen(e)){startY=e.touches[0].clientY;pulling=true;}},{passive:true});
-  document.addEventListener('touchmove',function(e){if(!pulling)return;var dy=e.touches[0].clientY-startY;if(dy>55){if(!indicator){indicator=document.createElement('div');indicator.className='pull-refresh';indicator.textContent='↓ Yenilemek için bırak';document.body.appendChild(indicator);}indicator.classList.add('show');}},{passive:true});
-  document.addEventListener('touchend',function(e){if(!pulling)return;pulling=false;if(indicator&&indicator.classList.contains('show')){indicator.textContent='↻ Yenileniyor...';location.reload();}else if(indicator)indicator.remove();indicator=null;},{passive:true});
+  /* Buradaki eski mobil pull-to-refresh KALDIRILDI; yerini pull-refresh.js aldı
+     (satışçı paneliyle ORTAK). Eskisinin iki sorunu vardı:
+       · location.reload() ile TÜM sayfayı yeniden yüklüyordu — açık sekme,
+         seçili ay ve filtreler sıfırlanıyor, bağlantı yavaşsa ekran boş kalıyordu.
+         Yenisi yalnız veriyi tazeleyip açık ekranı yeniden çiziyor (sdPullRefresh).
+       · touchmove passive olduğu için sayfa parmakla birlikte kayıyor, gösterge
+         sabit metin olarak yapışıyordu; yenisi hareketi parmakla takip ediyor. */
 
 
   /* Logo her zaman Ziyaret Takibi'ne döner; DK Portal mobilde yalnızca bu sayfada adın solunda görünür */

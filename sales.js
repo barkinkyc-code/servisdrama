@@ -399,4 +399,13 @@ async function doLogout(){
   try{ if(typeof pushUnsubscribeOnLogout==='function') await Promise.race([pushUnsubscribeOnLogout(),new Promise(r=>setTimeout(r,1200))]); }catch(e){}
   localStorage.removeItem('token');sessionStorage.removeItem('token');localStorage.removeItem('sd_user');sessionStorage.removeItem('sd_user');location.href='index.html';
 }
+/* Aşağı çekip yenileme (pull-refresh.js) buradan tazeler: sunucudan veriyi
+   ZORLA çek, açık olan sayfayı yeniden çiz, bildirim zilini güncelle.
+   Promise döner — gösterge yenileme bitene kadar dönmeye devam etsin diye. */
+window.sdPullRefresh=async function(){
+  await SD.remoteReady({force:true});
+  showPage(currentPage);
+  if(window.NotifyBell&&NotifyBell.refresh)NotifyBell.refresh();
+};
+
 window.showPage=showPage;window.setSalesFilter=setSalesFilter;window.showCompanyDetail=showCompanyDetail;window.closeCompanyDetail=closeCompanyDetail;window.toggleUserMenu=toggleUserMenu;window.doLogout=doLogout;

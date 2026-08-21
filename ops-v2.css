@@ -311,3 +311,35 @@
   .push-banner-acts .btn{flex:1;min-height:40px}
   .push-banner-x{width:40px;height:40px}
 }
+
+/* ══ Aşağı çekip yenileme (pull-refresh.js) ═══════════════════════════
+   Hem satışçı hem yönetici/teknisyen paneli bu dosyayı yüklüyor; hareket
+   her iki panelde de aynı görünsün diye stiller burada.
+   Gösterge sabit konumlu, ekranın üstünde gizli durur ve parmakla birlikte
+   aşağı iner. z-index modalların (300) ALTINDA: modal açıkken hareket
+   zaten devre dışı, göstergenin modalın üstüne çıkmasına gerek yok. */
+.ptr{
+  position:fixed;top:-46px;left:50%;z-index:290;
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface,#fff);border:1px solid var(--border,#e3e9f2);
+  box-shadow:0 4px 14px rgba(15,23,42,.14);
+  color:var(--text3,#8894a6);opacity:0;pointer-events:none;
+  transform:translate(-50%,0);
+}
+.ptr.closing{transition:transform .24s ease,opacity .24s ease}
+.ptr.ready{color:var(--blue,#1565d8);border-color:var(--blue,#1565d8)}
+.ptr-ring{width:19px;height:19px;display:flex}
+.ptr-ring svg{width:100%;height:100%}
+/* Yenileme sürerken parmak bırakılmış olur; halka kendi kendine döner. */
+.ptr.spin{transition:transform .2s ease;color:var(--blue,#1565d8)}
+.ptr.spin .ptr-ring{animation:ptr-spin .7s linear infinite;transform:none!important}
+@keyframes ptr-spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  /* Tarayıcı sekmesinde açıldığında Chrome'un KENDİ yenileme hareketi de
+     tetikleniyor ve sayfa iki kez yenileniyordu. Bu satır tarayıcınınkini
+     kapatır; pull-refresh.js'in hareketi tek başına kalır. (Kurulu PWA'da
+     tarayıcı hareketi zaten yok — orada bir etkisi olmaz.) */
+  html,body{overscroll-behavior-y:contain}
+}

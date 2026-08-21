@@ -222,6 +222,9 @@
 .sales-body .pw-msg.ok{background:var(--green-l);color:var(--green);}
 .sales-body .pw-msg.err{background:var(--red-l);color:var(--red);}
 
+/* Aşağı çekip yenileme göstergesinin stilleri ops-v2.css'te — o dosyayı hem
+   satışçı hem yönetici/teknisyen paneli yüklüyor, hareket her ikisinde de var. */
+
 /* ── Firma detay modalı ── */
 .sales-modal{
   position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);
