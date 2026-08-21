@@ -131,14 +131,18 @@ router.post('/', async (req, res) => {
 
       // Teknisyenin ekranına düşen bildirim. Admin tüm bildirimleri gördüğü için
       // ayrıca bir admin kopyası üretilmez (bkz. routes/notifications.js visible()).
+      // Başlık/metin sabit tutulur (aciliyete göre değişmez) — telefona düşen
+      // push bildirimi tek bakışta okunsun diye: "Ziyaret Talebi" / "{firma}
+      // firmasına öncelikli ziyaret istiyor." Satışçı adı ve not metinde YOK;
+      // bunlar talebin kendisinde (360° kart, admin listesi) hâlâ görünür.
       notifForPush = pushNotification(state, {
         recipientTechId: String(tech.id),
         recipientRole: 'tech',
         companyId,
         visitRequestId: request.id,
         type: 'visit_request',
-        title: urgency === 'high' ? 'ACİL ziyaret talebi' : 'Satışçıdan ziyaret talebi',
-        message: `${salesRepName}, ${company.name} firmasına ziyaret istiyor.` + (reason ? ` Not: ${reason}` : '')
+        title: 'Ziyaret Talebi',
+        message: `${company.name} firmasına öncelikli ziyaret istiyor.`
       });
     }, req.user.id);
     // AWAIT edilir, ateşle-unut YAPILMAZ: Vercel serverless fonksiyonu HTTP
