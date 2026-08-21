@@ -1,5 +1,5 @@
 /* ServisDrama update-safe service worker */
-const BUILD_ID = '20260821-ptr-v3';
+const BUILD_ID = '20260821-ptr-v5';
 const CACHE_NAME = `servisdrama-${BUILD_ID}`;
 const OFFLINE_FILES = [
   '/',

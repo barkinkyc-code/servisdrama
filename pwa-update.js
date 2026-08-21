@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD_ID = '20260821-ptr-v3';
+  const BUILD_ID = '20260821-ptr-v5';
   const RELOAD_KEY = `sd_pwa_reloaded_${BUILD_ID}`;
   let registration = null;
   let checking = false;

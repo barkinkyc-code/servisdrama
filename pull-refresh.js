@@ -56,34 +56,71 @@
     return !!document.querySelector('.overlay:not(.hidden), .sales-modal:not(.hidden)');
   }
 
+  /* Üç durum tek göstergede: çekilirken/yenilenirken dönen ok, bitince onay
+     işareti, hata olursa ünlem. Sonuç bildirimi için UI.toast KULLANILMAZ —
+     satışçı panelinde #toast öğesi hiç yok, çağrı sessizce düşüyor ve
+     kullanıcı hiçbir onay göremiyordu ("yenilemiyor gibi" hissi). */
+  var IKON = {
+    yenile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    hata: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.5h.01"/><circle cx="12" cy="12" r="9"/></svg>'
+  };
+
   function ensureGosterge() {
     if (gosterge && document.body.contains(gosterge)) return gosterge;
     gosterge = document.createElement('div');
     gosterge.className = 'ptr';
     gosterge.setAttribute('aria-hidden', 'true');
-    gosterge.innerHTML =
-      '<div class="ptr-ring">'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
-      + '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>'
-      + '</div>';
+    gosterge.innerHTML = '<div class="ptr-ring">' + IKON.yenile + '</div>';
     document.body.appendChild(gosterge);
     return gosterge;
   }
 
+  /* Mobilde .topbar position:fixed, 76px yüksekliğinde ve z-index:3000
+     (style.css v19 bloğu). Gösterge bunun ALTINDA kalırsa kullanıcı çekerken
+     hiçbir şey görmüyor — "yenilemiyor" hissinin sebebi buydu. Bu yüzden
+     gösterge hem çubuğun ÜSTÜNE çizilir (CSS z-index) hem de yolculuğuna
+     çubuğun altından, yani gizliden başlar. */
+  function ustCubukYuksekligi() {
+    var tb = document.getElementById('topbar');
+    if (!tb) return 0;
+    var cs = global.getComputedStyle(tb);
+    if (cs.position !== 'fixed') return 0;   // masaüstünde sticky; hareket zaten kapalı
+    return Math.round(tb.getBoundingClientRect().height);
+  }
+  function taban() { return ustCubukYuksekligi() - 48; }
+
+  /* İçerik de parmakla birlikte iner. Yalnız göstergenin oynadığı, sayfanın
+     taş gibi durduğu bir hareket "uygulama donmuş" gibi duruyordu; asıl
+     profesyonel his içeriğin parmağı takip etmesinden geliyor. */
+  function icerik() { return document.getElementById('mainContent'); }
+  function icerikKaydir(px, yumusak) {
+    var m = icerik();
+    if (!m) return;
+    m.classList.toggle('ptr-shift', !!yumusak);
+    m.style.transform = px ? 'translateY(' + Math.round(px) + 'px)' : '';
+  }
+
   function ciz(px, hazir) {
     var g = ensureGosterge();
-    g.style.transform = 'translate(-50%,' + Math.round(px) + 'px)';
-    g.style.opacity = String(Math.min(1, px / ESIK));
-    g.querySelector('.ptr-ring').style.transform = 'rotate(' + Math.round(px * 2.6) + 'deg)';
+    g.classList.remove('closing');
+    g.style.transform = 'translate(-50%,' + Math.round(taban() + px) + 'px)';
+    g.style.opacity = String(Math.min(1, px / (ESIK * 0.7)));
+    g.querySelector('.ptr-ring').style.transform = 'rotate(' + Math.round(px * 3.2) + 'deg)';
     g.classList.toggle('ready', !!hazir);
+    icerikKaydir(px * 0.9, false);
   }
 
   function gizle() {
     var g = ensureGosterge();
     g.classList.add('closing');
-    g.style.transform = 'translate(-50%,0)';
+    g.style.transform = 'translate(-50%,' + taban() + 'px)';
     g.style.opacity = '0';
-    global.setTimeout(function () { g.classList.remove('closing', 'ready', 'spin'); }, 260);
+    icerikKaydir(0, true);
+    global.setTimeout(function () {
+      g.classList.remove('closing', 'ready', 'spin');
+      var m = icerik(); if (m) m.classList.remove('ptr-shift');
+    }, 300);
   }
 
   function sifirla() { izleniyor = false; mesafe = 0; kap = null; }
@@ -91,10 +128,12 @@
   function yenile() {
     yenileniyor = true;
     var g = ensureGosterge();
-    g.classList.remove('ready');
+    g.classList.remove('ready', 'closing');
     g.classList.add('spin');
-    g.style.transform = 'translate(-50%,' + ESIK + 'px)';
+    g.style.transform = 'translate(-50%,' + (taban() + ESIK) + 'px)';
     g.style.opacity = '1';
+    // Parmak bırakıldı: içerik serbest düşüşe geçmesin, sabit bir basamağa otursun.
+    icerikKaydir(ESIK * 0.72, true);
 
     var is;
     try {
@@ -103,12 +142,30 @@
         : (global.SD && SD.remoteReady ? SD.remoteReady({ force: true }) : null);
     } catch (e) { is = null; }
 
-    // En az 450 ms dönsün: anında biten bir yenileme "hiçbir şey olmadı" gibi
+    // En az 650 ms dönsün: anında biten bir yenileme "hiçbir şey olmadı" gibi
     // görünüyor, kullanıcı tekrar tekrar çekiyordu.
-    var enAz = new Promise(function (r) { global.setTimeout(r, 450); });
-    Promise.all([Promise.resolve(is).catch(function () {}), enAz])
-      .then(function () { yenileniyor = false; gizle(); })
-      .catch(function () { yenileniyor = false; gizle(); });
+    var enAz = new Promise(function (r) { global.setTimeout(r, 650); });
+    /* Dönen halka, kapanmadan önce 750 ms boyunca onay işaretine dönüşür.
+       Kullanıcının gözü zaten oradadır; "gerçekten yenilendi mi" diye tekrar
+       tekrar çekmesinin önüne geçen tek şey bu görünür sonuç. */
+    function bitir(basarili) {
+      yenileniyor = false;
+      var gg = ensureGosterge();
+      gg.classList.remove('spin');
+      gg.classList.add(basarili ? 'done' : 'fail');
+      gg.querySelector('.ptr-ring').innerHTML = basarili ? IKON.ok : IKON.hata;
+      global.setTimeout(function () {
+        gizle();
+        global.setTimeout(function () {
+          gg.classList.remove('done', 'fail');
+          gg.querySelector('.ptr-ring').innerHTML = IKON.yenile;
+        }, 320);
+      }, 750);
+    }
+    Promise.resolve(is)
+      .then(function () { return enAz; })
+      .then(function () { bitir(true); })
+      .catch(function () { enAz.then(function () { bitir(false); }); });
   }
 
   function onStart(e) {

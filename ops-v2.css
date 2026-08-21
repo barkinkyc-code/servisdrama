@@ -315,26 +315,41 @@
 /* ══ Aşağı çekip yenileme (pull-refresh.js) ═══════════════════════════
    Hem satışçı hem yönetici/teknisyen paneli bu dosyayı yüklüyor; hareket
    her iki panelde de aynı görünsün diye stiller burada.
-   Gösterge sabit konumlu, ekranın üstünde gizli durur ve parmakla birlikte
-   aşağı iner. z-index modalların (300) ALTINDA: modal açıkken hareket
-   zaten devre dışı, göstergenin modalın üstüne çıkmasına gerek yok. */
+
+   z-index KRİTİK: mobilde .topbar position:fixed, 76px ve z-index:3000
+   (style.css v19 bloğu). Gösterge bunun altında kalırsa kullanıcı çekerken
+   HİÇBİR ŞEY görmüyor. 3001 = çubuğun üstünde, hamburgerin (3003) ve
+   menü açılırının (3010) altında — hareket zaten menü açıkken kapalı.
+   Modallar (.overlay) açıkken de hareket devre dışı, çakışma yok.
+   Dikey konumu pull-refresh.js hesaplar: yolculuk çubuğun ALTINDAN,
+   yani gizliden başlar ve aşağı doğru görünür alana iner. */
 .ptr{
-  position:fixed;top:-46px;left:50%;z-index:290;
-  width:38px;height:38px;border-radius:50%;
+  position:fixed;top:0;left:50%;z-index:3001;
+  width:42px;height:42px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   background:var(--surface,#fff);border:1px solid var(--border,#e3e9f2);
-  box-shadow:0 4px 14px rgba(15,23,42,.14);
+  box-shadow:0 6px 20px rgba(15,23,42,.18);
   color:var(--text3,#8894a6);opacity:0;pointer-events:none;
   transform:translate(-50%,0);
 }
-.ptr.closing{transition:transform .24s ease,opacity .24s ease}
-.ptr.ready{color:var(--blue,#1565d8);border-color:var(--blue,#1565d8)}
-.ptr-ring{width:19px;height:19px;display:flex}
+.ptr.closing{transition:transform .28s cubic-bezier(.22,.75,.3,1),opacity .28s ease}
+/* Eşiği geçti: bırakınca yenilenecek. Renk + hafif büyüme ile net bir sinyal. */
+.ptr.ready{color:var(--blue,#1565d8);border-color:var(--blue,#1565d8);box-shadow:0 6px 22px rgba(21,101,216,.28)}
+.ptr-ring{width:21px;height:21px;display:flex}
 .ptr-ring svg{width:100%;height:100%}
 /* Yenileme sürerken parmak bırakılmış olur; halka kendi kendine döner. */
-.ptr.spin{transition:transform .2s ease;color:var(--blue,#1565d8)}
-.ptr.spin .ptr-ring{animation:ptr-spin .7s linear infinite;transform:none!important}
+.ptr.spin{transition:transform .28s cubic-bezier(.22,.75,.3,1);color:var(--blue,#1565d8);border-color:var(--blue,#1565d8)}
+.ptr.spin .ptr-ring{animation:ptr-spin .75s linear infinite;transform:none!important}
+/* Bitiş: halka onay işaretine (yeşil) ya da hata işaretine (kırmızı) dönüşür
+   ve kapanmadan önce kısa süre öyle kalır. */
+.ptr.done{color:var(--green,#17814a);border-color:var(--green,#17814a);box-shadow:0 6px 22px rgba(23,129,74,.26)}
+.ptr.fail{color:var(--red,#c33434);border-color:var(--red,#c33434);box-shadow:0 6px 22px rgba(195,52,52,.26)}
+.ptr.done .ptr-ring,.ptr.fail .ptr-ring{animation:ptr-pop .3s cubic-bezier(.2,1.5,.4,1);transform:none!important}
+@keyframes ptr-pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes ptr-spin{to{transform:rotate(360deg)}}
+/* İçerik parmakla birlikte iner; bırakılınca/bitince yumuşak geri yaylanır.
+   Sınıf yalnız o iki anda takılır — çekerken parmağı 1:1 takip etsin diye. */
+#mainContent.ptr-shift{transition:transform .3s cubic-bezier(.22,.75,.3,1)}
 
 @media(max-width:768px){
   /* Tarayıcı sekmesinde açıldığında Chrome'un KENDİ yenileme hareketi de
