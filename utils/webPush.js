@@ -26,8 +26,18 @@ function ensureConfigured() {
     if (!warned) { console.warn('[push] VAPID anahtarları tanımlı değil — push bildirimleri kapalı.'); warned = true; }
     return false;
   }
-  webpush.setVapidDetails(VAPID_SUBJECT || 'mailto:destek@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-  configured = true;
+  try {
+    // web-push, subject 'mailto:' veya 'https:' ile başlamıyorsa BURADA
+    // senkron olarak fırlatıyor. Bu deneme olmadan hata, sendPushForNotification'ı
+    // çağıran her yerdeki .catch(()=>{}) tarafından SESSİZCE yutuluyordu —
+    // hiçbir log yok, push hiç gitmiyor, kimse neden bilmiyordu. Şimdi en
+    // azından Vercel fonksiyon loglarında görünür.
+    webpush.setVapidDetails(VAPID_SUBJECT || 'mailto:destek@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    configured = true;
+  } catch (e) {
+    if (!warned) { console.error('[push] VAPID yapılandırması geçersiz:', e.message, '— VAPID_SUBJECT "mailto:" veya "https:" ile başlamalı.'); warned = true; }
+    return false;
+  }
   return true;
 }
 
@@ -73,23 +83,54 @@ function prefsAllow(prefs, type) {
    visible()'da getSalesRepIdentitySet ile açıp kapatıyor; push abonelikleri
    ise her zaman GERÇEK giriş id'siyle (JWT sub) tutulur, bu yüzden aynı
    genişletme burada da yapılmazsa satışçıya giden push'lar sessizce
-   hiçbir aboneliğe eşleşmez. recipientTechId ise sd_te kaydı — giriş
-   kullanıcısına sd_users[].techId üzerinden geri çevrilir. */
-function subscriberUserIds(state, notif) {
-  const ids = new Set();
-  if (notif.recipientUserId) {
-    const raw = String(notif.recipientUserId);
-    ids.add(raw);
-    const rep = (state.sd_st || []).find(r =>
-      String(r?.id || '') === raw || String(r?.userId || '') === raw || String(r?.legacyUserId || '') === raw);
-    if (rep && rep.userId) ids.add(String(rep.userId));
+   hiçbir aboneliğe eşleşmez. Satışçı tarafında rep.userId GÜVENİLİRDİR:
+   routes/sales.js hem SQL users satırını hem sd_st.userId'yi TEK işlemde
+   oluşturur ve her GET /api/sales'te hydrateProfiles ile kendini onarır. */
+function subscriberMatchesUserId(state, sub, recipientUserId) {
+  const raw = String(recipientUserId);
+  if (String(sub.userId) === raw) return true;
+  const rep = (state.sd_st || []).find(r =>
+    String(r?.id || '') === raw || String(r?.userId || '') === raw || String(r?.legacyUserId || '') === raw);
+  return !!(rep && rep.userId && String(sub.userId) === String(rep.userId));
+}
+
+/* Teknisyen tarafında ise sd_users[].id GÜVENİLMEZ: admin.js saveTech()
+   teknisyen eklerken sd_users kaydına 'u'+Date.now() gibi RASTGELE bir id
+   yazıyor — bunun gerçek SQL/JWT login id'siyle (push aboneliğinin
+   userId'si) hiçbir ilişkisi yok, sales tarafındaki gibi bir eşleme/onarım
+   mekanizması da yok. Kod tabanındaki ÜÇ farklı techIdentityForUser kopyası
+   (routes/notifications.js, routes/state.js, routes/visit-requests.js) bu
+   yüzden zaten kimliği sd_users[].id ÜZERİNDEN DEĞİL, KULLANICI ADI
+   üzerinden çözüyor — orijinal iki teknisyen (semih.aglan/suleyman.kucuk)
+   için ayrıca kod/username geriye dönük eşlemesiyle. Push abonelikleri de
+   aynı yoldan, kendi username'i (routes/push.js subscribe'da kaydedilir)
+   üzerinden teknisyen id'sine çözülerek eşleştirilir — sd_users[].id hiç
+   kullanılmaz. */
+function techIdOfUsername(state, username) {
+  username = String(username || '').toLowerCase();
+  if (!username) return '';
+  const users = Array.isArray(state.sd_users) ? state.sd_users : [];
+  const techs = Array.isArray(state.sd_te) ? state.sd_te : [];
+  const appUser = users.find(u => String(u?.username || '').toLowerCase() === username);
+  let tech = appUser && techs.find(t => String(t.id) === String(appUser.techId));
+  if (!tech) {
+    if (username === 'semih.aglan') tech = techs.find(t => String(t.code) === '1015');
+    if (username === 'suleyman' || username === 'suleyman.kucuk') tech = techs.find(t => String(t.code) === '1016');
   }
-  if (notif.recipientTechId) {
-    (state.sd_users || []).forEach(u => {
-      if (String(u?.techId || '') === String(notif.recipientTechId)) ids.add(String(u.id));
-    });
-  }
-  return Array.from(ids);
+  return tech ? String(tech.id) : '';
+}
+function subscriberMatchesTech(state, sub, recipientTechId) {
+  const tid = techIdOfUsername(state, sub.username);
+  return !!(tid && tid === String(recipientTechId));
+}
+
+function eligibleSubscriptions(state, notif) {
+  const subs = state.sd_push_subscriptions || [];
+  return subs.filter(sub => {
+    if (notif.recipientUserId && subscriberMatchesUserId(state, sub, notif.recipientUserId)) return true;
+    if (notif.recipientTechId && subscriberMatchesTech(state, sub, notif.recipientTechId)) return true;
+    return false;
+  });
 }
 
 function targetUrl(role, companyId) {
@@ -103,39 +144,46 @@ function targetUrl(role, companyId) {
    gerekir). Başarısız/geçersiz (404/410) abonelikler otomatik temizlenir. */
 async function sendPushForNotification(notif) {
   if (!notif) return { sent: 0 };
-  if (!ensureConfigured()) return { sent: 0, reason: 'not-configured' };
-  const { state } = await readState();
-  if (!prefsAllow(state.sd_push_prefs, notif.type)) return { sent: 0, reason: 'pref-off' };
+  try {
+    if (!ensureConfigured()) return { sent: 0, reason: 'not-configured' };
+    const { state } = await readState();
+    if (!prefsAllow(state.sd_push_prefs, notif.type)) return { sent: 0, reason: 'pref-off' };
 
-  const userIds = subscriberUserIds(state, notif);
-  if (!userIds.length) return { sent: 0 };
-  const subs = (state.sd_push_subscriptions || []).filter(s => userIds.includes(String(s.userId)));
-  if (!subs.length) return { sent: 0 };
+    if (!notif.recipientUserId && !notif.recipientTechId) { console.warn('[push] '+notif.type+' — bildirimin alıcısı yok (recipientUserId/recipientTechId boş).'); return { sent: 0, reason: 'no-recipient' }; }
+    const subs = eligibleSubscriptions(state, notif);
+    if (!subs.length) { console.warn('[push] '+notif.type+' — hedeflenen kullanıcının kayıtlı push aboneliği yok (recipientUserId='+(notif.recipientUserId||'-')+' recipientTechId='+(notif.recipientTechId||'-')+').'); return { sent: 0, reason: 'no-subscription' }; }
 
-  let sent = 0;
-  const dead = [];
-  await Promise.all(subs.map(async sub => {
-    const payload = JSON.stringify({
-      title: notif.title || 'ServisDrama',
-      body: notif.message || '',
-      tag: notif.type || 'servisdrama',
-      url: targetUrl(sub.role, notif.companyId)
-    });
-    try {
-      await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
-      sent++;
-    } catch (e) {
-      if (e.statusCode === 404 || e.statusCode === 410) dead.push(sub.endpoint);
-      else console.warn('[push] gönderilemedi:', e.statusCode || e.message);
+    let sent = 0;
+    const dead = [];
+    await Promise.all(subs.map(async sub => {
+      const payload = JSON.stringify({
+        title: notif.title || 'ServisDrama',
+        body: notif.message || '',
+        tag: notif.type || 'servisdrama',
+        url: targetUrl(sub.role, notif.companyId)
+      });
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
+        sent++;
+      } catch (e) {
+        if (e.statusCode === 404 || e.statusCode === 410) dead.push(sub.endpoint);
+        else console.warn('[push] gönderilemedi:', e.statusCode || e.message);
+      }
+    }));
+
+    if (dead.length) {
+      await mutateState(s => {
+        s.sd_push_subscriptions = (s.sd_push_subscriptions || []).filter(x => !dead.includes(x.endpoint));
+      }, null).catch(() => {});
     }
-  }));
-
-  if (dead.length) {
-    await mutateState(s => {
-      s.sd_push_subscriptions = (s.sd_push_subscriptions || []).filter(x => !dead.includes(x.endpoint));
-    }, null).catch(() => {});
+    if (sent) console.log('[push] gönderildi:', notif.type, '→', sent, 'cihaz');
+    return { sent, cleaned: dead.length };
+  } catch (e) {
+    // Buraya kadar sızan HER ŞEY (readState hatası, beklenmeyen bir istisna…)
+    // eskiden çağıranların .catch(()=>{}) zinciriyle iz bırakmadan yutuluyordu.
+    console.error('[push] sendPushForNotification beklenmeyen hata:', e && e.stack || e);
+    return { sent: 0, reason: 'error' };
   }
-  return { sent, cleaned: dead.length };
 }
 
 module.exports = { sendPushForNotification, ensureConfigured, categories, categoryOf, prefsAllow };

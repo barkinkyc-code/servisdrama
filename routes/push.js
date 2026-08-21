@@ -31,6 +31,9 @@ router.post('/subscribe', async (req, res) => {
       state.sd_push_subscriptions.push({
         id: 'push_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
         userId: String(req.user.id),
+        // Teknisyen hedefleme username ÜZERİNDEN çözülür (bkz. utils/webPush.js
+        // techIdOfUsername) — sd_users[].id giriş id'siyle ilişkili değil.
+        username: String(req.user.username || '').toLowerCase(),
         role: String(req.user.role || '').toLowerCase(),
         endpoint: sub.endpoint,
         keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) },

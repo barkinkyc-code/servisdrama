@@ -122,12 +122,15 @@ async function init() {
   if (isIOS() && !isStandalone()) { renderInstallPrompt(); return; }
 
   if (Notification.permission === 'granted') {
-    // İzin zaten verilmiş — banner göstermeden sessizce abone olduğundan emin ol.
+    // İzin zaten verilmiş — banner göstermeden sessizce (yeniden) abone ol.
+    // KOŞULSUZ çağrılır (yalnız "abonelik yoksa" değil): sunucudaki kayıt
+    // /api/push/subscribe her çağrıldığında endpoint'e göre TAZELENİR —
+    // böylece geçmişte eksik alanla (ör. username) kaydedilmiş bir abonelik
+    // kullanıcı elle bir şey yapmadan, bir sonraki sayfa açılışında düzelir.
     try {
       const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (!sub) await subscribeAndSave(reg);
-    } catch (e) {}
+      await subscribeAndSave(reg);
+    } catch (e) { console.warn('[push] yenileme başarısız', e); }
     return;
   }
   renderEnablePrompt();
